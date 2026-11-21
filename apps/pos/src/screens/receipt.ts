@@ -4,7 +4,8 @@ import type { Catalog, OrderDoc } from "../lib/types";
 
 export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string): string[] {
   const r: ReceiptOrder = {
-    number: o.number, at: new Date(o.completed_at ?? o.opened_at), salesType: o.sales_type_name, billName: o.bill_name,
+    number: o.number, at: new Date(o.completed_at ?? o.opened_at), salesType: o.sales_type_name,
+    billName: o.table_name ? `Table ${o.table_name}${o.guests ? ` (${o.guests} pax)` : ""}${o.customer_name ? ` · ${o.customer_name}` : ""}` : o.bill_name,
     servedBy: o.served_by_name, cashier: o.closed_by_name ?? o.opened_by_name,
     lines: o.lines.map((l) => ({
       name: lineLabel(l), qty: l.qty, unitPrice: l.unit_price + l.modifiers_price,

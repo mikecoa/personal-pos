@@ -31,7 +31,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { label: "Checkout", href: "/settings/checkout" },
         { label: "Payment methods", href: "/settings/payments" },
         { label: "Receipt", href: "/settings/receipt" },
-        { label: "Tablets", href: "/settings/tablets" },
+        { label: "Tables", href: "/settings/tables" },
+        { label: "POS tablets", href: "/settings/tablets" },
       ],
     });
   }

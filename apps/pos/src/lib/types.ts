@@ -31,8 +31,13 @@ export type Catalog = {
   discounts: Discount[];
   modifier_sets: ModifierSet[];
   items: Item[];
+  table_areas?: { id: string; name: string }[];
+  tables?: DiningTable[];
   employees: Employee[];
 };
+
+/** pos_x / pos_y: cell on the area's floor map (null = placed automatically in the first free cell). */
+export type DiningTable = { id: string; name: string; area_id: string | null; seats: number; shape: "square" | "round" | "long"; pos_x?: number | null; pos_y?: number | null };
 
 export type Device = { id: string; name: string; receipt_prefix: string; location_id: string; location_name: string };
 
@@ -62,6 +67,8 @@ export type OrderDoc = {
   total: number; paid: number; change_due: number;
   lines: OrderLine[]; discounts: BillDiscount[]; voids: OrderVoid[]; payments: OrderPayment[];
   shift_id?: string | null;
+  /** Table the customers are seated at (name is a snapshot for receipts if the table is later removed). */
+  table_id?: string | null; table_name?: string | null; guests?: number | null;
 };
 
 export type CashMove = { id: string; kind: "in" | "out"; amount: number; description: string; employee_id: string | null; employee_name: string | null; moved_at: string };

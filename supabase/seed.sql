@@ -242,3 +242,22 @@ begin
     end loop;
   end loop;
 end $$;
+
+-- ── Tables (Main Café): Indoor 1–8 + Sofa, Teras T1–T4 ──────────────────
+do $$
+declare
+  acc uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
+  loc uuid := 'bbbbbbbb-0000-0000-0000-000000000001';
+  indoor uuid; teras uuid; i int;
+begin
+  insert into public.table_areas (account_id, location_id, name, sort_order) values (acc, loc, 'Indoor', 1) returning id into indoor;
+  insert into public.table_areas (account_id, location_id, name, sort_order) values (acc, loc, 'Teras', 2) returning id into teras;
+  for i in 1..8 loop
+    insert into public.dining_tables (account_id, location_id, area_id, name, seats, shape, sort_order)
+      values (acc, loc, indoor, i::text, case when i <= 4 then 2 else 4 end, case when i <= 4 then 'round' else 'square' end::app.table_shape, i);
+  end loop;
+  insert into public.dining_tables (account_id, location_id, area_id, name, seats, shape, sort_order) values (acc, loc, indoor, 'Sofa', 6, 'long', 9);
+  for i in 1..4 loop
+    insert into public.dining_tables (account_id, location_id, area_id, name, seats, sort_order) values (acc, loc, teras, 'T' || i, 4, 10 + i);
+  end loop;
+end $$;

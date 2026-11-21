@@ -6,3 +6,4 @@ export * from "./cart";
 export * from "./receipt";
 export * from "./shift";
 export * from "./sync";
+export * from "./floor";

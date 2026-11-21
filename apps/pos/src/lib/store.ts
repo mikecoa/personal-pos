@@ -6,7 +6,7 @@ import * as db from "./db";
 import Constants from "expo-constants";
 import { supabase } from "./supabase";
 import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice } from "./order";
-import type { Catalog, Device, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
+import type { Catalog, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
 
 type Phase = "loading" | "setup" | "locked" | "selling";
 export type State = {
@@ -217,6 +217,19 @@ export function saveBill(name: string) {
   refreshLocal();
   void syncNow();
 }
+/**
+ * Save the bill on screen at a table (or with just a name when `table` is null). Choosing a
+ * table sets guests and an optional customer; the bill is named "T1 · Pak Budi".
+ */
+export function saveBillAt(opts: { table: DiningTable | null; guests: number | null; customer: string | null; name: string }) {
+  const o = state.order!;
+  const t = opts.table;
+  if (t && billsAt(t.id).some((b) => b.id !== o.id)) throw new Error(`${t.name} already has a bill. Pick another table.`);
+  const name = t ? (opts.customer ? `${t.name} · ${opts.customer}` : t.name) : opts.name;
+  set({ order: { ...o, table_id: t?.id ?? null, table_name: t?.name ?? null, guests: t ? opts.guests : null,
+    customer_name: t ? opts.customer : o.customer_name } });
+  saveBill(name);
+}
 export function openBill(id: string) {
   const o = db.getOrder(id);
   if (o) set({ order: reprice(o, state.catalog!) });
@@ -231,6 +244,115 @@ export function cancelBill(reason: string) {
   set({ order: null });
   refreshLocal();
   void syncNow();
+}
+
+// ───────────────────────────────────────────── tables
+/** Open bills seated at a table (several are possible when tablets were offline). */
+export const billsAt = (tableId: string) => state.openOrders.filter((o) => o.table_id === tableId);
+
+/**
+ * Seat customers at a table. Starts a new bill there, or puts the order on screen at the table
+ * if it hasn't been saved yet. The bill is saved right away so every tablet sees the table as taken.
+ */
+export function seatAtTable(table: DiningTable, guests: number | null, customer: string | null) {
+  const cur = state.order;
+  if (cur && cur.version > 0) throw new Error("Save or close the bill on screen first.");
+  const base = cur ?? ensureOrder();
+  const seated: OrderDoc = reprice({ ...base, table_id: table.id, table_name: table.name, guests, customer_name: customer,
+    bill_name: customer ? `${table.name} · ${customer}` : table.name }, state.catalog!);
+  set({ order: seated });
+  saveBill(seated.bill_name!);
+  openBill(seated.id);
+}
+
+export type FloorChange =
+  | { kind: "area"; op: "save"; id?: string; name: string }
+  | { kind: "area"; op: "delete"; id: string }
+  | { kind: "table"; op: "save"; id?: string; name: string; seats: number; shape: DiningTable["shape"]; area_id: string | null }
+  | { kind: "table"; op: "delete"; id: string };
+
+/** Natural order: 2 before 10, T2 before T10. */
+export const byTableName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+
+/** The table's current name (it may have been renamed since the bill was seated). */
+export const tableLabel = (o: Pick<OrderDoc, "table_id" | "table_name">) =>
+  state.catalog?.tables?.find((t) => t.id === o.table_id)?.name ?? o.table_name ?? "";
+
+/**
+ * Change the floor plan (needs a connection: every tablet shares it). The server returns the new
+ * plan, which replaces the one in the catalog straight away.
+ */
+export async function editFloorPlan(change: FloorChange) {
+  if (change.kind === "table" && change.op === "delete" && billsAt(change.id).length) {
+    throw new Error("This table has an open bill. Move or close it first.");
+  }
+  await applyFloorPlan("pos_table_setup", change);
+}
+
+export type BulkTableChange =
+  | { op: "update"; ids: string[]; seats?: number; set_area?: boolean; area_id?: string | null }
+  | { op: "delete"; ids: string[] };
+
+/** Change or delete several selected tables at once (all or nothing). */
+export async function editTables(change: BulkTableChange) {
+  if (change.op === "delete") {
+    const busy = (state.catalog?.tables ?? []).filter((t) => change.ids.includes(t.id) && billsAt(t.id).length).map((t) => t.name);
+    if (busy.length) throw new Error(`Open bill on ${busy.join(", ")}. Move or close it first.`);
+  }
+  await applyFloorPlan("pos_tables_bulk", change);
+}
+
+/**
+ * Save positions on the floor map. The tablet shows the new layout at once; if the server
+ * refuses (or there is no connection) the previous layout comes back and the error is thrown.
+ */
+export async function saveLayout(cells: { id: string; x: number; y: number }[]) {
+  const before = state.catalog!;
+  const at = new Map(cells.map((c) => [c.id, c]));
+  const tables = (before.tables ?? []).map((t) => (at.has(t.id) ? { ...t, pos_x: at.get(t.id)!.x, pos_y: at.get(t.id)!.y } : t));
+  set({ catalog: { ...before, tables } });
+  try { await applyFloorPlan("pos_tables_layout", cells); }
+  catch (e) { set({ catalog: before }); throw e; }
+}
+
+async function applyFloorPlan(fn: "pos_table_setup" | "pos_tables_bulk" | "pos_tables_layout", p: object) {
+  if (!can("tables_manage")) throw new Error("Your role can't edit tables.");
+  const { data, error } = await supabase.rpc(fn, { p_device: state.device!.id, p: p as never });
+  if (error) {
+    // Server refusals carry a Postgres code; a network failure has none.
+    if (!error.code) throw new Error("No connection. Table changes need internet; try again in a moment.");
+    if (classifySyncError(error) === "auth") throw new Error("This tablet needs to sign in again (sync badge) before tables can be edited.");
+    throw new Error(error.message);
+  }
+  const plan = data as unknown as Pick<Catalog, "table_areas" | "tables">;
+  const catalog = { ...state.catalog!, table_areas: plan.table_areas, tables: plan.tables };
+  db.kvSet("catalog", catalog);
+  set({ catalog });
+}
+
+/**
+ * Move the bill on screen (and its customers) to another table. For a saved bill this is a new
+ * version of the bill, so other tablets pick up the move on their next sync.
+ */
+export function moveToTable(table: DiningTable) {
+  const o = state.order!;
+  const label = o.customer_name ? `${table.name} · ${o.customer_name}` : table.name;
+  const moved: OrderDoc = { ...o, table_id: table.id, table_name: table.name, bill_name: label };
+  if (o.version === 0) { set({ order: moved }); return; }
+  const next: OrderDoc = { ...moved, version: o.version + 1 };
+  db.saveOrder(next);
+  set({ order: reprice(next, state.catalog!) });
+  refreshLocal();
+  void syncNow();
+}
+
+/** Change guests / customer name on the bill on screen (saved bills get a new version). */
+export function updateSeating(guests: number | null, customer: string | null) {
+  const o = state.order!;
+  const label = o.table_name ? (customer ? `${o.table_name} · ${customer}` : o.table_name) : o.bill_name;
+  const next: OrderDoc = { ...o, guests, customer_name: customer, bill_name: label, version: o.version > 0 ? o.version + 1 : 0 };
+  if (o.version > 0) { db.saveOrder(next); refreshLocal(); void syncNow(); }
+  set({ order: reprice(next, state.catalog!) });
 }
 
 // ───────────────────────────────────────────── payment

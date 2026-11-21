@@ -44,7 +44,7 @@ Backoffice → Tablets → **Revoke**. From that moment it can't upload or downl
 ## Checks for developers
 
 ```bash
-pnpm db:test            # database: isolation, catalog, sales, shifts/refunds, reports, hardening
+pnpm db:test            # database: isolation, catalog, sales, shifts/refunds, reports, hardening, tables
 pnpm test               # unit: money, pricing, receipts, CSV, refunds/shifts, sync decisions
 pnpm test:integration   # two simulated tablets against the running local Supabase
 pnpm typecheck
