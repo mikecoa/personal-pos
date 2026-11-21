@@ -766,6 +766,9 @@ isOneToOne: false
 "pos_open_orders":
 { Args: { "p_device": string }; Returns: Json
                            },
+"pos_table_setup":
+{ Args: { "p": Json,"p_device": string }; Returns: Json
+                           },
 "register_device":
 { Args: { "p_location": string,"p_name": string }; Returns: {
               "account_id": string,

@@ -252,6 +252,42 @@ export function seatAtTable(table: DiningTable, guests: number | null, customer:
   openBill(seated.id);
 }
 
+export type FloorChange =
+  | { kind: "area"; op: "save"; id?: string; name: string }
+  | { kind: "area"; op: "delete"; id: string }
+  | { kind: "table"; op: "save"; id?: string; name: string; seats: number; shape: DiningTable["shape"]; area_id: string | null }
+  | { kind: "table"; op: "delete"; id: string };
+
+/** Natural order: 2 before 10, T2 before T10. */
+export const byTableName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+
+/** The table's current name (it may have been renamed since the bill was seated). */
+export const tableLabel = (o: Pick<OrderDoc, "table_id" | "table_name">) =>
+  state.catalog?.tables?.find((t) => t.id === o.table_id)?.name ?? o.table_name ?? "";
+
+/**
+ * Change the floor plan (needs a connection: every tablet shares it). The server returns the new
+ * plan, which replaces the one in the catalog straight away.
+ */
+export async function editFloorPlan(change: FloorChange) {
+  if (!can("tables_manage")) throw new Error("Your role can't edit tables.");
+  if (change.kind === "table" && change.op === "delete") {
+    const busy = billsAt(change.id);
+    if (busy.length) throw new Error("This table has an open bill. Move or close it first.");
+  }
+  const { data, error } = await supabase.rpc("pos_table_setup", { p_device: state.device!.id, p: change as never });
+  if (error) {
+    // Server refusals carry a Postgres code; a network failure has none.
+    if (!error.code) throw new Error("No connection. Table changes need internet; try again in a moment.");
+    if (classifySyncError(error) === "auth") throw new Error("This tablet needs to sign in again (sync badge) before tables can be edited.");
+    throw new Error(error.message);
+  }
+  const plan = data as unknown as Pick<Catalog, "table_areas" | "tables">;
+  const catalog = { ...state.catalog!, table_areas: plan.table_areas, tables: plan.tables };
+  db.kvSet("catalog", catalog);
+  set({ catalog });
+}
+
 /**
  * Move the bill on screen (and its customers) to another table. For a saved bill this is a new
  * version of the bill, so other tablets pick up the move on their next sync.

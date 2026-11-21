@@ -1,7 +1,7 @@
 -- Table management: set-up permissions, seating and moving bills, safety on deleted tables.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(21);
 
 insert into auth.users (id, email, aud, role) values
   ('a0000000-0000-0000-0000-00000000000a', 'ownerA@t.test', 'authenticated', 'authenticated'),
@@ -63,6 +63,26 @@ select is((select coalesce(table_id::text, 'none') from public.orders), 'none', 
 select lives_ok($$ select public.upsert_order('de000000-0000-0000-0000-000000000001', pg_temp.bill(4, '7b000000-0000-0000-0000-000000000002', '2')) $$, 'back on table 2');
 delete from public.dining_tables where id = '7b000000-0000-0000-0000-000000000002';
 select is((select coalesce(table_id::text, 'none') || '/' || table_name from public.orders), 'none/2', 'deleting the table keeps the bill and its table name');
+
+-- ── editing from the tablet (pos_table_setup) ─────────────────────────
+select pg_temp.act_as('c0000000-0000-0000-0000-00000000000c');
+select throws_ok($$ select public.pos_table_setup('de000000-0000-0000-0000-000000000001', '{"kind":"area","name":"Teras"}') $$, '42501', null,
+  'staff sign-in cannot edit tables from a tablet');
+select pg_temp.act_as('a0000000-0000-0000-0000-00000000000a');
+select is(jsonb_array_length(public.pos_table_setup('de000000-0000-0000-0000-000000000001', '{"kind":"area","name":"Teras"}')->'table_areas'), 2,
+  'add an area, get the new floor plan back');
+select throws_ok($$ select public.pos_table_setup('de000000-0000-0000-0000-000000000001', '{"kind":"area","name":"teras"}') $$, '23505', null,
+  'area names are unique (ignoring case)');
+select lives_ok($$ select public.pos_table_setup('de000000-0000-0000-0000-000000000001',
+  jsonb_build_object('kind','table','name','T1','seats',2,'shape','round','area_id',(select id from public.table_areas where name = 'Teras'))) $$, 'add a table to the area');
+select throws_ok($$ select public.pos_table_setup('de000000-0000-0000-0000-000000000001',
+  '{"kind":"table","name":"T2","seats":2,"area_id":"a7000000-0000-0000-0000-000000000099"}') $$, 'P0002', null, 'unknown area is refused');
+select lives_ok($$ select public.pos_table_setup('de000000-0000-0000-0000-000000000001',
+  '{"kind":"table","op":"save","id":"7b000000-0000-0000-0000-000000000001","name":"1A","seats":6,"area_id":null}') $$, 'rename and resize table 1');
+select is((select name || '/' || seats || '/' || coalesce(area_id::text, 'none') from public.dining_tables where id = '7b000000-0000-0000-0000-000000000001'), '1A/6/none', 'table 1 updated');
+select is(public.pos_table_setup('de000000-0000-0000-0000-000000000001', '{"kind":"table","op":"delete","id":"7b000000-0000-0000-0000-000000000009"}')->'tables' @> '[{"name":"A2-T"}]', false,
+  'another location''s table can''t be deleted or seen (no error, nothing happens)');
+select is((select count(*)::int from public.dining_tables where id = '7b000000-0000-0000-0000-000000000009'), 1, '…and it still exists');
 
 select * from finish();
 rollback;

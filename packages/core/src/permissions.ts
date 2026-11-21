@@ -34,6 +34,7 @@ export const PERMISSION_GROUPS = [
     items: [
       { key: "items_manage", label: "Edit items on the POS" },
       { key: "favorites_manage", label: "Edit favorites" },
+      { key: "tables_manage", label: "Edit tables and areas on the POS" },
       { key: "customers_edit", label: "Edit customer details" },
     ],
   },
