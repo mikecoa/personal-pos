@@ -12,8 +12,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8">
           <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-accent text-lg font-bold text-accent-ink">K</div>
-          <h1 className="text-2xl font-bold tracking-tight">{mode === "in" ? "Sign in to your backoffice" : "Create your owner account"}</h1>
-          <p className="mt-1 text-ink-2">Sales, menu and staff for all your locations.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{mode === "in" ? "Sign in to your backoffice" : "Create your account"}</h1>
+          <p className="mt-1 text-ink-2">{mode === "in" ? "Sales, menu and staff for all your locations." : "Owners set up their business next. Staff: use the email the owner added to your employee slot."}</p>
         </div>
         <form action={action} className="space-y-4 rounded-2xl border border-line bg-surface p-6 shadow-sm">
           <input type="hidden" name="mode" value={mode} />
@@ -29,7 +29,7 @@ export default function LoginPage() {
           onClick={() => setMode(mode === "in" ? "up" : "in")}
           className="mt-4 w-full text-center text-sm text-ink-2 underline-offset-4 hover:underline"
         >
-          {mode === "in" ? "New here? Create an owner account" : "Already have an account? Sign in"}
+          {mode === "in" ? "New here? Create an account" : "Already have an account? Sign in"}
         </button>
       </div>
     </main>

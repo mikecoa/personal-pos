@@ -6,13 +6,24 @@ import { deleteEmployee, saveEmployee } from "./actions";
 
 const BASE = "/employees";
 
+type Emp = { email: string | null; user_id: string | null; is_active: boolean; roles: { backoffice_pages?: string[] } | null };
+/** Backoffice status of an employee slot. */
+function backoffice(e: Emp) {
+  const pages = e.roles?.backoffice_pages?.length ?? 0;
+  if (!pages) return <span className="text-ink-2">POS only</span>;
+  if (!e.email) return <span className="text-danger">Role allows it · add an email</span>;
+  if (!e.is_active) return <span className="text-ink-2">Inactive</span>;
+  if (e.user_id) return <span className="font-medium text-accent">Signed up · {e.email}</span>;
+  return <span className="text-ink-2">Waiting for {e.email} to sign up</span>;
+}
+
 export default async function EmployeesPage({ searchParams }: { searchParams: Promise<{ edit?: string; new?: string }> }) {
   const { supabase, membership, allLocations } = await requireOwner();
   const sp = await searchParams;
   const [{ data: emps }, { data: roles }] = await Promise.all([
-    supabase.from("employees").select("id, name, phone, role_id, has_pin, is_active, roles(name), employee_locations(location_id)")
+    supabase.from("employees").select("id, name, phone, email, user_id, role_id, has_pin, is_active, roles(name, backoffice_pages), employee_locations(location_id)")
       .eq("account_id", membership.account_id).order("name"),
-    supabase.from("roles").select("id, name").eq("account_id", membership.account_id).order("name"),
+    supabase.from("roles").select("id, name, backoffice_pages").eq("account_id", membership.account_id).order("name"),
   ]);
   const locName = new Map(allLocations.map((l) => [l.id, l.name]));
   const editing = sp.edit ? emps?.find((e) => e.id === sp.edit) : undefined;
@@ -20,16 +31,17 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader title="Employees" description="Staff who use the POS. Each unlocks the tablet with their own 4-digit PIN."
+      <PageHeader title="Employee slots" description="Staff who use the POS (each unlocks the tablet with their own 4-digit PIN), and who may sign in to the backoffice."
         actions={<ButtonLink href={`${BASE}?new=1`}>Add employee</ButtonLink>} />
       {emps?.length ? (
-        <Table head={["Name", "Role", "Locations", "PIN", "Status"]}>
+        <Table head={["Name", "Role", "Locations", "PIN", "Backoffice", "Status"]}>
           {emps.map((e) => (
             <tr key={e.id} className="hover:bg-surface-2/60">
               <td className="px-4 py-3 font-medium"><Link href={`${BASE}?edit=${e.id}`} scroll={false} className="hover:underline">{e.name}</Link></td>
               <td className="px-4 py-3 text-ink-2">{e.roles?.name}</td>
               <td className="px-4 py-3 text-ink-2">{e.employee_locations.map((l) => locName.get(l.location_id)).filter(Boolean).join(", ") || "—"}</td>
               <td className="px-4 py-3">{e.has_pin ? <Badge tone="accent">Set</Badge> : <Badge tone="danger">Missing</Badge>}</td>
+              <td className="px-4 py-3 text-sm">{backoffice(e)}</td>
               <td className="px-4 py-3">{e.is_active ? <Badge tone="accent">Active</Badge> : <Badge>Inactive</Badge>}</td>
             </tr>
           ))}
@@ -42,6 +54,9 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
             confirmDelete={`Remove ${editing?.name}? Their past sales keep their name.`}>
             <Field label="Name" name="name" defaultValue={editing?.name} required autoFocus maxLength={80} />
             <Field label="Phone (optional)" name="phone" type="tel" defaultValue={editing?.phone ?? ""} maxLength={40} />
+            <Field label="Email (for backoffice sign-in)" name="email" type="email" defaultValue={editing?.email ?? ""} maxLength={120}
+              hint="Only needed when the role has backoffice permissions. The employee then creates their login on the sign-in page with this email." />
+            {editing && <p className="-mt-2 text-sm">{backoffice(editing)}</p>}
             <Select label="Role" name="role_id" defaultValue={editing?.role_id ?? roles?.find((r) => r.name === "Cashier")?.id} required>
               {roles?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </Select>

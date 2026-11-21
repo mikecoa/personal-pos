@@ -197,14 +197,14 @@ isOneToOne: false
                   ]
                 },"employees": {
                   Row: {
-                    "account_id": string,"created_at": string,"has_pin": boolean | null,"id": string,"is_active": boolean,"name": string,"phone": string | null,"pin_hash": string | null,"pin_lookup": string | null,"role_id": string,"updated_at": string
+                    "account_id": string,"created_at": string,"email": string | null,"has_pin": boolean | null,"id": string,"is_active": boolean,"name": string,"phone": string | null,"pin_hash": string | null,"pin_lookup": string | null,"role_id": string,"updated_at": string,"user_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"created_at"?: string,"has_pin"?: never,"id"?: string,"is_active"?: boolean,"name": string,"phone"?: string | null,"pin_hash"?: string | null,"pin_lookup"?: string | null,"role_id": string,"updated_at"?: string
+                    "account_id": string,"created_at"?: string,"email"?: string | null,"has_pin"?: never,"id"?: string,"is_active"?: boolean,"name": string,"phone"?: string | null,"pin_hash"?: string | null,"pin_lookup"?: string | null,"role_id": string,"updated_at"?: string,"user_id"?: string | null
                   }
                   Update: {
-                    "account_id"?: string,"created_at"?: string,"has_pin"?: never,"id"?: string,"is_active"?: boolean,"name"?: string,"phone"?: string | null,"pin_hash"?: string | null,"pin_lookup"?: string | null,"role_id"?: string,"updated_at"?: string
+                    "account_id"?: string,"created_at"?: string,"email"?: string | null,"has_pin"?: never,"id"?: string,"is_active"?: boolean,"name"?: string,"phone"?: string | null,"pin_hash"?: string | null,"pin_lookup"?: string | null,"role_id"?: string,"updated_at"?: string,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -681,14 +681,14 @@ isOneToOne: false
                   ]
                 },"roles": {
                   Row: {
-                    "account_id": string,"created_at": string,"id": string,"is_system": boolean,"name": string,"permissions": (string)[],"updated_at": string
+                    "account_id": string,"backoffice_pages": (string)[],"created_at": string,"id": string,"is_system": boolean,"name": string,"permissions": (string)[],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"created_at"?: string,"id"?: string,"is_system"?: boolean,"name": string,"permissions"?: (string)[],"updated_at"?: string
+                    "account_id": string,"backoffice_pages"?: (string)[],"created_at"?: string,"id"?: string,"is_system"?: boolean,"name": string,"permissions"?: (string)[],"updated_at"?: string
                   }
                   Update: {
-                    "account_id"?: string,"created_at"?: string,"id"?: string,"is_system"?: boolean,"name"?: string,"permissions"?: (string)[],"updated_at"?: string
+                    "account_id"?: string,"backoffice_pages"?: (string)[],"created_at"?: string,"id"?: string,"is_system"?: boolean,"name"?: string,"permissions"?: (string)[],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -803,7 +803,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "copy_items_to_locations":
+            "claim_employee_access":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"copy_items_to_locations":
 { Args: { "p_item_ids": (string)[],"p_target_locations": (string)[] }; Returns: number
                            },
 "create_account":

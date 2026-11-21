@@ -7,3 +7,4 @@ export * from "./receipt";
 export * from "./shift";
 export * from "./sync";
 export * from "./floor";
+export * from "./backoffice";
