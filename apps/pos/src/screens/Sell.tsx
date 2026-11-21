@@ -13,9 +13,10 @@ import { ItemSheet } from "./ItemSheet";
 import { LineSheet } from "./LineSheet";
 import { SyncBadge } from "./SyncBadge";
 import { ShiftSheet, StartShiftPanel } from "./ShiftSheets";
+import { SeatingSheet, TablesSheet } from "./TablesSheet";
 import { addCustom, addItem } from "../lib/store";
 
-type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "charge" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" } | null;
+type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "charge" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
@@ -24,6 +25,7 @@ export function Sell() {
   const openCount = useStore((s) => s.openOrders.length);
   const notice = useStore((s) => s.notice);
   const shift = useStore((s) => s.shift);
+  const hasTables = useStore((s) => (s.catalog?.tables?.length ?? 0) > 0);
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [modal, setModal] = useState<Modal>(null);
@@ -61,6 +63,7 @@ export function Sell() {
           </View>
           <SyncBadge />
           <Btn kind="secondary" title={shift ? "Shift" : "No shift"} onPress={() => setModal({ kind: "shift" })} />
+          {hasTables && <Btn kind="secondary" title="Tables" onPress={() => setModal({ kind: "tables" })} />}
           <Btn kind="secondary" title={`Bills${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
           {can("activity_view") && <Btn kind="secondary" title="Sales" onPress={() => setModal({ kind: "sales" })} />}
           <Btn kind="secondary" title="Lock" onPress={lock} />
@@ -108,9 +111,23 @@ export function Sell() {
         {!shift ? <StartShiftPanel /> : <>
         <View style={{ padding: 16, gap: 10, borderBottomWidth: 1, borderColor: c.line }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }}>{order?.bill_name ?? "New order"}</Text>
+            <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }} numberOfLines={1}>
+              {order?.table_name ? `Table ${order.table_name}` : order?.bill_name ?? "New order"}
+            </Text>
             <Text style={{ color: c.ink2 }}>{order?.number ?? ""}</Text>
           </View>
+          {order?.table_name ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Pressable onPress={() => setModal({ kind: "seating" })} accessibilityRole="button" accessibilityLabel="Edit guests and customer" style={{ flex: 1 }}>
+                <Text style={{ color: c.ink2 }} numberOfLines={1}>
+                  {order.guests ? `${order.guests} guests` : "Guests ?"}{order.customer_name ? ` · ${order.customer_name}` : ""}  ✎
+                </Text>
+              </Pressable>
+              {can("open_bills_manage") && <Btn kind="secondary" title="Move table" onPress={() => setModal({ kind: "move" })} />}
+            </View>
+          ) : hasTables && (!order || order.version === 0) ? (
+            <Btn kind="ghost" title="Seat at a table…" style={{ alignSelf: "flex-start", paddingHorizontal: 0, minHeight: 32 }} onPress={() => setModal({ kind: "tables" })} />
+          ) : null}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {catalog.sales_types.map((s) => <Chip key={s.id} label={s.name} active={salesTypeId === s.id} onPress={() => setSalesType(s.id)} />)}
           </ScrollView>
@@ -176,6 +193,9 @@ export function Sell() {
       {modal?.kind === "cancel" && <CancelBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "custom" && <CustomAmount onClose={() => setModal(null)} />}
       {modal?.kind === "shift" && <ShiftSheet onClose={() => setModal(null)} />}
+      {modal?.kind === "tables" && <TablesSheet mode="seat" onClose={() => setModal(null)} />}
+      {modal?.kind === "move" && <TablesSheet mode="move" onClose={() => setModal(null)} />}
+      {modal?.kind === "seating" && <SeatingSheet onClose={() => setModal(null)} />}
     </View>
   );
 }

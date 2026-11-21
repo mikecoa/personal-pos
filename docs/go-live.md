@@ -21,7 +21,7 @@ I can't create these accounts for you. Once they exist, the steps below take abo
 3. Deploy `apps/backoffice` to Vercel with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from the hosted project.
 4. Open the backoffice → **Create an owner account** → set up your business and location(s).
 5. Library → **Import CSV** with the Moka item export, then add modifiers (temperature, spice level, combo choices) and attach them to items.
-6. Location settings: payment methods (e.g. *BCA QR*, *EDC BCA*, *EDC BRI*, *Cash*), checkout (tax/service as you charge them today), receipt.
+6. Location settings: tables (if you seat customers), payment methods (e.g. *BCA QR*, *EDC BCA*, *EDC BRI*, *Cash*), checkout (tax/service as you charge them today), receipt.
 7. Employees: add each cashier with a role and a 4-digit PIN.
 8. Build the Android app pointing at the hosted project (`EXPO_PUBLIC_SUPABASE_URL` / `ANON_KEY`), install the APK on the tablet, sign in once as owner, pick the location.
 
@@ -53,5 +53,5 @@ Then keep Moka read-only for a month for history (its reports only go back 2 yea
 
 - **Receipt printing** to a real printer (waiting for the printer model).
 - Refunds can only be made from the tablet that took the sale.
-- No customer list / loyalty, table map, or ingredient stock yet (planned "later" items).
+- No customer list / loyalty or ingredient stock yet (planned "later" items).
 - Indonesian translation of the tablet screens.

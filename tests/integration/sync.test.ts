@@ -133,3 +133,29 @@ describe("refund races and server errors the POS must classify", () => {
     expect(classifySyncError(r.error)).toBe("retry");
   });
 });
+
+describe("tables", () => {
+  it("one tablet seats customers, another moves the bill; the late move loses", async () => {
+    const { data: m } = await owner.from("locations").select("account_id").eq("id", location).single();
+    await owner.from("dining_tables").insert([
+      { account_id: m!.account_id, location_id: location, name: "1", seats: 2 },
+      { account_id: m!.account_id, location_id: location, name: "2", seats: 4 },
+    ]);
+    const { data: tables } = await owner.from("dining_tables").select("id, name").eq("location_id", location).order("name");
+    const [t1, t2] = tables!;
+    const catalog = (await owner.rpc("pos_catalog", { p_device: tabletB })).data as { tables: { name: string }[] };
+    expect(catalog.tables.map((t) => t.name)).toEqual(["1", "2"]);
+
+    const bill = { ...sale({ status: "open", number: "TA-200001" }), table_id: t1!.id, table_name: "1", guests: 2, customer_name: "Pak Budi", bill_name: "1 · Pak Budi" };
+    expect((await owner.rpc("upsert_order", { p_device: tabletA, p: bill })).data.status).toBe("saved");
+    const seen = ((await owner.rpc("pos_open_orders", { p_device: tabletB })).data as { id: string; table_name: string; guests: number }[]).find((o) => o.id === bill.id);
+    expect(seen).toMatchObject({ table_name: "1", guests: 2 });
+
+    // B moves it to table 2 (v2); A, still on v1, tries moving it back with its own v2 → stale, gets table 2
+    expect((await owner.rpc("upsert_order", { p_device: tabletB, p: { ...bill, version: 2, table_id: t2!.id, table_name: "2" } })).data.status).toBe("saved");
+    const late = (await owner.rpc("upsert_order", { p_device: tabletA, p: { ...bill, version: 2 } })).data;
+    expect(late.status).toBe("stale");
+    expect(late.order.table_name).toBe("2");
+    expect(late.order.customer_name).toBe("Pak Budi");
+  });
+});

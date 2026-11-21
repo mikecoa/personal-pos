@@ -6,7 +6,7 @@ import * as db from "./db";
 import Constants from "expo-constants";
 import { supabase } from "./supabase";
 import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice } from "./order";
-import type { Catalog, Device, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
+import type { Catalog, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
 
 type Phase = "loading" | "setup" | "locked" | "selling";
 export type State = {
@@ -231,6 +231,50 @@ export function cancelBill(reason: string) {
   set({ order: null });
   refreshLocal();
   void syncNow();
+}
+
+// ───────────────────────────────────────────── tables
+/** Open bills seated at a table (several are possible when tablets were offline). */
+export const billsAt = (tableId: string) => state.openOrders.filter((o) => o.table_id === tableId);
+
+/**
+ * Seat customers at a table. Starts a new bill there, or puts the order on screen at the table
+ * if it hasn't been saved yet. The bill is saved right away so every tablet sees the table as taken.
+ */
+export function seatAtTable(table: DiningTable, guests: number | null, customer: string | null) {
+  const cur = state.order;
+  if (cur && cur.version > 0) throw new Error("Save or close the bill on screen first.");
+  const base = cur ?? ensureOrder();
+  const seated: OrderDoc = reprice({ ...base, table_id: table.id, table_name: table.name, guests, customer_name: customer,
+    bill_name: customer ? `${table.name} · ${customer}` : table.name }, state.catalog!);
+  set({ order: seated });
+  saveBill(seated.bill_name!);
+  openBill(seated.id);
+}
+
+/**
+ * Move the bill on screen (and its customers) to another table. For a saved bill this is a new
+ * version of the bill, so other tablets pick up the move on their next sync.
+ */
+export function moveToTable(table: DiningTable) {
+  const o = state.order!;
+  const label = o.customer_name ? `${table.name} · ${o.customer_name}` : table.name;
+  const moved: OrderDoc = { ...o, table_id: table.id, table_name: table.name, bill_name: label };
+  if (o.version === 0) { set({ order: moved }); return; }
+  const next: OrderDoc = { ...moved, version: o.version + 1 };
+  db.saveOrder(next);
+  set({ order: reprice(next, state.catalog!) });
+  refreshLocal();
+  void syncNow();
+}
+
+/** Change guests / customer name on the bill on screen (saved bills get a new version). */
+export function updateSeating(guests: number | null, customer: string | null) {
+  const o = state.order!;
+  const label = o.table_name ? (customer ? `${o.table_name} · ${customer}` : o.table_name) : o.bill_name;
+  const next: OrderDoc = { ...o, guests, customer_name: customer, bill_name: label, version: o.version > 0 ? o.version + 1 : 0 };
+  if (o.version > 0) { db.saveOrder(next); refreshLocal(); void syncNow(); }
+  set({ order: reprice(next, state.catalog!) });
 }
 
 // ───────────────────────────────────────────── payment
