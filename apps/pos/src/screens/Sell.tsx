@@ -14,12 +14,12 @@ import { LineSheet } from "./LineSheet";
 import { SyncBadge } from "./SyncBadge";
 import { StartShiftPanel } from "./ShiftSheets";
 import { SeatingSheet, TablesSheet } from "./TablesSheet";
-import { CategoryEditor, ItemEditor } from "./MenuEditor";
+import { CategoryEditor, CategoryPicker, ItemEditor } from "./MenuEditor";
 import { CustomerSheet } from "./CustomerSheet";
 import { addCustom, addItem } from "../lib/store";
 
 type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string }
-  | { kind: "editItem"; item: Item | null } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "charge" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
+  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "charge" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
@@ -41,6 +41,28 @@ export function Sell() {
       (!term || i.name.toLowerCase().includes(term) || i.variants.some((v) => v.sku?.toLowerCase() === term)));
   }, [catalog.items, cat, q]);
   const cols = Math.max(3, Math.floor(gridW / 170));
+  const tileW = (gridW - 10 * (cols - 1)) / cols;
+  const catName = cat ? catalog.categories.find((k) => k.id === cat)?.name ?? "Category" : "All items";
+
+  // Grid rows: a header per category (in "All items"), then the items in rows of `cols`.
+  const rows = useMemo(() => {
+    const known = new Set(catalog.categories.map((k) => k.id));
+    const groups = cat
+      ? [{ id: cat, name: catName, list: items }]
+      : [...catalog.categories.map((k) => ({ id: k.id, name: k.name, list: items.filter((i) => i.category_id === k.id) })),
+         { id: "none", name: "Other", list: items.filter((i) => !i.category_id || !known.has(i.category_id)) }].filter((g) => g.list.length);
+    if (editingMenu) {
+      if (groups.length) groups[0] = { ...groups[0]!, list: [ADD_TILE, ...groups[0]!.list] };
+      else groups.push({ id: cat ?? "none", name: catName, list: [ADD_TILE] });
+    }
+    const out: GridRow[] = [];
+    for (const g of groups) {
+      if (!cat) out.push({ kind: "header", key: `h-${g.id}`, name: g.name, count: g.list.filter((i) => i !== ADD_TILE).length });
+      for (let i = 0; i < g.list.length; i += cols) out.push({ kind: "row", key: `r-${g.id}-${i}`, items: g.list.slice(i, i + cols) });
+    }
+    return out;
+  }, [items, cat, catName, catalog.categories, cols, editingMenu]);
+  const stickyHeaders = rows.flatMap((r, i) => (r.kind === "header" ? [i] : []));
   const salesTypeId = order?.sales_type_id ?? catalog.sales_types[0]?.id ?? null;
 
   const tap = (item: Item) => {
@@ -67,64 +89,76 @@ export function Sell() {
           <Btn kind="secondary" title={`Billing list${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flex: 1 }}>
-            <Chip label="All" active={!cat} onPress={() => setCat(null)} />
-            {catalog.categories.map((k) => (
-              <Chip key={k.id} label={editingMenu && cat === k.id ? `${k.name}  ✎` : k.name} active={cat === k.id}
-                onPress={() => (editingMenu && cat === k.id ? setModal({ kind: "editCategory", category: k }) : setCat(k.id))} />
-            ))}
-            {editingMenu ? <Chip label="+ Category" onPress={() => setModal({ kind: "editCategory", category: null })} />
-              : <Chip label="+ Custom amount" onPress={() => setModal({ kind: "custom" })} />}
-          </ScrollView>
+          {/* One button for categories, however many there are. */}
+          <Pressable onPress={() => setModal({ kind: "categories" })} accessibilityRole="button" accessibilityLabel={`Category: ${catName}. Change`}
+            style={({ pressed }) => [catBtn, pressed && { backgroundColor: c.surface2 }]}>
+            <MaterialCommunityIcons name="shape-outline" size={20} color={c.ink2} />
+            <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink, maxWidth: 260 }} numberOfLines={1}>{catName}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={22} color={c.ink2} />
+          </Pressable>
+          {cat && (
+            <Pressable onPress={() => setCat(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Show all items">
+              <Text style={{ color: c.accent, fontWeight: "700" }}>Show all</Text>
+            </Pressable>
+          )}
+          <View style={{ flex: 1 }} />
+          {!editingMenu && <Btn kind="secondary" title="+ Custom amount" onPress={() => setModal({ kind: "custom" })} />}
           {canEditMenu && (
             <Btn kind={editingMenu ? "primary" : "secondary"} title={editingMenu ? "Done" : "Edit menu"} onPress={() => setEditingMenu(!editingMenu)} />
           )}
         </View>
         {editingMenu && (
-          <Muted style={{ fontSize: 14 }}>Tap an item to edit it. Tap the selected category again to rename or delete it. Changes need internet and reach every tablet.</Muted>
+          <Muted style={{ fontSize: 14 }}>Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.</Muted>
         )}
         <View style={{ flex: 1 }} onLayout={(e) => setGridW(e.nativeEvent.layout.width)}>
           <FlatList
-            key={cols}
-            data={editingMenu ? [ADD_TILE, ...items] : items}
-            numColumns={cols}
-            keyExtractor={(i) => i.id}
-            columnWrapperStyle={{ gap: 10 }}
-            contentContainerStyle={{ gap: 10, paddingBottom: 24 }}
+            // Remount when the layout changes: Android doesn't redraw pinned headers whose positions moved.
+            key={`${editingMenu ? "edit" : "sell"}-${cat ?? "all"}-${cols}-${q ? "q" : ""}`}
+            data={rows}
+            keyExtractor={(r) => r.key}
+            stickyHeaderIndices={stickyHeaders}
+            contentContainerStyle={{ paddingBottom: 24 }}
             ListEmptyComponent={<Muted>No items{q ? ` match “${q}”` : " in this category"}.</Muted>}
-            renderItem={({ item }) => {
-              const w = (gridW - 10 * (cols - 1)) / cols;
-              if (item === ADD_TILE) return (
-                <Pressable onPress={() => setModal({ kind: "editItem", item: null })} accessibilityRole="button" accessibilityLabel="New item"
-                  style={({ pressed }) => ({ width: w, minHeight: 150, borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent,
-                    alignItems: "center", justifyContent: "center", gap: 4, opacity: pressed ? 0.7 : 1 })}>
-                  <MaterialCommunityIcons name="plus" size={30} color={c.accent} />
-                  <Text style={{ color: c.accent, fontWeight: "700" }}>New item</Text>
-                </Pressable>
-              );
-              const out = item.track_stock && item.stock <= 0;
-              return (
-                <Pressable onPress={() => (editingMenu ? setModal({ kind: "editItem", item }) : tap(item))} accessibilityRole="button"
-                  accessibilityLabel={editingMenu ? `Edit ${item.name}` : `${item.name}, ${priceLabel(item)}`}
-                  style={({ pressed }) => ({ width: (gridW - 10 * (cols - 1)) / cols, borderRadius: r.md, overflow: "hidden", backgroundColor: c.surface,
-                    borderWidth: 1, borderColor: c.line, opacity: pressed ? 0.75 : out ? 0.55 : 1 })}>
-                  {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: 88 }} /> : (
-                    <View style={{ height: 88, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ fontSize: 30, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
-                    </View>
-                  )}
-                  {editingMenu && (
-                    <View style={{ position: "absolute", top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" }}>
-                      <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink} />
-                    </View>
-                  )}
-                  <View style={{ padding: 10, gap: 2 }}>
-                    <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }} numberOfLines={2}>{item.name}</Text>
-                    <Text style={{ color: c.ink2 }}>{out ? "Out of stock" : priceLabel(item)}</Text>
-                  </View>
-                </Pressable>
-              );
-            }}
+            renderItem={({ item: row }) => row.kind === "header" ? (
+              <View style={{ backgroundColor: c.bg, paddingTop: 10, paddingBottom: 8, flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+                <Text style={{ fontSize: 15, fontWeight: "800", color: c.ink, letterSpacing: 0.3 }}>{row.name.toUpperCase()}</Text>
+                <Text style={{ color: c.ink2, fontSize: 13 }}>{row.count} item{row.count === 1 ? "" : "s"}</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+                {row.items.map((item) => item === ADD_TILE ? (
+                  <Pressable key="add" onPress={() => setModal({ kind: "editItem", item: null })} accessibilityRole="button" accessibilityLabel="New item"
+                    style={({ pressed }) => ({ width: tileW, minHeight: 150, borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent,
+                      alignItems: "center", justifyContent: "center", gap: 4, opacity: pressed ? 0.7 : 1 })}>
+                    <MaterialCommunityIcons name="plus" size={30} color={c.accent} />
+                    <Text style={{ color: c.accent, fontWeight: "700" }}>New item</Text>
+                  </Pressable>
+                ) : (() => {
+                  const out = item.track_stock && item.stock <= 0;
+                  return (
+                    <Pressable key={item.id} onPress={() => (editingMenu ? setModal({ kind: "editItem", item }) : tap(item))} accessibilityRole="button"
+                      accessibilityLabel={editingMenu ? `Edit ${item.name}` : `${item.name}, ${priceLabel(item)}`}
+                      style={({ pressed }) => ({ width: tileW, borderRadius: r.md, overflow: "hidden", backgroundColor: c.surface,
+                        borderWidth: 1, borderColor: c.line, opacity: pressed ? 0.75 : out ? 0.55 : 1 })}>
+                      {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: 88 }} /> : (
+                        <View style={{ height: 88, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ fontSize: 30, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
+                        </View>
+                      )}
+                      {editingMenu && (
+                        <View style={{ position: "absolute", top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" }}>
+                          <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink} />
+                        </View>
+                      )}
+                      <View style={{ padding: 10, gap: 2 }}>
+                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }} numberOfLines={2}>{item.name}</Text>
+                        <Text style={{ color: c.ink2 }}>{out ? "Out of stock" : priceLabel(item)}</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })())}
+              </View>
+            )}
           />
         </View>
       </View>
@@ -231,6 +265,10 @@ export function Sell() {
       {modal?.kind === "editItem" && <ItemEditor item={modal.item} categoryId={cat} onClose={() => setModal(null)} />}
       {modal?.kind === "editCategory" && <CategoryEditor category={modal.category} onClose={() => setModal(null)} onSaved={(deleted) => { if (deleted) setCat(null); }} />}
       {modal?.kind === "customers" && <CustomerSheet onClose={() => setModal(null)} />}
+      {modal?.kind === "categories" && (
+        <CategoryPicker current={cat} editing={editingMenu} onPick={(id) => { setCat(id); setModal(null); }}
+          onEdit={(k) => setModal({ kind: "editCategory", category: k })} onClose={() => setModal(null)} />
+      )}
     </View>
   );
 }
@@ -259,6 +297,10 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
 }
 
 const pill = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
+
+type GridRow = { kind: "header"; key: string; name: string; count: number } | { kind: "row"; key: string; items: Item[] };
+const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 44, paddingHorizontal: 14, borderRadius: 22,
+  borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
 
 /** Placeholder first tile while editing the menu. */
 const ADD_TILE = { id: "__add__" } as Item;

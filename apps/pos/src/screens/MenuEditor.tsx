@@ -143,6 +143,63 @@ export function CategoryEditor({ category, onClose, onSaved }: { category: { id:
   );
 }
 
+/**
+ * Pick the category shown on the POS (one button instead of a row of chips, so it works with any
+ * number of categories). While editing the menu, each row has an edit button and categories can be added.
+ */
+export function CategoryPicker({ current, editing, onPick, onEdit, onClose }: {
+  current: string | null; editing: boolean; onPick: (id: string | null) => void;
+  onEdit: (k: { id: string; name: string } | null) => void; onClose: () => void;
+}) {
+  const catalog = useStore((s) => s.catalog)!;
+  const [q, setQ] = useState("");
+  const count = (id: string | null) => catalog.items.filter((i) => !id || i.category_id === id).length;
+  const t = q.trim().toLowerCase();
+  const list = catalog.categories.filter((k) => !t || k.name.toLowerCase().includes(t));
+  const Row = ({ id, name }: { id: string | null; name: string }) => {
+    const on = current === id;
+    return (
+      <View style={[pk.row, on && { backgroundColor: c.accentSoft }]}>
+        <Pressable onPress={() => onPick(id)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`${name}, ${count(id)} items`}
+          style={({ pressed }) => [{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14 }, pressed && { opacity: 0.7 }]}>
+          <Text style={{ flex: 1, fontSize: 17, fontWeight: on ? "800" : "600", color: c.ink }} numberOfLines={1}>{name}</Text>
+          <Text style={{ color: c.ink2 }}>{count(id)}</Text>
+          {on && <MaterialCommunityIcons name="check" size={22} color={c.accent} />}
+        </Pressable>
+        {editing && id && (
+          <Pressable onPress={() => onEdit({ id, name })} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Edit category ${name}`} style={pk.edit}>
+            <MaterialCommunityIcons name="pencil-outline" size={20} color={c.ink2} />
+          </Pressable>
+        )}
+      </View>
+    );
+  };
+  return (
+    <Sheet visible onClose={onClose} title="Categories" width={540}
+      footer={editing ? <><View style={{ flex: 1 }} /><Btn title="+ New category" onPress={() => onEdit(null)} /></> : undefined}>
+      {catalog.categories.length > 8 && (
+        <View style={pk.search}>
+          <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
+          <TextInput value={q} onChangeText={setQ} placeholder="Find a category" placeholderTextColor="#a3968a" accessibilityLabel="Find a category"
+            style={{ flex: 1, fontSize: 17, color: c.ink, height: 46 }} />
+        </View>
+      )}
+      <View style={pk.list}>
+        {!t && <Row id={null} name="All items" />}
+        {list.map((k) => <Row key={k.id} id={k.id} name={k.name} />)}
+        {t && !list.length && <Muted style={{ padding: 14 }}>No category matches.</Muted>}
+      </View>
+    </Sheet>
+  );
+}
+
+const pk = StyleSheet.create({
+  search: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  list: { borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, overflow: "hidden" },
+  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, borderBottomWidth: 1, borderColor: c.line },
+  edit: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginLeft: 4 },
+});
+
 export const priceSummary = (i: Item) => {
   const ps = i.variants.map((v) => v.price);
   return ps.length > 1 && Math.min(...ps) !== Math.max(...ps) ? `${money(Math.min(...ps))} – ${money(Math.max(...ps))}` : money(ps[0] ?? 0);
