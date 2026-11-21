@@ -22,7 +22,7 @@ type Panel =
  * Floor plan.
  * - "seat": tap a free table to start a bill there, a busy one to open its bill.
  * - "move": tap a free table to move the bill on screen there.
- * - Edit (managers; "Edit tables" or hold a table): tap tables to select them. One selected →
+ * - Edit (managers; "Edit tables", or hold a table or an area tab): tap tables to select them. One selected →
  *   full editor; several → change seats/area or delete them together. Add/rename/delete areas.
  */
 export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose: () => void }) {
@@ -58,6 +58,10 @@ export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose:
   const startEditing = (t?: DiningTable) => { setEditing(true); setPanel(null); setNotice(null); setSelection(t ? [t.id] : []); };
   const stopEditing = () => { setEditing(false); setPanel(null); setSelection([]); };
   const canEdit = mode === "seat" && can("tables_manage");
+  const holdArea = (id: string) => {
+    if (!editing && !canEdit) return;
+    setEditing(true); setNotice(null); setSelection([]); setArea(id); setPanel({ kind: "area", id });
+  };
   const hold = (t: DiningTable) => { if (editing) toggle(t); else if (canEdit) startEditing(t); };
 
   const tap = (t: DiningTable) => {
@@ -81,7 +85,7 @@ export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose:
   const subtitle = editing
     ? (selectedTables.length ? `${selectedTables.length} selected` : "Tap tables to select them")
     : mode === "move" ? "Pick a free table"
-    : tables.length ? `${totalBusy} of ${tables.length} in use${canEdit ? " · hold a table to edit" : ""}` : "";
+    : tables.length ? `${totalBusy} of ${tables.length} in use${canEdit ? " · hold a table or area to edit it" : ""}` : "";
   const allShownSelected = shown.length > 0 && shown.every((t) => selection.includes(t.id));
   const showTabs = areas.length > 0 || editing;
 
@@ -116,7 +120,7 @@ export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose:
                 {areas.map((a) => (
                   <Tab key={a.id} label={a.name} count={editing ? 0 : busyIn(a.id)} active={currentArea === a.id}
                     onPress={() => { setArea(a.id); setSelection([]); setPanel(editing && currentArea === a.id ? { kind: "area", id: a.id } : null); }}
-                    hint={editing && currentArea === a.id ? "✎" : undefined} />
+                    hint={editing && currentArea === a.id ? "✎" : undefined} onLongPress={() => holdArea(a.id)} />
                 ))}
                 {(hasNoArea || (editing && !areas.length)) && (
                   <Tab label={areas.length ? "No area" : "All tables"} count={editing ? 0 : busyIn(NO_AREA)} active={currentArea === NO_AREA}
@@ -184,9 +188,11 @@ export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose:
   );
 }
 
-function Tab({ label, count = 0, active, muted, hint, onPress }: { label: string; count?: number; active: boolean; muted?: boolean; hint?: string; onPress: () => void }) {
+function Tab({ label, count = 0, active, muted, hint, onPress, onLongPress }: {
+  label: string; count?: number; active: boolean; muted?: boolean; hint?: string; onPress: () => void; onLongPress?: () => void;
+}) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={`${label}${count ? `, ${count} in use` : ""}`}
+    <Pressable onPress={onPress} onLongPress={onLongPress} delayLongPress={400} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={`${label}${count ? `, ${count} in use` : ""}`}
       style={[st.tab, active && st.tabActive]}>
       <Text style={[st.tabText, active && { color: c.ink }, muted && { color: c.accent }]}>{label}</Text>
       {count > 0 && <View style={st.badge}><Text style={st.badgeText}>{count}</Text></View>}
