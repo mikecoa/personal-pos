@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { type ShiftSummary } from "@pos/core";
 import { can, cashMove, closeShift, shiftSummary, startShift, useStore } from "../lib/store";
 import type { ShiftDoc } from "../lib/types";
 import { Btn, Chip, Field, H, Keypad, Label, money, Muted } from "../ui/kit";
-import { c, r } from "../ui/theme";
+import { c } from "../ui/theme";
 
 export const keyInto = (set: (f: (d: string) => string) => void) => (k: string) =>
   set((d) => (k === "⌫" ? d.slice(0, -1) : (d + k).replace(/^0+/, "").slice(0, 11)));
@@ -20,43 +19,6 @@ export function StartShiftPanel() {
       <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink }} testID="starting-cash">{money(Number(digits || 0))}</Text>
       <Keypad compact onKey={keyInto(setDigits)} />
       <Btn big style={{ alignSelf: "stretch" }} title="Start shift" onPress={() => startShift(Number(digits || 0))} />
-    </View>
-  );
-}
-
-export function SummaryBlock({ s, startingCash, showExpected }: { s: ShiftSummary; startingCash: number; showExpected: boolean }) {
-  const Row = ({ l, v, bold }: { l: string; v: string; bold?: boolean }) => (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 }}>
-      <Text style={{ color: bold ? c.ink : c.ink2, fontWeight: bold ? "800" : "400", fontSize: bold ? 17 : 15 }}>{l}</Text>
-      <Text style={{ color: c.ink, fontWeight: bold ? "800" : "600", fontSize: bold ? 17 : 15 }}>{v}</Text>
-    </View>
-  );
-  return (
-    <View style={{ gap: 14 }}>
-      <View style={{ flexDirection: "row", gap: 12 }}>
-        {[["Sales", String(s.salesCount)], ["Items", String(s.itemsSold)], ["Takings", money(s.grossTakings)], ["Refunds", money(s.refundTotal)]].map(([l, v]) => (
-          <View key={l} style={{ flex: 1, padding: 12, borderRadius: r.md, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line }}>
-            <Muted>{l}</Muted><Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }}>{v}</Text>
-          </View>
-        ))}
-      </View>
-      {showExpected && (
-        <View>
-          <Label>Cash drawer</Label>
-          <Row l="Starting cash" v={money(startingCash)} />
-          <Row l="Cash sales" v={money(s.cashSales)} />
-          {s.cashRefunds > 0 && <Row l="Cash refunds" v={`−${money(s.cashRefunds)}`} />}
-          {s.cashIn > 0 && <Row l="Cash in" v={money(s.cashIn)} />}
-          {s.cashOut > 0 && <Row l="Cash out" v={`−${money(s.cashOut)}`} />}
-          <Row bold l="Expected in drawer" v={money(s.expectedCash)} />
-        </View>
-      )}
-      {showExpected && s.methods.some((m) => m.kind !== "cash") && (
-        <View>
-          <Label>Other payments</Label>
-          {s.methods.filter((m) => m.kind !== "cash").map((m) => <Row key={m.method + m.kind} l={m.method} v={money(m.expected)} />)}
-        </View>
-      )}
     </View>
   );
 }

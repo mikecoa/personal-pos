@@ -510,6 +510,23 @@ export function cashMove(kind: "in" | "out", amount: number, description: string
   void syncNow();
 }
 
+/** Items sold in a shift on this tablet, most sold first (refunded items in their own list). */
+export function shiftItems(shiftId: string) {
+  const sold = new Map<string, { name: string; qty: number; amount: number }>();
+  for (const o of db.ordersInShift(shiftId)) for (const l of o.lines) {
+    const name = l.variant_name && l.variant_name !== "Regular" ? `${l.item_name} (${l.variant_name})` : l.item_name;
+    const row = sold.get(name) ?? { name, qty: 0, amount: 0 };
+    row.qty += l.qty; row.amount += l.line_total; sold.set(name, row);
+  }
+  const refunded = new Map<string, { name: string; qty: number; amount: number }>();
+  for (const r of db.refundsInShift(shiftId)) for (const l of r.lines) {
+    const row = refunded.get(l.item_name) ?? { name: l.item_name, qty: 0, amount: 0 };
+    row.qty += l.qty; row.amount += l.amount; refunded.set(l.item_name, row);
+  }
+  const sort = (m: Map<string, { name: string; qty: number; amount: number }>) => [...m.values()].sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name));
+  return { sold: sort(sold), refunded: sort(refunded) };
+}
+
 export function shiftSummary(s: ShiftDoc) {
   return summarizeShift({
     startingCash: s.starting_cash,

@@ -1,13 +1,12 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import { shiftReportLines, type ShiftSummary } from "@pos/core";
-import { can, saveShiftSettings, shiftHistory, shiftSummary, startShift, useStore } from "../lib/store";
+import { can, saveShiftSettings, shiftHistory, startShift, useStore } from "../lib/store";
 import type { ShiftDoc } from "../lib/types";
-import { Btn, Keypad, Label, money, Muted, PageTop } from "../ui/kit";
+import { Btn, Keypad, money, Muted, PageTop } from "../ui/kit";
 import { c, r } from "../ui/theme";
-import { ReceiptView } from "./ReceiptView";
-import { CashMoveForm, CloseForm, keyInto, SummaryBlock } from "./ShiftSheets";
+import { CashMoveForm, CloseForm, keyInto } from "./ShiftSheets";
+import { ShiftReport } from "./ShiftReport";
 
 type Section = "option" | "current" | "history";
 
@@ -155,42 +154,32 @@ function CurrentShift() {
 
   return (
     <Pane title="Current shift">
-      <Muted>Opened by {shift.opened_by_name} on {when(shift.opened_at)}</Muted>
-      <SummaryBlock s={shiftSummary(shift)} startingCash={shift.starting_cash} showExpected={can("shift_view_details")} />
-      {shift.movements.length > 0 && (
-        <View style={{ gap: 4 }}>
-          <Label>Cash in / out</Label>
-          {shift.movements.map((m) => (
-            <Text key={m.id} style={{ color: c.ink }}>{m.kind === "in" ? "+" : "−"}{money(m.amount)} · {m.description} · {m.employee_name}</Text>
-          ))}
-        </View>
-      )}
       <View style={{ flexDirection: "row", gap: 12 }}>
-        {can("cash_in_out") && <Btn kind="secondary" title="Cash in / out" onPress={() => setView("move")} />}
-        <View style={{ flex: 1 }} />
-        <Btn kind="danger" title="Close shift" onPress={() => setView("close")} />
+        {can("cash_in_out") && <Btn kind="secondary" style={{ flex: 1 }} title="Cash in / out" onPress={() => setView("move")} />}
+        <Btn kind="danger" style={{ flex: 1 }} title="Close shift" onPress={() => setView("close")} />
       </View>
+      <ShiftReport shift={shift} showExpected={can("shift_view_details")} />
     </Pane>
   );
 }
 
 function ClosedShift({ shift, onDone }: { shift: ShiftDoc; onDone?: () => void }) {
-  const device = useStore((s) => s.device)!;
-  const location = useStore((s) => s.catalog!.location.name);
   const diff = (shift.actual_cash ?? 0) - (shift.expected_cash ?? 0);
   return (
-    <View style={{ flexDirection: "row", gap: 24, alignItems: "flex-start" }}>
-      <View style={{ flex: 1, gap: 10 }}>
-        <Label>Counted vs expected</Label>
-        <Text style={{ fontSize: 34, fontWeight: "800", color: diff === 0 ? c.accent : c.danger }} testID="cash-difference">
-          {diff === 0 ? "Exact" : `${diff > 0 ? "+" : "−"}${money(Math.abs(diff))}`}
-        </Text>
-        <Muted>{diff === 0 ? "The drawer matched." : diff > 0 ? "More cash than expected." : "Cash was short."}</Muted>
-        <Muted style={{ fontSize: 14 }}>{when(shift.opened_at)} – {when(shift.closed_at!)}</Muted>
-        {onDone && <Btn title="Done" onPress={onDone} style={{ alignSelf: "flex-start" }} />}
-      </View>
-      <ReceiptView lines={shiftReportLines({ location, device: device.name, openedBy: shift.opened_by_name ?? "", openedAt: new Date(shift.opened_at),
-        closedBy: shift.closed_by_name, closedAt: new Date(shift.closed_at!), startingCash: shift.starting_cash, actualCash: shift.actual_cash }, shift.summary as ShiftSummary)} />
+    <View style={{ gap: 8 }}>
+      {onDone && (
+        <View style={[st.banner, { borderColor: diff === 0 ? c.accent : c.danger }]}>
+          <MaterialCommunityIcons name={diff === 0 ? "check-circle" : "alert-circle"} size={30} color={diff === 0 ? c.accent : c.danger} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }} testID="cash-difference">
+              {diff === 0 ? "Shift closed. The drawer matches." : `Shift closed. Cash ${diff > 0 ? "over" : "short"} by ${money(Math.abs(diff))}.`}
+            </Text>
+            <Muted style={{ fontSize: 14 }}>The report is saved and uploads automatically.</Muted>
+          </View>
+          <Btn title="Done" onPress={onDone} />
+        </View>
+      )}
+      <ShiftReport shift={shift} />
     </View>
   );
 }
@@ -203,7 +192,10 @@ function ShiftHistory() {
   if (!can("shift_history_view")) return <Pane title="Shift history"><Muted>Your role can't view past shifts.</Muted></Pane>;
   if (sel) return (
     <Pane title="Shift history">
-      <Btn kind="secondary" title="‹ All shifts" onPress={() => setSel(null)} style={{ alignSelf: "flex-start" }} />
+      <Pressable onPress={() => setSel(null)} accessibilityRole="button" accessibilityLabel="Back to all shifts" style={st.back}>
+        <MaterialCommunityIcons name="arrow-left" size={22} color={c.accent} />
+        <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>All shifts</Text>
+      </Pressable>
       <ClosedShift shift={sel} />
     </Pane>
   );
@@ -240,5 +232,7 @@ const st = StyleSheet.create({
   navItem: { flexDirection: "row", alignItems: "center", height: 56, paddingHorizontal: 20 },
   navText: { flex: 1, fontSize: 17, color: c.ink, fontWeight: "600" },
   line: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingHorizontal: 20, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  banner: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: r.md, borderWidth: 2, backgroundColor: c.surface },
+  back: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingVertical: 6 },
   histRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 16, paddingHorizontal: 4, borderBottomWidth: 1, borderColor: c.line },
 });

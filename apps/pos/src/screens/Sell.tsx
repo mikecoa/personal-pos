@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { FlatList, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { can, clearOrder, notify, setSalesType, tableLabel, useStore } from "../lib/store";
+import { can, clearOrder, notify, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Chip, Keypad, money, Muted, Sheet } from "../ui/kit";
@@ -77,14 +77,39 @@ export function Sell() {
     return ps.length > 1 && Math.min(...ps) !== Math.max(...ps) ? `from ${money(Math.min(...ps))}` : money(ps[0] ?? 0);
   };
   const hasLines = !!order && order.lines.length > 0;
+  // How many of each item are on the order, shown as a badge on the menu tile.
+  const inCart = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of order?.lines ?? []) if (l.item_id) m.set(l.item_id, (m.get(l.item_id) ?? 0) + l.qty);
+    return m;
+  }, [order?.lines]);
+  const step = (lineId: string, delta: number) => {
+    const l = order!.lines.find((x) => x.id === lineId)!;
+    const next = l.qty + delta;
+    // Going below what's already saved on the bill is a void: open the editor so the reason is asked.
+    if (next < (l.saved_qty ?? 0)) return setModal({ kind: "line", id: lineId });
+    if (delta > 0 && catalog.settings.stock_limit_enabled) {
+      const it = catalog.items.find((i) => i.id === l.item_id);
+      if (it?.track_stock && (inCart.get(it.id) ?? 0) >= it.stock) return notify(`Only ${it.stock} ${it.name} left in stock`);
+    }
+    setQty(lineId, next);
+  };
 
   return (
     <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.bg }}>
       {/* ── catalog ── */}
       <View style={{ flex: 1, padding: 16, gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <TextInput value={q} onChangeText={setQ} placeholder="Search item or scan SKU…" placeholderTextColor="#a3968a" accessibilityLabel="Search items"
-            style={{ flex: 1, height: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingHorizontal: 14, fontSize: 17, color: c.ink }} />
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", height: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingLeft: 14 }}>
+            <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
+            <TextInput value={q} onChangeText={setQ} placeholder="Search item or scan SKU…" placeholderTextColor="#a3968a" accessibilityLabel="Search items"
+              style={{ flex: 1, height: 46, paddingHorizontal: 10, fontSize: 17, color: c.ink }} />
+            {q ? (
+              <Pressable onPress={() => setQ("")} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search" style={{ paddingHorizontal: 12, height: 46, justifyContent: "center" }}>
+                <MaterialCommunityIcons name="close-circle" size={22} color={c.ink2} />
+              </Pressable>
+            ) : null}
+          </View>
           <SyncBadge />
           <Btn kind="secondary" title={`Billing list${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
         </View>
@@ -143,6 +168,12 @@ export function Sell() {
                       {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: 88 }} /> : (
                         <View style={{ height: 88, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
                           <Text style={{ fontSize: 30, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
+                        </View>
+                      )}
+                      {!editingMenu && (inCart.get(item.id) ?? 0) > 0 && (
+                        <View style={{ position: "absolute", top: 8, right: 8, minWidth: 30, height: 30, borderRadius: 15, paddingHorizontal: 8, backgroundColor: c.accent,
+                          alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: c.surface }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>
+                          <Text style={{ color: c.accentInk, fontWeight: "800" }}>{inCart.get(item.id)}</Text>
                         </View>
                       )}
                       {editingMenu && (
@@ -207,19 +238,27 @@ export function Sell() {
           keyExtractor={(l) => l.id}
           ListEmptyComponent={<View style={{ padding: 24 }}><Muted>Tap items to add them.</Muted></View>}
           renderItem={({ item: l }) => (
-            <Pressable onPress={() => setModal({ kind: "line", id: l.id })} accessibilityRole="button" accessibilityLabel={`${l.qty} ${lineLabel(l)}, ${money(l.line_total)}. Tap to edit`}
-              style={({ pressed }) => ({ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: c.line, backgroundColor: pressed ? c.surface2 : c.surface })}>
-              <View style={{ flexDirection: "row", gap: 10 }}>
-                <Text style={{ width: 28, fontWeight: "800", color: c.ink, fontSize: 16 }}>{l.qty}×</Text>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={{ fontWeight: "600", color: c.ink, fontSize: 16 }}>{lineLabel(l)}</Text>
-                  {l.modifiers.length > 0 && <Text style={{ color: c.ink2 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
-                  {l.note && <Text style={{ color: c.warn }}>“{l.note}”</Text>}
-                  {l.discount_amount > 0 && <Text style={{ color: c.accent }}>{l.discount!.name} −{money(l.discount_amount)}</Text>}
-                </View>
-                <Text style={{ fontWeight: "600", color: c.ink, fontSize: 16 }}>{money(l.line_total)}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 16, paddingRight: 10, paddingVertical: 8, borderBottomWidth: 1, borderColor: c.line }}>
+              <Pressable onPress={() => setModal({ kind: "line", id: l.id })} accessibilityRole="button" accessibilityLabel={`${l.qty} ${lineLabel(l)}, ${money(l.line_total)}. Tap to edit`}
+                style={({ pressed }) => ({ flex: 1, gap: 2, paddingVertical: 4, opacity: pressed ? 0.6 : 1 })}>
+                <Text style={{ fontWeight: "600", color: c.ink, fontSize: 16 }} numberOfLines={2}>{lineLabel(l)}</Text>
+                {l.modifiers.length > 0 && <Text style={{ color: c.ink2 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
+                {l.note && <Text style={{ color: c.warn }}>“{l.note}”</Text>}
+                {l.discount_amount > 0 && <Text style={{ color: c.accent }}>{l.discount!.name} −{money(l.discount_amount)}</Text>}
+                <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }}>{money(l.line_total)}</Text>
+              </Pressable>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Pressable onPress={() => step(l.id, -1)} accessibilityRole="button" accessibilityLabel={`One less ${lineLabel(l)}`} hitSlop={4}
+                  style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
+                  <MaterialCommunityIcons name={l.qty === 1 && !(l.saved_qty ?? 0) ? "trash-can-outline" : "minus"} size={22} color={c.ink} />
+                </Pressable>
+                <Text style={{ minWidth: 30, textAlign: "center", fontSize: 18, fontWeight: "800", color: c.ink }}>{l.qty}</Text>
+                <Pressable onPress={() => step(l.id, 1)} accessibilityRole="button" accessibilityLabel={`One more ${lineLabel(l)}`} hitSlop={4}
+                  style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
+                  <MaterialCommunityIcons name="plus" size={22} color={c.ink} />
+                </Pressable>
               </View>
-            </Pressable>
+            </View>
           )}
         />
 
@@ -298,6 +337,7 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
 
 const pill = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
 
+const qtyBtn = { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: c.surface };
 type GridRow = { kind: "header"; key: string; name: string; count: number } | { kind: "row"; key: string; items: Item[] };
 const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 44, paddingHorizontal: 14, borderRadius: 22,
   borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
