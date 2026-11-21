@@ -270,12 +270,28 @@ export const tableLabel = (o: Pick<OrderDoc, "table_id" | "table_name">) =>
  * plan, which replaces the one in the catalog straight away.
  */
 export async function editFloorPlan(change: FloorChange) {
-  if (!can("tables_manage")) throw new Error("Your role can't edit tables.");
-  if (change.kind === "table" && change.op === "delete") {
-    const busy = billsAt(change.id);
-    if (busy.length) throw new Error("This table has an open bill. Move or close it first.");
+  if (change.kind === "table" && change.op === "delete" && billsAt(change.id).length) {
+    throw new Error("This table has an open bill. Move or close it first.");
   }
-  const { data, error } = await supabase.rpc("pos_table_setup", { p_device: state.device!.id, p: change as never });
+  await applyFloorPlan("pos_table_setup", change);
+}
+
+export type BulkTableChange =
+  | { op: "update"; ids: string[]; seats?: number; set_area?: boolean; area_id?: string | null }
+  | { op: "delete"; ids: string[] };
+
+/** Change or delete several selected tables at once (all or nothing). */
+export async function editTables(change: BulkTableChange) {
+  if (change.op === "delete") {
+    const busy = (state.catalog?.tables ?? []).filter((t) => change.ids.includes(t.id) && billsAt(t.id).length).map((t) => t.name);
+    if (busy.length) throw new Error(`Open bill on ${busy.join(", ")}. Move or close it first.`);
+  }
+  await applyFloorPlan("pos_tables_bulk", change);
+}
+
+async function applyFloorPlan(fn: "pos_table_setup" | "pos_tables_bulk", p: object) {
+  if (!can("tables_manage")) throw new Error("Your role can't edit tables.");
+  const { data, error } = await supabase.rpc(fn, { p_device: state.device!.id, p: p as never });
   if (error) {
     // Server refusals carry a Postgres code; a network failure has none.
     if (!error.code) throw new Error("No connection. Table changes need internet; try again in a moment.");

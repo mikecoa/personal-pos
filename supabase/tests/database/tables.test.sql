@@ -1,7 +1,7 @@
 -- Table management: set-up permissions, seating and moving bills, safety on deleted tables.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(21);
+select plan(26);
 
 insert into auth.users (id, email, aud, role) values
   ('a0000000-0000-0000-0000-00000000000a', 'ownerA@t.test', 'authenticated', 'authenticated'),
@@ -83,6 +83,19 @@ select is((select name || '/' || seats || '/' || coalesce(area_id::text, 'none')
 select is(public.pos_table_setup('de000000-0000-0000-0000-000000000001', '{"kind":"table","op":"delete","id":"7b000000-0000-0000-0000-000000000009"}')->'tables' @> '[{"name":"A2-T"}]', false,
   'another location''s table can''t be deleted or seen (no error, nothing happens)');
 select is((select count(*)::int from public.dining_tables where id = '7b000000-0000-0000-0000-000000000009'), 1, '…and it still exists');
+
+-- ── multi-select (pos_tables_bulk) ────────────────────────────────────
+select lives_ok($$ select public.pos_table_setup('de000000-0000-0000-0000-000000000001', '{"kind":"table","name":"T2","seats":2}') $$, 'add T2');
+select lives_ok($$ select public.pos_tables_bulk('de000000-0000-0000-0000-000000000001', jsonb_build_object('op','update',
+  'ids', (select jsonb_agg(id) from public.dining_tables where name in ('T1','T2','A2-T')), 'seats', 8,
+  'set_area', true, 'area_id', (select id from public.table_areas where name = 'Indoor'))) $$, 'move T1, T2 to Indoor with 8 seats');
+select is((select string_agg(t.name || ':' || t.seats || ':' || coalesce(a.name, '-'), ',' order by t.name) from public.dining_tables t left join public.table_areas a on a.id = t.area_id
+  where t.name in ('T1','T2','A2-T')), 'A2-T:2:-,T1:8:Indoor,T2:8:Indoor', 'both updated; the other location''s table untouched');
+select public.upsert_order('de000000-0000-0000-0000-000000000001', pg_temp.bill(5, (select id::text from public.dining_tables where name = 'T1'), 'T1'));
+select throws_ok($$ select public.pos_tables_bulk('de000000-0000-0000-0000-000000000001', jsonb_build_object('op','delete',
+  'ids', (select jsonb_agg(id) from public.dining_tables where name in ('T1','T2')))) $$, '55006', 'Open bill on T1. Move or close it first.',
+  'deleting a selection with a busy table is refused');
+select is((select count(*)::int from public.dining_tables where name in ('T1','T2')), 2, '…and nothing was deleted');
 
 select * from finish();
 rollback;
