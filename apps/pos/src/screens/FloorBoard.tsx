@@ -1,44 +1,15 @@
 import { useRef, useState, type ReactNode } from "react";
 import { Animated, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
+import { FLOOR_COLS, FLOOR_MAX_ROW, firstFreeCell, floorLayout, moveOnFloor, usedCells } from "@pos/core";
 import { billsAt } from "../lib/store";
 import type { DiningTable } from "../lib/types";
 import { money } from "../ui/kit";
 import { c } from "../ui/theme";
 
-/** Columns on every area's board. Rows grow with the layout. */
-export const COLS = 8;
+const COLS = FLOOR_COLS;
 const PAD = 12;     // board padding
 const GAP = 14;     // space between neighbouring tables
-const MAX_ROW = 49; // server limit
 const MIN_CELL = 112; // narrower than this and the board scrolls sideways instead of shrinking
-
-export type Cell = { x: number; y: number };
-const key = (x: number, y: number) => `${x},${y}`;
-
-/**
- * Where each table sits. Saved positions first (a clash or an out-of-range cell counts as
- * unplaced); unplaced tables then fill the first free cells in name order.
- */
-export function layoutFor(tables: DiningTable[]): Map<string, Cell> {
-  const out = new Map<string, Cell>();
-  const used = new Set<string>();
-  const unplaced: DiningTable[] = [];
-  for (const t of tables) {
-    const x = t.pos_x, y = t.pos_y;
-    if (x == null || y == null || x >= COLS || used.has(key(x, y))) { unplaced.push(t); continue; }
-    out.set(t.id, { x, y }); used.add(key(x, y));
-  }
-  for (const t of unplaced) {
-    const cell = firstFree(used);
-    out.set(t.id, cell); used.add(key(cell.x, cell.y));
-  }
-  return out;
-}
-
-export function firstFree(used: Set<string>): Cell {
-  for (let y = 0; y <= MAX_ROW; y++) for (let x = 0; x < COLS; x++) if (!used.has(key(x, y))) return { x, y };
-  return { x: 0, y: MAX_ROW };
-}
 
 const elapsed = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -72,26 +43,18 @@ export function FloorBoard({ tables, mode, currentTableId, isSelected, onPress, 
   const cellH = Math.round(cellW * 0.95);
   const scale = Math.max(0.7, Math.min(1.15, cellW / 130));
 
-  const layout = layoutFor(tables);
-  const used = new Set([...layout.values()].map((p) => key(p.x, p.y)));
-  const addCell = onAdd ? firstFree(used) : null;
+  const layout = floorLayout(tables);
+  const addCell = onAdd ? firstFreeCell(usedCells(layout)) : null;
   const maxY = Math.max(-1, ...[...layout.values()].map((p) => p.y), addCell?.y ?? -1);
-  const rows = Math.min(MAX_ROW + 1, Math.max(4, maxY + 1 + (editing ? 1 : 0)));
+  const rows = Math.min(FLOOR_MAX_ROW + 1, Math.max(4, maxY + 1 + (editing ? 1 : 0)));
 
   const drop = (t: DiningTable, dx: number, dy: number) => {
     const from = layout.get(t.id)!;
-    const x = Math.min(COLS - 1, Math.max(0, Math.round(from.x + dx / cellW)));
-    const y = Math.min(MAX_ROW, Math.max(0, Math.round(from.y + dy / cellH)));
-    if (x === from.x && y === from.y) return;
-    const next = new Map(layout);
-    const other = [...layout.entries()].find(([, p]) => p.x === x && p.y === y)?.[0];
-    if (other) next.set(other, from);                      // swap places
-    next.set(t.id, { x, y });
-    // Save the whole area so auto-placed tables stay where staff see them now.
-    onLayoutChange([...next.entries()].map(([id, p]) => ({ id, x: p.x, y: p.y })));
+    const cells = moveOnFloor(layout, t.id, { x: from.x + dx / cellW, y: from.y + dy / cellH });
+    if (cells) onLayoutChange(cells);
   };
 
-  const box = (p: Cell) => ({ left: PAD + p.x * cellW + GAP / 2, top: PAD + p.y * cellH + GAP / 2, width: cellW - GAP, height: cellH - GAP });
+  const box = (p: { x: number; y: number }) => ({ left: PAD + p.x * cellW + GAP / 2, top: PAD + p.y * cellH + GAP / 2, width: cellW - GAP, height: cellH - GAP });
 
   const dragState = (d: boolean) => { setDragging(d); onDragging?.(d); };
 

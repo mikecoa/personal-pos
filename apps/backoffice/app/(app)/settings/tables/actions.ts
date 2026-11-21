@@ -73,3 +73,19 @@ export async function addTables(_: ActionState, form: FormData): Promise<ActionS
   const { error } = await supabase.from("dining_tables").insert(rows);
   return error ? fail(error) : done();
 }
+
+const layoutSchema = z.array(z.object({
+  id: z.string().uuid(), x: z.number().int().min(0).max(7), y: z.number().int().min(0).max(49),
+})).max(500);
+
+/** Save positions on an area's floor map (called by the drag-and-drop map; not a form). */
+export async function saveLayout(cells: { id: string; x: number; y: number }[]): Promise<{ error?: string }> {
+  const { supabase, location } = await requireManage();
+  const parsed = layoutSchema.safeParse(cells);
+  if (!parsed.success) return { error: "That layout isn't valid." };
+  const results = await Promise.all(parsed.data.map((c) =>
+    supabase.from("dining_tables").update({ pos_x: c.x, pos_y: c.y }).eq("id", c.id).eq("location_id", location.id)));
+  const failed = results.find((r) => r.error);
+  revalidatePath("/settings/tables");
+  return failed?.error ? { error: failed.error.message } : {};
+}

@@ -3,6 +3,7 @@ import { requireManage } from "@/lib/session";
 import { Badge, ButtonLink, EmptyState, Field, PageHeader, Panel, Select, Toggle } from "@/components/ui";
 import { EditorForm } from "@/components/editor-form";
 import { addTables, deleteArea, deleteTable, saveArea, saveTable } from "./actions";
+import { FloorMap } from "./floor-map";
 
 const BASE = "/settings/tables";
 const SHAPES = { square: "Square", round: "Round", long: "Long" } as const;
@@ -13,7 +14,7 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const [{ data: areas }, { data: tables }, { data: open }] = await Promise.all([
     supabase.from("table_areas").select("id, name, sort_order, is_active").eq("location_id", location.id).order("sort_order").order("name"),
-    supabase.from("dining_tables").select("id, name, area_id, seats, shape, sort_order, is_active").eq("location_id", location.id).order("sort_order").order("name"),
+    supabase.from("dining_tables").select("id, name, area_id, seats, shape, sort_order, is_active, pos_x, pos_y").eq("location_id", location.id).order("sort_order").order("name"),
     supabase.from("orders").select("table_id").eq("location_id", location.id).eq("status", "open").not("table_id", "is", null),
   ]);
   const busy = new Set((open ?? []).map((o) => o.table_id));
@@ -25,7 +26,7 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader title="Tables" description={<>Tables at <b>{location.name}</b>. Cashiers seat customers and move bills between them on the tablet.</>}
+      <PageHeader title="Tables" description={<>Floor map for <b>{location.name}</b>, the same one the tablets show. Cashiers seat customers and move bills between tables on the tablet.</>}
         actions={<>
           <ButtonLink variant="secondary" href={`${BASE}?new=area`}>New area</ButtonLink>
           <ButtonLink variant="secondary" href={`${BASE}?new=bulk`}>Add several</ButtonLink>
@@ -43,17 +44,10 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
             <span className="text-sm text-ink-2">{g.items.length} tables · {g.items.reduce((s, t) => s + t.seats, 0)} seats</span>
           </div>
           {g.items.length ? (
-            <ul className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3">
-              {g.items.map((t) => (
-                <li key={t.id}>
-                  <Link scroll={false} href={`${BASE}?table=${t.id}`}
-                    className={`flex h-24 flex-col items-center justify-center border border-line bg-surface hover:border-accent ${t.shape === "round" ? "rounded-full" : "rounded-xl"} ${t.is_active ? "" : "opacity-50"}`}>
-                    <span className="text-lg font-bold">{t.name}</span>
-                    <span className="text-xs text-ink-2">{t.seats} seats{busy.has(t.id) ? " · in use" : ""}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <FloorMap editHref={`${BASE}?table=`}
+              // Name order, like the tablet, so tables without a saved cell land in the same place.
+              tables={[...g.items].sort((x, y) => x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: "base" }))
+                .map((t) => ({ ...t, busy: busy.has(t.id) }))} />
           ) : <p className="text-sm text-ink-2">No tables in this area yet.</p>}
         </section>
       ))}
@@ -70,7 +64,7 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
                 {Object.entries(SHAPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </Select>
             </div>
-            <Field label="Order on tablet" name="sort_order" type="number" defaultValue={editingTable?.sort_order ?? (tables?.length ?? 0) + 1} />
+            <input type="hidden" name="sort_order" value={editingTable?.sort_order ?? 0} />
             <Toggle label="Available" name="is_active" defaultChecked={editingTable?.is_active ?? true} description="Unavailable tables are hidden on the tablet." />
           </EditorForm>
         </Panel>
