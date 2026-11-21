@@ -66,7 +66,10 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
     if (!editing && !canEdit) return;
     setEditing(true); setNotice(null); setSelection([]); setArea(id); setPanel({ kind: "area", id });
   };
-  const hold = (t: DiningTable) => { if (editing) toggle(t); else if (canEdit) startEditing(t); };
+  // Hold = pick the table up: switch to edit mode (nothing selected, so no side panel and the map
+  // doesn't change under the finger); keep moving the same finger to drag it.
+  const hold = (_t: DiningTable) => { if (!editing && canEdit) startEditing(); };
+  const [rowW, setRowW] = useState(0);
 
   const tap = (t: DiningTable) => {
     setNotice(null);
@@ -134,14 +137,14 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
             </View>
           )}
 
-          <View style={{ flexDirection: "row", flex: 1, minHeight: 0 }}>
+          <View style={{ flexDirection: "row", flex: 1, minHeight: 0 }} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
             {/* grid */}
             <ScrollView style={{ flex: 1 }} scrollEnabled={!dragging} contentContainerStyle={{ padding: 20, gap: 14 }}>
               {notice && <Text style={st.notice}>{notice}</Text>}
               {(shown.length > 0 || editing) && (
                 <FloorBoard tables={shown} mode={editing ? "edit" : mode} currentTableId={order?.table_id ?? null}
                   isSelected={(t) => (editing ? selection.includes(t.id) : (panel?.kind === "seat" || panel?.kind === "bills") && panel.table.id === t.id)}
-                  onPress={tap} onLongPress={hold} onDragging={setDragging}
+                  onPress={tap} onLongPress={hold} onDragging={setDragging} fullWidth={rowW - 40} canArrange={canEdit}
                   onAdd={editing ? () => { setSelection([]); setPanel({ kind: "new" }); } : undefined} addActive={panel?.kind === "new"}
                   onLayoutChange={(cells) => { setNotice(null); saveLayout(cells).catch((e) => setNotice((e as Error).message)); }} />
               )}

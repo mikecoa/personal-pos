@@ -28,16 +28,21 @@ type Props = {
   onAdd?: () => void;
   addActive?: boolean;
   onDragging?: (dragging: boolean) => void;
+  /** Width of the board with no side panel open. Tables keep this size when a panel opens (the board scrolls instead). */
+  fullWidth?: number;
+  /** Holding a table picks it up for dragging (people allowed to edit tables). */
+  canArrange?: boolean;
 };
 
 /**
  * 2D floor map of one area. Tables sit on a grid so the board stays tidy; in edit mode they can
  * be dragged to another cell (dropping on a table swaps the two).
  */
-export function FloorBoard({ tables, mode, currentTableId, isSelected, onPress, onLongPress, onLayoutChange, onAdd, addActive, onDragging }: Props) {
+export function FloorBoard({ tables, mode, currentTableId, isSelected, onPress, onLongPress, onLayoutChange, onAdd, addActive, onDragging, fullWidth = 0, canArrange = false }: Props) {
   const [avail, setAvail] = useState(0);
+  const [lifted, setLifted] = useState<string | null>(null);     // held down long enough to drag
   const [dragging, setDragging] = useState(false);
-  const width = avail ? Math.max(avail, COLS * MIN_CELL + PAD * 2) : 0;
+  const width = avail ? Math.max(avail, fullWidth, COLS * MIN_CELL + PAD * 2) : 0;
   const editing = mode === "edit";
   const cellW = width ? (width - PAD * 2) / COLS : 0;
   const cellH = Math.round(cellW * 0.95);
@@ -66,9 +71,10 @@ export function FloorBoard({ tables, mode, currentTableId, isSelected, onPress, 
         <View key={`g${i}`} pointerEvents="none" style={[st.gridCell, box({ x: i % COLS, y: Math.floor(i / COLS) })]} />
       ))}
       {width > 0 && tables.map((t) => (
-        <Draggable key={t.id} enabled={editing} style={box(layout.get(t.id)!)} onDrop={(dx, dy) => drop(t, dx, dy)} onDragging={dragState}>
+        <Draggable key={t.id} enabled={editing || lifted === t.id} lifted={lifted === t.id} style={box(layout.get(t.id)!)} onDrop={(dx, dy) => drop(t, dx, dy)} onDragging={dragState}>
           <MapTile table={t} mode={mode} scale={scale} current={currentTableId === t.id} selected={isSelected(t)}
-            onPress={() => onPress(t)} onLongPress={editing ? undefined : () => onLongPress(t)} />
+            onPress={() => onPress(t)} onPressOut={() => setLifted((l) => (l === t.id ? null : l))}
+            onLongPress={() => { if (canArrange) setLifted(t.id); onLongPress(t); }} />
         </Draggable>
       ))}
       {width > 0 && addCell && (
@@ -84,8 +90,8 @@ export function FloorBoard({ tables, mode, currentTableId, isSelected, onPress, 
   );
 }
 
-function Draggable({ enabled, style, onDrop, onDragging, children }: {
-  enabled: boolean; style: object; onDrop: (dx: number, dy: number) => void; onDragging?: (d: boolean) => void; children: ReactNode;
+function Draggable({ enabled, lifted, style, onDrop, onDragging, children }: {
+  enabled: boolean; lifted?: boolean; style: object; onDrop: (dx: number, dy: number) => void; onDragging?: (d: boolean) => void; children: ReactNode;
 }) {
   const pan = useRef(new Animated.ValueXY()).current;
   const [dragging, setDragging] = useState(false);
@@ -104,14 +110,14 @@ function Draggable({ enabled, style, onDrop, onDragging, children }: {
   return (
     <Animated.View {...responder.panHandlers}
       style={[{ position: "absolute" }, style, { zIndex: dragging ? 10 : 1, elevation: dragging ? 10 : 0, opacity: dragging ? 0.9 : 1,
-        transform: [...pan.getTranslateTransform(), { scale: dragging ? 1.06 : 1 }] }]}>
+        transform: [...pan.getTranslateTransform(), { scale: dragging || lifted ? 1.06 : 1 }] }]}>
       {children}
     </Animated.View>
   );
 }
 
-function MapTile({ table, mode, scale, current, selected, onPress, onLongPress }: {
-  table: DiningTable; mode: "seat" | "move" | "edit"; scale: number; current: boolean; selected: boolean; onPress: () => void; onLongPress?: () => void;
+function MapTile({ table, mode, scale, current, selected, onPress, onPressOut, onLongPress }: {
+  table: DiningTable; mode: "seat" | "move" | "edit"; scale: number; current: boolean; selected: boolean; onPress: () => void; onPressOut?: () => void; onLongPress?: () => void;
 }) {
   const bills = billsAt(table.id);
   const busy = bills.length > 0 && mode !== "edit";
@@ -127,7 +133,7 @@ function MapTile({ table, mode, scale, current, selected, onPress, onLongPress }
   const ring = mode === "edit" ? c.accent : c.ink;
 
   return (
-    <Pressable onPress={onPress} onLongPress={onLongPress} delayLongPress={400}
+    <Pressable onPress={onPress} onPressOut={onPressOut} onLongPress={onLongPress} delayLongPress={400}
       accessibilityRole={mode === "edit" ? "checkbox" : "button"} accessibilityState={mode === "edit" ? { checked: selected } : undefined}
       accessibilityLabel={label}
       style={({ pressed }) => [st.tile,
