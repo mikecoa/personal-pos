@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { isPermission } from "@pos/core";
+import { isBackofficePage, isPermission } from "@pos/core";
 import { requireOwner } from "@/lib/session";
 import { fail, ok, str, type ActionState } from "@/lib/actions";
 
@@ -9,10 +9,11 @@ export async function saveRole(_: ActionState, form: FormData): Promise<ActionSt
   const name = str(form, "name");
   if (!name) return fail("Role name is required");
   const permissions = form.getAll("perm").map(String).filter(isPermission);
+  const backoffice_pages = form.get("backoffice") ? [...new Set(form.getAll("page").map(String).filter(isBackofficePage))] : [];
   const id = str(form, "id");
   const { error } = id
-    ? await supabase.from("roles").update({ name, permissions }).eq("id", id)
-    : await supabase.from("roles").insert({ name, permissions, account_id: membership.account_id });
+    ? await supabase.from("roles").update({ name, permissions, backoffice_pages }).eq("id", id)
+    : await supabase.from("roles").insert({ name, permissions, backoffice_pages, account_id: membership.account_id });
   if (error) return fail(error);
   revalidatePath("/employees", "layout");
   return ok();

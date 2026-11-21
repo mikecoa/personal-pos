@@ -4,7 +4,9 @@ import { NextResponse, type NextRequest } from "next/server";
 const PUBLIC_PATHS = ["/login"];
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // Pages read the path from this header to apply each role's backoffice page permissions.
+  request.headers.set("x-pathname", request.nextUrl.pathname);
+  let response = NextResponse.next({ request: { headers: request.headers } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +16,7 @@ export async function middleware(request: NextRequest) {
         getAll: () => request.cookies.getAll(),
         setAll: (list: { name: string; value: string; options: CookieOptions }[]) => {
           list.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = NextResponse.next({ request: { headers: request.headers } });
           list.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
       },

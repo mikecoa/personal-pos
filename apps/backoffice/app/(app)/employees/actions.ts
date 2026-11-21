@@ -7,13 +7,14 @@ import { bool, fail, ok, str, type ActionState } from "@/lib/actions";
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(80),
   phone: z.string().max(40).nullable(),
+  email: z.string().trim().toLowerCase().email("That email doesn't look right").max(120).nullable(),
   role_id: z.string().uuid("Choose a role"),
   is_active: z.boolean(),
 });
 
 export async function saveEmployee(_: ActionState, form: FormData): Promise<ActionState> {
   const { supabase, membership } = await requireOwner();
-  const parsed = schema.safeParse({ name: str(form, "name"), phone: str(form, "phone") || null, role_id: str(form, "role_id"), is_active: bool(form, "is_active") });
+  const parsed = schema.safeParse({ name: str(form, "name"), phone: str(form, "phone") || null, email: str(form, "email") || null, role_id: str(form, "role_id"), is_active: bool(form, "is_active") });
   if (!parsed.success) return fail(parsed.error);
   const pin = str(form, "pin");
   if (pin && !/^\d{4}$/.test(pin)) return fail("PIN must be exactly 4 digits");
@@ -26,7 +27,7 @@ export async function saveEmployee(_: ActionState, form: FormData): Promise<Acti
       location_ids: locations, pin: pin || undefined, clear_pin: bool(form, "clear_pin"),
     },
   });
-  if (error) return error.code === "23505" ? fail("Another employee already uses that PIN. Pick a different one.") : fail(error);
+  if (error) return error.code === "23505" ? fail(error.message.includes("email") ? "Another employee already uses that email." : "Another employee already uses that PIN. Pick a different one.") : fail(error);
   revalidatePath("/employees", "layout");
   return ok();
 }

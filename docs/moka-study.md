@@ -267,3 +267,32 @@ Device and outlet header (name, login email, outlet). Sections:
 - Copy the two-pane tablet layout (catalog left, cart right, Charge bottom-right), but give the catalog a **photo/tile grid** instead of Moka's text list. That's faster to tap, and Favorites already works this way.
 - Keep: sales-type sheet; named open bills with age timers; mandatory void reasons; master–detail Activity; refunds tied to the open shift; a shift close-out with expected vs actual per payment type.
 - Moka's weak spots to improve: the drill-down category list (extra taps), 2-letter initials instead of images, a plain list catalog, and settings split between the app and the backoffice.
+
+---
+
+## 6. Employees in the logged-in backoffice (seen 21 Nov 2026, read only, nothing changed)
+
+**Employee Slots** (5 free slots until 08 Jan 2027): Pak Fiki (Administrator), Kasir 1, Kasir 2, Nur Hayati (Cashier), one empty slot; all assigned to all outlets. Each employee has first/last name, email (sign-in, fixed once verified), phone, role, an *Assign a PIN* switch, outlets, description, and *Deactivate*.
+
+**Employee Access (roles)**
+
+| App permission | Cashier | Administrator |
+|---|---|---|
+| Manage All Open Bills | ✓ | ✓ |
+| Manage Discounts | – | ✓ |
+| Issue Refunds | ✓ | ✓ |
+| Resend Receipts | ✓ | ✓ |
+| Record Invoice Payments | ✓ | ✓ |
+| Cancel Invoices | – | ✓ |
+| View and Print Current Shift Details | ✓ | ✓ |
+| Manage Items | ✓ | ✓ |
+| Manage Favorites | – | ✓ |
+| Edit Customer Information | ✓ | ✓ |
+| Charge Customers | ✓ | ✓ |
+| Move Tables | ✓ | ✓ |
+
+Administrator also has backoffice access (Dashboard, Reports, Library except Brands, Ingredient, Inventory, Customers, Employees, Customer Display, Table Management, Account Settings). Cashier is app only.
+
+**PIN Access:** administrators with a PIN act as approvers (only Pak Fiki). Features that need the PIN: **Manage All Open Bills** and **Issue Refunds** are on; Print Bill, Apply Discounts, Manage Discounts, Resend Receipts, Record/Cancel Invoices, View Shift History, Edit Customer Information and View Activity are off.
+
+**Mapping to this app:** Moka Administrator → our Manager (has *Approve actions with their PIN*); Moka Cashier → our Cashier with charge, open bills, discounts, refunds, receipts, shift details, items, customers, voids, cash in/out, Activity and past shifts. Moka's PIN Access → Location settings → PIN approval (refunds locked as in Moka; locking all open-bill actions is stricter here, because ours covers every save/edit, not only other people's bills). Every employee needs a new 4-digit PIN; Moka PINs are not copied.

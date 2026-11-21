@@ -26,7 +26,6 @@ export function RefundSheet({ order, onClose }: { order: OrderDoc; onClose: () =
 
   const quote = refundQuote(order, picks);
   const finalReason = reason === "Other" ? other.trim() : reason;
-  const allowed = can("refunds_issue");
   const nothingLeft = order.lines.every((l) => left(l.id, l.qty) <= 0);
 
   return (
@@ -35,10 +34,9 @@ export function RefundSheet({ order, onClose }: { order: OrderDoc; onClose: () =
         <Btn kind="secondary" title="Cancel" onPress={onClose} />
         <View style={{ flex: 1 }} />
         <Btn big kind="danger" title={`Refund ${money(quote.amount)}`}
-          disabled={!allowed || !shift || quote.amount <= 0 || !finalReason}
+          disabled={!shift || quote.amount <= 0 || !finalReason}
           onPress={() => { refund(order, picks, finalReason!, methods.find((m) => m.id === methodId)!, tracked && restock); onClose(); }} />
       </>}>
-      {!allowed && <Text style={{ color: c.danger, fontWeight: "600" }}>Your role can't issue refunds. Ask a manager to unlock.</Text>}
       {!shift && <Text style={{ color: c.danger, fontWeight: "600" }}>Start a shift first. Refunds are counted in the current shift.</Text>}
       {prior.amount > 0 && <Muted>Already refunded {money(prior.amount)} of {money(order.total)}.</Muted>}
       {nothingLeft ? <Muted>Everything on this sale has been refunded.</Muted> : (

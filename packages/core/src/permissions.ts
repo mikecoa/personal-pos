@@ -31,6 +31,12 @@ export const PERMISSION_GROUPS = [
     ],
   },
   {
+    label: "Approvals",
+    items: [
+      { key: "pin_approve", label: "Approve actions with their PIN", hint: "Unlocks actions that need a manager's PIN, on the spot" },
+    ],
+  },
+  {
     label: "Library on POS",
     items: [
       { key: "items_manage", label: "Edit items on the POS" },
@@ -44,3 +50,16 @@ export const PERMISSION_GROUPS = [
 export type Permission = (typeof PERMISSION_GROUPS)[number]["items"][number]["key"];
 export const ALL_PERMISSIONS: Permission[] = PERMISSION_GROUPS.flatMap((g) => g.items.map((i) => i.key));
 export const isPermission = (k: string): k is Permission => (ALL_PERMISSIONS as string[]).includes(k);
+
+/** Tablet actions a location can lock behind a manager's PIN (Location settings → PIN approval). */
+export const PIN_LOCKABLE = [
+  { key: "open_bills_manage", label: "Save, edit, move and cancel open bills" },
+  { key: "void_items", label: "Void items from saved bills" },
+  { key: "discounts_apply", label: "Apply discounts to bills and items" },
+  { key: "refunds_issue", label: "Issue refunds" },
+  { key: "receipts_resend", label: "Reprint or resend receipts" },
+  { key: "activity_view", label: "View sales history (Activity)" },
+  { key: "shift_history_view", label: "View past shifts" },
+  { key: "customers_edit", label: "Add or edit customers" },
+  { key: "cash_in_out", label: "Record cash in / cash out" },
+] as const;

@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { type ComponentProps } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { billsAt, can, go, lock, toggleMenu, useStore, type Page } from "../lib/store";
+import { billsAt, can, go, guard, lock, toggleMenu, useStore, type Page } from "../lib/store";
 import { c } from "../ui/theme";
 
 type Icon = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -28,7 +28,7 @@ export function SideMenu() {
   const items: { page: Page; label: string; icon: Icon; badge?: string; dot?: boolean; show: boolean }[] = [
     { page: "pos", label: "Point of Sale", icon: "view-dashboard-outline", show: true },
     { page: "tables", label: "Tables", icon: "table-chair", badge: busyTables ? String(busyTables) : undefined, show: tables.length > 0 || can("tables_manage") },
-    { page: "activity", label: "Activity", icon: "clock-outline", show: can("activity_view") },
+    { page: "activity", label: "Activity", icon: "clock-outline", show: true },
     { page: "shift", label: "Shift", icon: "treasure-chest-outline", dot: !shift, show: true },
     { page: "settings", label: "Settings", icon: "cog-outline", show: true },
   ];
@@ -53,7 +53,7 @@ export function SideMenu() {
         {items.filter((i) => i.show).map((i) => {
           const active = page === i.page;
           return (
-            <Pressable key={i.page} onPress={() => go(i.page)} accessibilityRole="tab" accessibilityState={{ selected: active }}
+            <Pressable key={i.page} onPress={() => (i.page === "activity" ? guard("activity_view", "View sales history", () => go("activity")) : go(i.page))} accessibilityRole="tab" accessibilityState={{ selected: active }}
               accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? ", no shift open" : ""}`}
               style={({ pressed }) => [st.item, collapsed && st.itemCollapsed, active ? st.itemActive : pressed && { backgroundColor: hover }]}>
               <View>

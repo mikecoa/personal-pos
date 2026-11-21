@@ -44,7 +44,8 @@ Test logins and employee PINs are listed in [supabase/seed.sql](supabase/seed.sq
 |---|---|---|
 | Library (per location) | Items (variants, sales-type prices, modifiers, stock, copy to locations), Import CSV, Categories, Modifiers, Sales types, Discounts, Quick notes | Owner, admin |
 | Location settings | Checkout (tax, service, rounding, bills, shifts), Payment methods, Receipt (live preview), Tables (floor map per area, the same one the tablets show: drag to place or swap, click to edit; areas, seats, shape; bulk add "T1–T10"; shows which are in use), POS tablets | Owner, admin |
-| Business | Locations, Employees (role, locations, 4-digit PIN), Roles (POS permissions) | Owner |
+| Employees | **Employee slots** (name, phone, email, role, locations, 4-digit PIN, backoffice status), **Employee access** (roles: POS permissions plus optional backoffice pages, Moka-style), **PIN access** (who can approve, which actions need a manager's PIN, per location) | Owner |
+| Business | Locations | Owner |
 | Reports | Dashboard (KPIs vs previous period, daily/hourly charts, payment mix, top items), Sales (summary, items, categories, modifiers, payments, sales types, discounts, staff), Transactions (sales, cancelled bills, voids, refunds; receipt search), Shifts (cash differences, cash in/out); CSV export everywhere | Owner, admin |
 
 Reports run through `report_sales` / `report_transactions` / `report_shifts` (SECURITY INVOKER, so RLS limits them to locations the user can see). Filters live in the URL (`?loc=all|<id>&range=7d|30d|month|…|custom&from=&to=`); days are bucketed in WIB. Definitions are documented at the top of `supabase/migrations/20261124000001_reports.sql`.
@@ -68,6 +69,7 @@ The emulator reaches your Mac as `10.0.2.2`; a real tablet needs your Mac's LAN 
 - **Items with choices** (temperature, spice level, size…): the pop-up shows one button per combination (e.g. *Panas*, *Dingin*, or *Panas · Pedas* when there are two choices) and stays open, so *2 Panas + 1 Dingin* is three taps; each button shows how many are on the order with a − to undo. *More options* opens the full form (note, item discount, optional toppings) with an add button that keeps the pop-up open for the next one. An *On this order* list shows every line of that item with − / +.
 - **Notes:** every cart line (and each line in the item pop-up's *On this order*) has a *Note* button. The one-tap notes are the location's **quick notes** (Backoffice → Library → Quick notes: add, rename, reorder, and optionally limit a note to some categories), followed by up to 4 notes typed recently on that tablet. Managers can also edit the list from the note pop-up (*Edit notes*, needs internet; `pos_save_quick_notes`). With several on a line the note goes on **just 1** by default: it moves to its own line, or joins a line that already has that note.
 - **Cart:** each line has − / + buttons (− turns into a bin at 1; reducing a saved bill below what was saved asks for a void reason), menu tiles show how many are on the order, and the search box has a clear button.
+- **Manager PIN approval** (like Moka's PIN Access): an action asks for a manager's PIN when the location has locked it (Employees → **PIN access**) or when the cashier's role doesn't allow it. Anyone whose role has *Approve actions with their PIN* (Managers by default) approves on the spot; one approval covers one action, approvers are never asked, and wrong PINs count towards the PIN lockout. Covers saving/editing/moving/cancelling bills, voids, discounts, refunds, receipts, Activity, past shifts, customers and cash in/out. Works offline (the tablet checks PINs it already holds).
 - **Shift option** on the tablet changes the location's *Start shift automatically* and *Default starting cash* (`pos_shift_settings`, needs a connection and the *Change shift options on the POS* permission, on by default for Managers).
 - **Printer settings** (connection, IP or name, paper 58/80 mm, print after every sale, copies) are saved on the tablet; *Test print* shows a preview. Sending to a real printer comes once the printer model is known.
 - **Setup:** an owner/admin signs in once and picks the location; the tablet is registered (`register_device`) and gets a receipt prefix (A1, A2…).
@@ -91,6 +93,10 @@ pnpm test         # unit tests
 pnpm typecheck
 pnpm db:reset     # rebuild the local DB from migrations + seed
 ```
+
+## Staff backoffice logins
+
+A role can grant backoffice pages (Employees → Employee access → *Backoffice permissions*). An employee with that role and an email in their slot creates their login on the sign-in page (*Create an account*) with that email; `claim_employee_access` links the login to the slot and gives them access to the business, limited to the locations they work at. The backoffice then shows only the pages their role allows (`pageForPath` in `packages/core/src/backoffice.ts`; other pages show "no access"). Changing the role, locations or email, or deactivating the employee, updates or removes the login's access straight away (database triggers). Employees, Locations and account settings stay with the owner. Note: database rules work per location; the page list is enforced by the backoffice.
 
 ## How location isolation works
 

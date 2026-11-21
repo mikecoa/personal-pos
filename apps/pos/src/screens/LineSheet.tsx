@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { can, setLineDetails, setQty, useStore } from "../lib/store";
+import { guard, setLineDetails, setQty, useStore } from "../lib/store";
 import { lineLabel } from "../lib/order";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c } from "../ui/theme";
@@ -20,7 +20,6 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
 
   const saved = line.saved_qty ?? 0;
   const voiding = Math.max(0, saved - qty);
-  const needsPermission = voiding > 0 && !can("void_items");
   const voidReason = reason === "Other" ? other.trim() : reason;
 
   const apply = () => {
@@ -36,7 +35,8 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
         <Btn kind="danger" title={saved ? "Void item" : "Remove"} onPress={() => setQ(0)} />
         <View style={{ flex: 1 }} />
         <Btn kind="secondary" title="Cancel" onPress={onClose} />
-        <Btn title={voiding ? `Void ${voiding} & save` : qty === 0 ? "Remove item" : "Save"} disabled={(voiding > 0 && !voidReason) || needsPermission} onPress={apply} />
+        <Btn title={voiding ? `Void ${voiding} & save` : qty === 0 ? "Remove item" : "Save"} disabled={voiding > 0 && !voidReason}
+          onPress={() => (voiding > 0 ? guard("void_items", `Void ${voiding} item${voiding > 1 ? "s" : ""}`, apply) : apply())} />
       </>}>
       {line.modifiers.length > 0 && <Muted>{line.modifiers.map((m) => m.option).join(", ")}</Muted>}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -46,9 +46,9 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
       {voiding > 0 && (
         <View style={{ gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.dangerSoft }}>
           <Text style={{ color: c.danger, fontWeight: "700" }}>
-            {needsPermission ? "Your role can't void items. Ask a manager to unlock." : `Voiding ${voiding} already-saved item${voiding > 1 ? "s" : ""}. Why?`}
+            {`Voiding ${voiding} already-saved item${voiding > 1 ? "s" : ""}. Why?`}
           </Text>
-          {!needsPermission && (
+          {(
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {[...REASONS, "Other"].map((r) => <Chip key={r} label={r} active={reason === r} onPress={() => setReason(r)} />)}
             </View>
@@ -57,12 +57,12 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
         </View>
       )}
       <Field label="Note" value={note} onChangeText={setNote} maxLength={120} />
-      {can("discounts_apply") && discounts.length > 0 && (
+      {discounts.length > 0 && (
         <View style={{ gap: 10 }}>
           <Label>Discount</Label>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
             <Chip label="None" active={!discountId} onPress={() => setDiscountId(null)} />
-            {discounts.map((d) => <Chip key={d.id} label={d.kind === "percent" ? `${d.name} ${d.value / 100}%` : `${d.name} ${money(d.value)}`} active={discountId === d.id} onPress={() => setDiscountId(d.id)} />)}
+            {discounts.map((d) => <Chip key={d.id} label={d.kind === "percent" ? `${d.name} ${d.value / 100}%` : `${d.name} ${money(d.value)}`} active={discountId === d.id} onPress={() => guard("discounts_apply", "Apply a discount", () => setDiscountId(d.id))} />)}
           </View>
         </View>
       )}

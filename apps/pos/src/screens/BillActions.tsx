@@ -111,9 +111,6 @@ export function BillDiscountSheet({ onClose }: { onClose: () => void }) {
   const discounts = allDiscounts.filter((d) => d.scope !== "item");
   const current = order?.discounts ?? [];
   const [ids, setIds] = useState(current.map((d) => d.discount_id).filter(Boolean) as string[]);
-  if (!can("discounts_apply")) return (
-    <Sheet visible onClose={onClose} title="Discount" width={480}><Muted>Your role can't apply discounts. Ask a manager to unlock.</Muted></Sheet>
-  );
   return (
     <Sheet visible onClose={onClose} title="Discount on whole bill" width={560}
       footer={<><Btn kind="secondary" title="Cancel" onPress={onClose} /><Btn style={{ flex: 1 }} title="Apply"
@@ -133,17 +130,12 @@ export function BillDiscountSheet({ onClose }: { onClose: () => void }) {
 export function CancelBillSheet({ onClose }: { onClose: () => void }) {
   const order = useStore((s) => s.order)!;
   const [reason, setReason] = useState("");
-  const allowed = can("open_bills_manage");
   return (
     <Sheet visible onClose={onClose} title={`Cancel bill ${order.bill_name ?? order.number}`} width={520}
       footer={<><Btn kind="secondary" title="Keep bill" onPress={onClose} /><Btn kind="danger" style={{ flex: 1 }} title="Cancel bill"
-        disabled={!allowed || !reason.trim()} onPress={() => { cancelBill(reason.trim()); onClose(); }} /></>}>
-      {allowed ? (
-        <>
-          <Text style={{ color: c.ink }}>The bill is closed without payment. Its items and this reason are kept in the report.</Text>
-          <Field label="Reason" value={reason} onChangeText={setReason} autoFocus placeholder="e.g. Customer left" maxLength={120} />
-        </>
-      ) : <Muted>Your role can't cancel saved bills. Ask a manager to unlock.</Muted>}
+        disabled={!reason.trim()} onPress={() => { cancelBill(reason.trim()); onClose(); }} /></>}>
+      <Text style={{ color: c.ink }}>The bill is closed without payment. Its items and this reason are kept in the report.</Text>
+      <Field label="Reason" value={reason} onChangeText={setReason} autoFocus placeholder="e.g. Customer left" maxLength={120} />
     </Sheet>
   );
 }

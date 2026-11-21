@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { ALL_BACKOFFICE_PAGES, pageForPath, type BackofficePage } from "@pos/core";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,6 +38,15 @@ export const getSession = cache(async () => {
   const location = active.find((l) => l.id === chosen) ?? active[0] ?? null;
 
   const role = membership.role as Role;
+  // Backoffice pages: owners (and admins not linked to an employee slot) see everything; staff who
+  // signed in through their employee slot see what their role allows (Employee access).
+  let pages = new Set<BackofficePage>(ALL_BACKOFFICE_PAGES);
+  if (role !== "owner") {
+    const { data: emp } = await supabase.from("employees").select("roles(backoffice_pages)")
+      .eq("account_id", membership.account_id).eq("user_id", user.id).maybeSingle();
+    const granted = (emp?.roles as { backoffice_pages?: string[] } | null)?.backoffice_pages;
+    if (emp) pages = new Set((granted ?? []) as BackofficePage[]);
+  }
   return {
     supabase,
     user,
@@ -48,8 +58,20 @@ export const getSession = cache(async () => {
     locations: active,
     allLocations: locations,
     location,
+    pages,
   };
 });
+
+/** Can this person open the backoffice page at `path`? */
+export async function canOpen(path: string) {
+  const s = await getSession();
+  const key = pageForPath(path);
+  if (key === "owner") return s.isOwner;
+  if (key === null) return true;
+  return s.pages.has(key);
+}
+/** Path of the page being rendered (set by the middleware). */
+export async function currentPath() { return (await headers()).get("x-pathname") ?? "/"; }
 
 /** For pages that need a selected location. */
 export async function requireLocation() {

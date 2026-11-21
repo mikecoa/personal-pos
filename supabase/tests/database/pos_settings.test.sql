@@ -1,7 +1,7 @@
 -- Shift options changed from a tablet.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(6);
+select plan(8);
 
 insert into auth.users (id, email, aud, role) values
   ('a0000000-0000-0000-0000-00000000000a', 'ownerA@t.test', 'authenticated', 'authenticated'),
@@ -35,6 +35,10 @@ select is(public.pos_shift_settings('de000000-0000-0000-0000-000000000001', '{"a
 select is((select auto_shift_enabled::text || '/' || default_starting_cash from public.location_settings where location_id = 'a1100000-0000-0000-0000-000000000001'), 'true/1000000', 'saved for the tablet''s location');
 select is((select auto_shift_enabled::text from public.location_settings where location_id = 'a1100000-0000-0000-0000-000000000002'), 'false', 'other location untouched');
 select throws_ok($$ select public.pos_shift_settings('de000000-0000-0000-0000-000000000001', '{"default_starting_cash":-5}') $$, '22023', null, 'negative cash refused');
+
+select is((select 'pin_approve' = any (permissions) from public.roles where name = 'Manager'), true, 'new accounts: Managers can approve with their PIN');
+select throws_ok($$ update public.location_settings set pin_required_actions = array['refunds_issue', 'delete_everything'] where location_id = 'a1100000-0000-0000-0000-000000000001' $$,
+  '23514', null, 'only known actions can be locked behind a PIN');
 
 select * from finish();
 rollback;

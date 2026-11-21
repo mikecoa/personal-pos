@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { can, saveCustomer, setOrderCustomer, useStore } from "../lib/store";
+import { guard, saveCustomer, setOrderCustomer, useStore } from "../lib/store";
 import type { Customer, Discount } from "../lib/types";
 import { Btn, Chip, Field, Label, money, Muted, Sheet } from "../ui/kit";
 import { c, r } from "../ui/theme";
@@ -18,7 +18,7 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
   const customers = catalog.customers ?? [];
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Customer | "new" | null>(null);
-  const canEdit = can("customers_edit");
+  const canEdit = true;                                  // editing asks for a manager's PIN when needed
 
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -38,7 +38,7 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
       footer={<>
         {order?.customer_id && <Btn kind="secondary" title="Remove from bill" onPress={() => { setOrderCustomer(null); onClose(); }} />}
         <View style={{ flex: 1 }} />
-        {canEdit && <Btn title="+ New customer" onPress={() => setEditing("new")} />}
+        {canEdit && <Btn title="+ New customer" onPress={() => guard("customers_edit", "Add a customer", () => setEditing("new"))} />}
       </>}>
       <View style={st.search}>
         <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
@@ -70,7 +70,7 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
                     {current && <MaterialCommunityIcons name="check-circle" size={24} color={c.accent} />}
                   </Pressable>
                   {canEdit && (
-                    <Pressable onPress={() => setEditing(cu)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Edit ${cu.name}`} style={st.edit}>
+                    <Pressable onPress={() => guard("customers_edit", `Edit ${cu.name}`, () => setEditing(cu))} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Edit ${cu.name}`} style={st.edit}>
                       <MaterialCommunityIcons name="pencil-outline" size={22} color={c.ink2} />
                     </Pressable>
                   )}

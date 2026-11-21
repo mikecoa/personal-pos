@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useMemo, useState, type ComponentProps, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { can, recentSales, refundedSoFar, useStore } from "../lib/store";
+import { guard, recentSales, refundedSoFar, useStore } from "../lib/store";
 import type { OrderDoc, OrderPayment } from "../lib/types";
 import { Btn, Muted, money, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
@@ -72,8 +72,8 @@ export function ActivityPage() {
         {sel ? (
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, gap: 8 }}>
             <View style={{ flexDirection: "row", gap: 16, marginBottom: 12 }}>
-              <Btn kind="secondary" style={{ flex: 1 }} title="Receipt" disabled={!can("receipts_resend")} onPress={() => setReceipt(true)} />
-              <Btn kind="secondary" style={{ flex: 1 }} title="Issue refund" disabled={!can("refunds_issue")} onPress={() => setRefunding(true)} />
+              <Btn kind="secondary" style={{ flex: 1 }} title="Receipt" onPress={() => guard("receipts_resend", "Reprint the receipt", () => setReceipt(true))} />
+              <Btn kind="secondary" style={{ flex: 1 }} title="Issue refund" onPress={() => guard("refunds_issue", "Issue a refund", () => setRefunding(true))} />
             </View>
             <Details sale={sel} />
           </ScrollView>

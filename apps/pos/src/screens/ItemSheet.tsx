@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { AppliedDiscount, ModifierChoice } from "@pos/core";
-import { addItem, can, notify, setQty, useStore } from "../lib/store";
+import { addItem, guard, notify, setQty, useStore } from "../lib/store";
 import { lineLabel, variantPrice } from "../lib/order";
 import type { Item, ModifierSet, OrderLine, Variant } from "../lib/types";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
@@ -199,12 +199,12 @@ function ItemForm({ item, sets, salesType, onAdded, canAdd }: {
         <Stepper value={qty} min={1} onChange={setQtyN} />
       </View>
       <Field label="Note for kitchen" value={note} onChangeText={setNote} placeholder="e.g. no ice, less sugar" maxLength={120} />
-      {can("discounts_apply") && discounts.length > 0 && (
+      {discounts.length > 0 && (
         <View style={{ gap: 10 }}>
           <Label>Discount on this item</Label>
           <View style={st.wrap}>
             <Chip label="None" active={!discountId} onPress={() => setDiscountId(null)} />
-            {discounts.map((x) => <Chip key={x.id} label={x.kind === "percent" ? `${x.name} ${x.value / 100}%` : `${x.name} ${money(x.value)}`} active={discountId === x.id} onPress={() => setDiscountId(x.id)} />)}
+            {discounts.map((x) => <Chip key={x.id} label={x.kind === "percent" ? `${x.name} ${x.value / 100}%` : `${x.name} ${money(x.value)}`} active={discountId === x.id} onPress={() => guard("discounts_apply", "Apply a discount", () => setDiscountId(x.id))} />)}
           </View>
         </View>
       )}
