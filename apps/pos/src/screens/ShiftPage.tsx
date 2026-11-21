@@ -29,7 +29,7 @@ export function ShiftPage() {
       <View style={{ flex: 1, flexDirection: "row" }}>
         <View style={st.nav}>
           <View style={st.status}>
-            <MaterialCommunityIcons name={shift ? "cash-register" : "cash-lock"} size={36} color={shift ? c.accent : c.ink2} />
+            <MaterialCommunityIcons name="treasure-chest-outline" size={36} color={shift ? c.accent : c.ink2} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: "800", color: c.ink }}>{shift ? "Shift open" : "No shift open"}</Text>
               <Muted style={{ fontSize: 13 }}>{shift ? `Starting cash ${money(shift.starting_cash)}` : "Start one to begin selling"}</Muted>

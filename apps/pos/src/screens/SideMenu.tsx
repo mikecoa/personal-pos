@@ -26,10 +26,10 @@ export function SideMenu() {
   const busyTables = tables.filter((t) => billsAt(t.id).length).length;
 
   const items: { page: Page; label: string; icon: Icon; badge?: string; dot?: boolean; show: boolean }[] = [
-    { page: "pos", label: "Point of Sale", icon: "cash-register", show: true },
+    { page: "pos", label: "Point of Sale", icon: "view-dashboard-outline", show: true },
     { page: "tables", label: "Tables", icon: "table-chair", badge: busyTables ? String(busyTables) : undefined, show: tables.length > 0 || can("tables_manage") },
-    { page: "activity", label: "Activity", icon: "receipt-text-outline", show: can("activity_view") },
-    { page: "shift", label: "Shift", icon: "clock-outline", dot: !shift, show: true },
+    { page: "activity", label: "Activity", icon: "clock-outline", show: can("activity_view") },
+    { page: "shift", label: "Shift", icon: "treasure-chest-outline", dot: !shift, show: true },
     { page: "settings", label: "Settings", icon: "cog-outline", show: true },
   ];
   const initials = employee.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
