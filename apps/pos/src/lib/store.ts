@@ -421,6 +421,15 @@ export function completeSale(payments: Omit<OrderPayment, "id" | "paid_at">[]): 
 }
 
 export const recentSales = () => db.listOrders("completed", 100);
+/** Cancelled bills kept on this tablet, newest first. */
+export const cancelledBills = () => db.listOrders("cancelled", 100);
+/** Every item void on bills this tablet knows about (open, paid or cancelled), newest first. */
+export function voidLog() {
+  const orders = [...state.openOrders, ...db.listOrders("completed", 300), ...db.listOrders("cancelled", 100)];
+  const seen = new Set<string>();
+  return orders.flatMap((o) => (seen.has(o.id) ? [] : (seen.add(o.id), o.voids.map((v) => ({ ...v, order: o })))))
+    .sort((a, b) => b.voided_at.localeCompare(a.voided_at));
+}
 
 // ───────────────────────────────────────────── shifts
 export function startShift(startingCash: number) {

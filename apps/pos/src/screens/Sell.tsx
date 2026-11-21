@@ -58,7 +58,7 @@ export function Sell() {
           <TextInput value={q} onChangeText={setQ} placeholder="Search item or scan SKU…" placeholderTextColor="#a3968a" accessibilityLabel="Search items"
             style={{ flex: 1, height: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingHorizontal: 14, fontSize: 17, color: c.ink }} />
           <SyncBadge />
-          <Btn kind="secondary" title={`Open bills${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
+          <Btn kind="secondary" title={`Billing list${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flexGrow: 0 }}>
           <Chip label="All" active={!cat} onPress={() => setCat(null)} />
