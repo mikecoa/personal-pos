@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import { can, saveShiftSettings, shiftHistory, startShift, useStore } from "../lib/store";
+import { can, guard, saveShiftSettings, shiftHistory, startShift, useStore } from "../lib/store";
 import type { ShiftDoc } from "../lib/types";
 import { Btn, Keypad, money, Muted, PageTop } from "../ui/kit";
 import { c, r } from "../ui/theme";
@@ -37,7 +37,7 @@ export function ShiftPage() {
           <Text style={st.navHead}>SHIFT MANAGEMENT</Text>
           <NavItem label="Shift option" right={auto ? "On" : "Off"} active={section === "option"} onPress={() => setSection("option")} />
           <NavItem label="Current shift" active={section === "current"} onPress={() => setSection("current")} />
-          <NavItem label="Shift history" active={section === "history"} onPress={() => setSection("history")} />
+          <NavItem label="Shift history" active={section === "history"} onPress={() => guard("shift_history_view", "View past shifts", () => setSection("history"))} />
         </View>
         <View style={{ flex: 1 }}>
           {section === "option" && <ShiftOption />}
@@ -155,7 +155,7 @@ function CurrentShift() {
   return (
     <Pane title="Current shift">
       <View style={{ flexDirection: "row", gap: 12 }}>
-        {can("cash_in_out") && <Btn kind="secondary" style={{ flex: 1 }} title="Cash in / out" onPress={() => setView("move")} />}
+        <Btn kind="secondary" style={{ flex: 1 }} title="Cash in / out" onPress={() => guard("cash_in_out", "Record cash in / out", () => setView("move"))} />
         <Btn kind="danger" style={{ flex: 1 }} title="Close shift" onPress={() => setView("close")} />
       </View>
       <ShiftReport shift={shift} showExpected={can("shift_view_details")} />
@@ -189,7 +189,6 @@ function ShiftHistory() {
   useStore((s) => s.shift);                            // refresh after closing a shift
   const list = shiftHistory();
   const [sel, setSel] = useState<ShiftDoc | null>(null);
-  if (!can("shift_history_view")) return <Pane title="Shift history"><Muted>Your role can't view past shifts.</Muted></Pane>;
   if (sel) return (
     <Pane title="Shift history">
       <Pressable onPress={() => setSel(null)} accessibilityRole="button" accessibilityLabel="Back to all shifts" style={st.back}>

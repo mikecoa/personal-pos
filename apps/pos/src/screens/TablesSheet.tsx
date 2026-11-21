@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { billsAt, byTableName, can, editFloorPlan, editTables, getState, saveLayout, moveToTable, openBill, seatAtTable, tableLabel, updateSeating, useStore } from "../lib/store";
+import { billsAt, byTableName, can, guard, editFloorPlan, editTables, getState, saveLayout, moveToTable, openBill, seatAtTable, tableLabel, updateSeating, useStore } from "../lib/store";
 import type { DiningTable, OrderDoc } from "../lib/types";
 import { Btn, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
@@ -228,19 +228,17 @@ function SeatPanel({ table, onCancel, onDone }: { table: DiningTable; onCancel: 
   const [guests, setGuests] = useState(Math.min(2, table.seats));
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const allowed = can("open_bills_manage");
   return (
     <PanelShell title={`Table ${table.name}`} sub={`${table.seats} seats`}
       footer={<><Btn kind="secondary" title="Cancel" onPress={onCancel} />
-        <Btn style={{ flex: 1 }} title="Start bill" disabled={!allowed}
-          onPress={() => { try { seatAtTable(table, guests, name.trim() || null); onDone(); } catch (e) { setError((e as Error).message); } }} /></>}>
+        <Btn style={{ flex: 1 }} title="Start bill"
+          onPress={() => guard("open_bills_manage", `Start a bill at table ${table.name}`, () => { try { seatAtTable(table, guests, name.trim() || null); onDone(); } catch (e) { setError((e as Error).message); } })} /></>}>
       <View style={st.rowBetween}>
         <Label>Guests</Label>
         <Stepper value={guests} min={1} onChange={setGuests} />
       </View>
       {guests > table.seats && <Muted style={{ fontSize: 13 }}>{`More than the ${table.seats} seats here.`}</Muted>}
       <Field label="Customer name (optional)" value={name} onChangeText={setName} placeholder="e.g. Pak Budi" maxLength={40} />
-      {!allowed && <Err msg="Your role can't open bills. Ask a manager." />}
       <Err msg={error} />
     </PanelShell>
   );

@@ -21,6 +21,8 @@ export type Settings = {
   rounding_enabled: boolean; rounding_unit: number; rounding_mode: "nearest" | "down" | "up";
   stock_limit_enabled: boolean; track_server: boolean; split_payment_enabled: boolean; save_bill_enabled: boolean;
   auto_shift_enabled: boolean; default_starting_cash: number;
+  /** Actions that need a manager's PIN at this location even when the role allows them. */
+  pin_required_actions?: string[];
 };
 
 export type Catalog = {

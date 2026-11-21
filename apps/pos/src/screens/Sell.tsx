@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { FlatList, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { can, clearOrder, notify, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
+import { can, clearOrder, guard, notify, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Chip, Keypad, money, Muted, Sheet } from "../ui/kit";
@@ -214,8 +214,8 @@ export function Sell() {
                 </Text>
                 <Text style={{ color: c.ink2 }}>✎</Text>
               </Pressable>
-              {can("open_bills_manage") && (
-                <Pressable onPress={() => setModal({ kind: "move" })} accessibilityRole="button" accessibilityLabel="Move table"
+              {(
+                <Pressable onPress={() => guard("open_bills_manage", "Move the bill to another table", () => setModal({ kind: "move" }))} accessibilityRole="button" accessibilityLabel="Move table"
                   style={({ pressed }) => [pill, pressed && { backgroundColor: c.surface2 }]}>
                   <Text style={{ color: c.accent, fontWeight: "700" }}>Move table</Text>
                 </Pressable>
@@ -280,9 +280,9 @@ export function Sell() {
 
         <View style={{ padding: 16, gap: 10 }}>
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <Btn kind="secondary" style={{ flex: 1 }} title="Discount" disabled={!hasLines} onPress={() => setModal({ kind: "discount" })} />
-            {catalog.settings.save_bill_enabled && <Btn kind="secondary" style={{ flex: 1 }} title={order?.version ? "Update bill" : "Save bill"} disabled={!hasLines} onPress={() => setModal({ kind: "save" })} />}
-            {order?.version ? <Btn kind="danger" title="Cancel bill" onPress={() => setModal({ kind: "cancel" })} />
+            <Btn kind="secondary" style={{ flex: 1 }} title="Discount" disabled={!hasLines} onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
+            {catalog.settings.save_bill_enabled && <Btn kind="secondary" style={{ flex: 1 }} title={order?.version ? "Update bill" : "Save bill"} disabled={!hasLines} onPress={() => guard("open_bills_manage", order?.version ? "Update the bill" : "Save the bill", () => setModal({ kind: "save" }))} />}
+            {order?.version ? <Btn kind="danger" title="Cancel bill" onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
               : <Btn kind="ghost" title="Clear" disabled={!hasLines} onPress={() => clearOrder()} />}
           </View>
           <Btn big testID="charge" title={hasLines ? `Charge ${money(order!.total)}` : "Charge"} disabled={!hasLines || !can("charge")} onPress={() => setModal({ kind: "charge" })} />

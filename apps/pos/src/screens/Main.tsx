@@ -2,6 +2,7 @@ import { View } from "react-native";
 import { go, useStore } from "../lib/store";
 import { c } from "../ui/theme";
 import { ActivityPage } from "./ActivityPage";
+import { ApprovalSheet } from "./ApprovalSheet";
 import { Sell } from "./Sell";
 import { SettingsPage } from "./SettingsPage";
 import { ShiftPage } from "./ShiftPage";
@@ -21,6 +22,7 @@ export function Main() {
         {page === "shift" && <ShiftPage />}
         {page === "settings" && <SettingsPage />}
       </View>
+      <ApprovalSheet />
     </View>
   );
 }

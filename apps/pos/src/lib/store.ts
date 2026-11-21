@@ -27,12 +27,14 @@ export type State = {
   notice: string | null;
   page: Page;
   menuCollapsed: boolean;
+  /** An action waiting for a manager's PIN. */
+  approval: { perm: string; label: string } | null;
 };
 
 let state: State = {
   phase: "loading", device: null, catalog: null, employee: null, order: null, openOrders: [], shift: null,
   sync: { online: false, pending: 0, rejected: 0, lastSync: null, error: null, problem: null }, notice: null,
-  page: "pos", menuCollapsed: false,
+  page: "pos", menuCollapsed: false, approval: null,
 };
 const listeners = new Set<() => void>();
 function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
@@ -109,9 +111,7 @@ export function pinLockedFor(): number {
   return g ? Math.max(0, Math.ceil((g.lockedUntil - Date.now()) / 1000)) : 0;
 }
 
-export async function unlock(pin: string): Promise<boolean> {
-  if (pinLockedFor() > 0) return false;
-  const g = db.kvGet<PinGuard>("pin_guard") ?? { fails: 0, lockedUntil: 0, level: 0 };
+async function employeeByPin(pin: string): Promise<Employee | undefined> {
   const employees = state.catalog?.employees ?? [];
   const account = state.catalog?.location.account_id;
   // Fast path: one SHA-256, then a direct match.
@@ -121,6 +121,20 @@ export async function unlock(pin: string): Promise<boolean> {
   if (!match) for (const e of employees) {
     if (!e.pin_lookup && e.pin_hash && (await bcrypt.compare(pin, e.pin_hash))) { match = e; break; }
   }
+  return match;
+}
+/** Count a wrong PIN: 5 in a row lock the pad for 30 s, doubling each time (max 15 min). */
+function wrongPin() {
+  const g = db.kvGet<PinGuard>("pin_guard") ?? { fails: 0, lockedUntil: 0, level: 0 };
+  const fails = g.fails + 1;
+  db.kvSet("pin_guard", fails >= 5
+    ? { fails: 0, level: g.level + 1, lockedUntil: Date.now() + Math.min(15 * 60_000, 30_000 * 2 ** g.level) }
+    : { ...g, fails });
+}
+
+export async function unlock(pin: string): Promise<boolean> {
+  if (pinLockedFor() > 0) return false;
+  const match = await employeeByPin(pin);
   if (match) {
     db.kvSet("pin_guard", { fails: 0, lockedUntil: 0, level: 0 });
     set({ employee: match, phase: "selling", page: "pos" });
@@ -128,13 +142,45 @@ export async function unlock(pin: string): Promise<boolean> {
     if (!state.shift && st.auto_shift_enabled) startShift(st.default_starting_cash ?? 0);
     return true;
   }
-  // 5 wrong PINs in a row lock the pad for 30 s, doubling each time (max 15 min).
-  const fails = g.fails + 1;
-  const lock = fails >= 5;
-  db.kvSet("pin_guard", lock
-    ? { fails: 0, level: g.level + 1, lockedUntil: Date.now() + Math.min(15 * 60_000, 30_000 * 2 ** g.level) }
-    : { ...g, fails });
+  wrongPin();
   return false;
+}
+
+// ───────────────────────────────────────────── manager PIN approval
+/**
+ * May the employee on the tablet do this without a manager? Managers (pin_approve) always may.
+ * Others need the role permission, and the action must not be locked behind a PIN at this location.
+ */
+export function allowed(perm: string): boolean {
+  if (can("pin_approve")) return true;
+  if ((state.catalog?.settings.pin_required_actions ?? []).includes(perm)) return false;
+  return can(perm);
+}
+let pendingApproval: (() => void) | null = null;
+/**
+ * Run an action, or ask for a manager's PIN first when it isn't allowed. `label` says what is
+ * being approved ("Issue a refund"). One approval covers this one action only.
+ */
+export function guard(perm: string, label: string, run: () => void) {
+  if (allowed(perm)) return run();
+  pendingApproval = run;
+  set({ approval: { perm, label } });
+}
+export function cancelApproval() { pendingApproval = null; set({ approval: null }); }
+/** Check a manager's PIN for the waiting action. Wrong PINs count towards the PIN lockout. */
+export async function approveWithPin(pin: string): Promise<"ok" | "wrong" | "not_manager" | "locked"> {
+  if (pinLockedFor() > 0) return "locked";
+  const who = await employeeByPin(pin);
+  if (!who) { wrongPin(); return pinLockedFor() > 0 ? "locked" : "wrong"; }
+  if (!who.permissions.includes("pin_approve")) return "not_manager";
+  db.kvSet("pin_guard", { fails: 0, lockedUntil: 0, level: 0 });
+  const run = pendingApproval;
+  const label = state.approval?.label;
+  pendingApproval = null;
+  set({ approval: null });
+  notify(`${label ?? "Approved"}: approved by ${who.name}`);
+  run?.();
+  return "ok";
 }
 export function lock() { set({ employee: null, phase: "locked" }); }
 
@@ -450,7 +496,7 @@ export async function saveMenuItem(change: ItemChange) {
 // ───────────────────────────────────────────── customers
 export type CustomerChange = Omit<Customer, "id"> & { id?: string } | { id: string; op: "delete" };
 export async function saveCustomer(change: CustomerChange): Promise<Customer | null> {
-  if (!can("customers_edit")) throw new Error("Your role can't edit customers.");
+  // The customer screens ask for a manager's PIN first when the role doesn't allow this (guard()).
   const res = (await callTablet("pos_save_customer", change)) as { customer: Customer | null; customers: Customer[] };
   const catalog = { ...state.catalog!, customers: res.customers };
   db.kvSet("catalog", catalog);
