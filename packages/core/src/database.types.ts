@@ -77,6 +77,32 @@ isOneToOne: false
       referencedColumns: ["id","account_id"]
     }
                   ]
+                },"customers": {
+                  Row: {
+                    "account_id": string,"created_at": string,"discount_id": string | null,"email": string | null,"id": string,"location_id": string,"name": string,"note": string | null,"phone": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"created_at"?: string,"discount_id"?: string | null,"email"?: string | null,"id"?: string,"location_id": string,"name": string,"note"?: string | null,"phone"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "account_id"?: string,"created_at"?: string,"discount_id"?: string | null,"email"?: string | null,"id"?: string,"location_id"?: string,"name"?: string,"note"?: string | null,"phone"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customers_discount_id_location_id_fkey"
+      columns: ["discount_id","location_id"]
+isOneToOne: false
+      referencedRelation: "discounts"
+      referencedColumns: ["id","location_id"]
+    },{
+      foreignKeyName: "customers_location_id_account_id_fkey"
+      columns: ["location_id","account_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id","account_id"]
+    }
+                  ]
                 },"devices": {
                   Row: {
                     "account_id": string,"app_version": string | null,"created_at": string,"id": string,"last_error": string | null,"last_seen_at": string | null,"last_sync_ok_at": string | null,"location_id": string,"name": string,"pending_count": number,"receipt_prefix": string,"registered_by": string,"rejected_count": number,"revoked_at": string | null
@@ -479,17 +505,23 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "account_id": string,"bill_name": string | null,"cancel_reason": string | null,"cancelled_at": string | null,"change_due": number,"closed_by": string | null,"closed_by_name": string | null,"completed_at": string | null,"created_at": string,"customer_name": string | null,"device_id": string,"discount_total": number,"gratuity_name": string | null,"gratuity_rate_bp": number,"gratuity_total": number,"gross": number,"guests": number | null,"id": string,"location_id": string,"number": string,"opened_at": string,"opened_by": string | null,"opened_by_name": string | null,"paid": number,"prices_include_tax": boolean,"rounding": number,"sales_type_id": string | null,"sales_type_name": string | null,"served_by": string | null,"served_by_name": string | null,"shift_id": string | null,"status": "open"|"completed"|"cancelled","subtotal": number,"table_id": string | null,"table_name": string | null,"tax_after_discount": boolean,"tax_name": string | null,"tax_rate_bp": number,"tax_total": number,"total": number,"updated_at": string,"version": number
+                    "account_id": string,"bill_name": string | null,"cancel_reason": string | null,"cancelled_at": string | null,"change_due": number,"closed_by": string | null,"closed_by_name": string | null,"completed_at": string | null,"created_at": string,"customer_id": string | null,"customer_name": string | null,"device_id": string,"discount_total": number,"gratuity_name": string | null,"gratuity_rate_bp": number,"gratuity_total": number,"gross": number,"guests": number | null,"id": string,"location_id": string,"number": string,"opened_at": string,"opened_by": string | null,"opened_by_name": string | null,"paid": number,"prices_include_tax": boolean,"rounding": number,"sales_type_id": string | null,"sales_type_name": string | null,"served_by": string | null,"served_by_name": string | null,"shift_id": string | null,"status": "open"|"completed"|"cancelled","subtotal": number,"table_id": string | null,"table_name": string | null,"tax_after_discount": boolean,"tax_name": string | null,"tax_rate_bp": number,"tax_total": number,"total": number,"updated_at": string,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"bill_name"?: string | null,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"change_due"?: number,"closed_by"?: string | null,"closed_by_name"?: string | null,"completed_at"?: string | null,"created_at"?: string,"customer_name"?: string | null,"device_id": string,"discount_total"?: number,"gratuity_name"?: string | null,"gratuity_rate_bp"?: number,"gratuity_total"?: number,"gross"?: number,"guests"?: number | null,"id": string,"location_id": string,"number": string,"opened_at": string,"opened_by"?: string | null,"opened_by_name"?: string | null,"paid"?: number,"prices_include_tax"?: boolean,"rounding"?: number,"sales_type_id"?: string | null,"sales_type_name"?: string | null,"served_by"?: string | null,"served_by_name"?: string | null,"shift_id"?: string | null,"status": "open"|"completed"|"cancelled","subtotal"?: number,"table_id"?: string | null,"table_name"?: string | null,"tax_after_discount"?: boolean,"tax_name"?: string | null,"tax_rate_bp"?: number,"tax_total"?: number,"total"?: number,"updated_at"?: string,"version"?: number
+                    "account_id": string,"bill_name"?: string | null,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"change_due"?: number,"closed_by"?: string | null,"closed_by_name"?: string | null,"completed_at"?: string | null,"created_at"?: string,"customer_id"?: string | null,"customer_name"?: string | null,"device_id": string,"discount_total"?: number,"gratuity_name"?: string | null,"gratuity_rate_bp"?: number,"gratuity_total"?: number,"gross"?: number,"guests"?: number | null,"id": string,"location_id": string,"number": string,"opened_at": string,"opened_by"?: string | null,"opened_by_name"?: string | null,"paid"?: number,"prices_include_tax"?: boolean,"rounding"?: number,"sales_type_id"?: string | null,"sales_type_name"?: string | null,"served_by"?: string | null,"served_by_name"?: string | null,"shift_id"?: string | null,"status": "open"|"completed"|"cancelled","subtotal"?: number,"table_id"?: string | null,"table_name"?: string | null,"tax_after_discount"?: boolean,"tax_name"?: string | null,"tax_rate_bp"?: number,"tax_total"?: number,"total"?: number,"updated_at"?: string,"version"?: number
                   }
                   Update: {
-                    "account_id"?: string,"bill_name"?: string | null,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"change_due"?: number,"closed_by"?: string | null,"closed_by_name"?: string | null,"completed_at"?: string | null,"created_at"?: string,"customer_name"?: string | null,"device_id"?: string,"discount_total"?: number,"gratuity_name"?: string | null,"gratuity_rate_bp"?: number,"gratuity_total"?: number,"gross"?: number,"guests"?: number | null,"id"?: string,"location_id"?: string,"number"?: string,"opened_at"?: string,"opened_by"?: string | null,"opened_by_name"?: string | null,"paid"?: number,"prices_include_tax"?: boolean,"rounding"?: number,"sales_type_id"?: string | null,"sales_type_name"?: string | null,"served_by"?: string | null,"served_by_name"?: string | null,"shift_id"?: string | null,"status"?: "open"|"completed"|"cancelled","subtotal"?: number,"table_id"?: string | null,"table_name"?: string | null,"tax_after_discount"?: boolean,"tax_name"?: string | null,"tax_rate_bp"?: number,"tax_total"?: number,"total"?: number,"updated_at"?: string,"version"?: number
+                    "account_id"?: string,"bill_name"?: string | null,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"change_due"?: number,"closed_by"?: string | null,"closed_by_name"?: string | null,"completed_at"?: string | null,"created_at"?: string,"customer_id"?: string | null,"customer_name"?: string | null,"device_id"?: string,"discount_total"?: number,"gratuity_name"?: string | null,"gratuity_rate_bp"?: number,"gratuity_total"?: number,"gross"?: number,"guests"?: number | null,"id"?: string,"location_id"?: string,"number"?: string,"opened_at"?: string,"opened_by"?: string | null,"opened_by_name"?: string | null,"paid"?: number,"prices_include_tax"?: boolean,"rounding"?: number,"sales_type_id"?: string | null,"sales_type_name"?: string | null,"served_by"?: string | null,"served_by_name"?: string | null,"shift_id"?: string | null,"status"?: "open"|"completed"|"cancelled","subtotal"?: number,"table_id"?: string | null,"table_name"?: string | null,"tax_after_discount"?: boolean,"tax_name"?: string | null,"tax_rate_bp"?: number,"tax_total"?: number,"total"?: number,"updated_at"?: string,"version"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "orders_customer_fk"
+      columns: ["customer_id","location_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["id","location_id"]
+    },{
       foreignKeyName: "orders_device_id_location_id_fkey"
       columns: ["device_id","location_id"]
 isOneToOne: false
@@ -765,6 +797,15 @@ isOneToOne: false
                            },
 "pos_open_orders":
 { Args: { "p_device": string }; Returns: Json
+                           },
+"pos_save_category":
+{ Args: { "p": Json,"p_device": string }; Returns: Json
+                           },
+"pos_save_customer":
+{ Args: { "p": Json,"p_device": string }; Returns: Json
+                           },
+"pos_save_item":
+{ Args: { "p": Json,"p_device": string }; Returns: Json
                            },
 "pos_shift_settings":
 { Args: { "p": Json,"p_device": string }; Returns: Json

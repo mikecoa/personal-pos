@@ -40,15 +40,14 @@ const shift = (id = randomUUID(), status: "open" | "closed" = "open", version = 
 });
 
 beforeAll(async () => {
+  // A throwaway owner and business per run, so test locations never show up in the demo business.
   owner = createClient(URL, ANON, { auth: { persistSession: false } });
-  const { data: auth, error } = await owner.auth.signInWithPassword({ email: "owner@pos.test", password: "posdemo123" });
+  const stamp = `${Date.now()}-${randomUUID().slice(0, 8)}`;
+  const { error } = await owner.auth.signUp({ email: `sync-test-${stamp}@pos.test`, password: randomUUID() });
   if (error) throw error;
-  const { data: m } = await owner.from("members").select("account_id").eq("user_id", auth.user.id).single();
-  // Insert without RETURNING: the RLS select check can't see a row inserted in the same statement.
-  const name = `Sync test ${Date.now()}`;
-  const { error: le } = await owner.from("locations").insert({ account_id: m!.account_id, name });
-  if (le) throw le;
-  const { data: loc } = await owner.from("locations").select("id").eq("name", name).single();
+  const { data: account, error: ae } = await owner.rpc("create_account", { p_name: `Sync test ${stamp}`, p_first_location: "Sync test" });
+  if (ae) throw ae;
+  const { data: loc } = await owner.from("locations").select("id").eq("account_id", account as string).single();
   location = loc!.id;
   const { data: id } = await owner.rpc("save_item", { p_item: { location_id: location, name: "Test water", variants: [{ name: "", price: 8000 }], modifier_set_ids: [] } });
   const { data: v } = await owner.from("item_variants").select("id").eq("item_id", id!).single();
@@ -58,6 +57,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // The throwaway business stays in the local database but belongs to no real user.
   if (location) await owner.from("locations").update({ is_active: false }).eq("id", location);
 });
 

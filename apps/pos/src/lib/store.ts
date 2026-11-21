@@ -6,7 +6,7 @@ import * as db from "./db";
 import Constants from "expo-constants";
 import { supabase } from "./supabase";
 import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice } from "./order";
-import type { Catalog, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
+import type { Catalog, Customer, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
 
 type Phase = "loading" | "setup" | "locked" | "selling";
 /** Pages in the side menu while selling. */
@@ -364,17 +364,71 @@ export async function saveLayout(cells: { id: string; x: number; y: number }[]) 
 
 async function applyFloorPlan(fn: "pos_table_setup" | "pos_tables_bulk" | "pos_tables_layout", p: object) {
   if (!can("tables_manage")) throw new Error("Your role can't edit tables.");
-  const { data, error } = await supabase.rpc(fn, { p_device: state.device!.id, p: p as never });
-  if (error) {
-    // Server refusals carry a Postgres code; a network failure has none.
-    if (!error.code) throw new Error("No connection. Table changes need internet; try again in a moment.");
-    if (classifySyncError(error) === "auth") throw new Error("This tablet needs to sign in again (sync badge) before tables can be edited.");
-    throw new Error(error.message);
-  }
-  const plan = data as unknown as Pick<Catalog, "table_areas" | "tables">;
+  const plan = (await callTablet(fn, p)) as Pick<Catalog, "table_areas" | "tables">;
   const catalog = { ...state.catalog!, table_areas: plan.table_areas, tables: plan.tables };
   db.kvSet("catalog", catalog);
   set({ catalog });
+}
+
+/** Call a device-scoped edit function; turns failures into messages staff can act on. */
+async function callTablet(fn: string, p: object): Promise<unknown> {
+  const { data, error } = await supabase.rpc(fn as never, { p_device: state.device!.id, p } as never);
+  if (error) {
+    // Server refusals carry a Postgres code; a network failure has none.
+    if (!error.code) throw new Error("No connection. This change needs internet; try again in a moment.");
+    if (classifySyncError(error) === "auth") throw new Error("This tablet needs to sign in again (sync badge) first.");
+    throw new Error(error.message);
+  }
+  return data;
+}
+const useCatalog = (data: unknown) => { db.kvSet("catalog", data); lastCatalogPull = Date.now(); set({ catalog: data as Catalog }); };
+
+// ───────────────────────────────────────────── menu (items & categories) from the POS
+export type CategoryChange = { id?: string; name: string } | { id: string; op: "delete" };
+export async function saveCategory(change: CategoryChange) {
+  if (!can("items_manage")) throw new Error("Your role can't edit the menu.");
+  useCatalog(await callTablet("pos_save_category", change));
+}
+export type ItemChange = {
+  id?: string; name: string; category_id: string | null; track_stock: boolean; stock?: number; modifier_set_ids: string[];
+  variants: { id?: string; name: string; price: number; sku: string | null; prices: Record<string, number> }[];
+} | { id: string; op: "remove" };
+export async function saveMenuItem(change: ItemChange) {
+  if (!can("items_manage")) throw new Error("Your role can't edit the menu.");
+  useCatalog(await callTablet("pos_save_item", change));
+}
+
+// ───────────────────────────────────────────── customers
+export type CustomerChange = Omit<Customer, "id"> & { id?: string } | { id: string; op: "delete" };
+export async function saveCustomer(change: CustomerChange): Promise<Customer | null> {
+  if (!can("customers_edit")) throw new Error("Your role can't edit customers.");
+  const res = (await callTablet("pos_save_customer", change)) as { customer: Customer | null; customers: Customer[] };
+  const catalog = { ...state.catalog!, customers: res.customers };
+  db.kvSet("catalog", catalog);
+  set({ catalog });
+  return res.customer;
+}
+
+/**
+ * Put a saved customer on the bill on screen (or take them off with null). Their default
+ * discount (set up by a manager) is applied, and the previous customer's is removed.
+ * A saved bill gets a new version straight away so every tablet sees it.
+ */
+export function setOrderCustomer(cu: Customer | null) {
+  const o = ensureOrder();
+  const cat = state.catalog!;
+  const prev = (cat.customers ?? []).find((x) => x.id === o.customer_id);
+  let discounts = o.discounts.filter((d) => !prev?.discount_id || d.discount_id !== prev.discount_id);
+  const d = cu?.discount_id ? cat.discounts.find((x) => x.id === cu.discount_id && x.scope !== "item") : undefined;
+  if (d && !discounts.some((x) => x.discount_id === d.id)) {
+    discounts = [...discounts, { id: randomUUID(), discount_id: d.id, name: d.name, kind: d.kind, value: d.value, amount: 0 }];
+  }
+  const name = cu?.name ?? null;
+  const bill_name = o.table_name ? (name ? `${o.table_name} · ${name}` : o.table_name) : o.bill_name;
+  const next: OrderDoc = { ...o, customer_id: cu?.id ?? null, customer_name: name, bill_name, discounts, version: o.version > 0 ? o.version + 1 : 0 };
+  const priced = reprice(next, cat);
+  if (o.version > 0) { db.saveOrder(priced); refreshLocal(); void syncNow(); }
+  set({ order: priced });
 }
 
 /**

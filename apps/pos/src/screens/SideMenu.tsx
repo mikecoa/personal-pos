@@ -43,7 +43,7 @@ export function SideMenu() {
         </Pressable>
         {!collapsed && (
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={st.brand} numberOfLines={1}>{catalog.location.name}</Text>
+            <Text style={st.brand} numberOfLines={2}>{catalog.location.name}</Text>
             <Text style={st.brandSub} numberOfLines={1}>{shift ? "Shift open" : "No shift open"}</Text>
           </View>
         )}
@@ -90,7 +90,7 @@ const st = StyleSheet.create({
   rail: { backgroundColor: rail, paddingTop: 12, paddingBottom: 14 },
   head: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, minHeight: 52 },
   iconBtn: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  brand: { color: ink, fontSize: 17, fontWeight: "800" },
+  brand: { color: ink, fontSize: 16, fontWeight: "800", lineHeight: 20 },
   brandSub: { color: inkDim, fontSize: 12 },
   item: { flexDirection: "row", alignItems: "center", gap: 14, height: 52, paddingHorizontal: 14, borderRadius: 12 },
   itemCollapsed: { justifyContent: "center", paddingHorizontal: 0 },
