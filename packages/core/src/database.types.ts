@@ -766,6 +766,9 @@ isOneToOne: false
 "pos_open_orders":
 { Args: { "p_device": string }; Returns: Json
                            },
+"pos_shift_settings":
+{ Args: { "p": Json,"p_device": string }; Returns: Json
+                           },
 "pos_table_setup":
 { Args: { "p": Json,"p_device": string }; Returns: Json
                            },

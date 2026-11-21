@@ -9,6 +9,8 @@ import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, vari
 import type { Catalog, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
 
 type Phase = "loading" | "setup" | "locked" | "selling";
+/** Pages in the side menu while selling. */
+export type Page = "pos" | "tables" | "activity" | "shift" | "settings";
 export type State = {
   phase: Phase;
   device: Device | null;
@@ -23,11 +25,14 @@ export type State = {
     problem: null | "auth" | "unregistered";
   };
   notice: string | null;
+  page: Page;
+  menuCollapsed: boolean;
 };
 
 let state: State = {
   phase: "loading", device: null, catalog: null, employee: null, order: null, openOrders: [], shift: null,
   sync: { online: false, pending: 0, rejected: 0, lastSync: null, error: null, problem: null }, notice: null,
+  page: "pos", menuCollapsed: false,
 };
 const listeners = new Set<() => void>();
 function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
@@ -54,7 +59,7 @@ export function notify(notice: string | null) {
 export async function boot() {
   const device = db.kvGet<Device>("device");
   const catalog = db.kvGet<Catalog>("catalog");
-  set({ device, catalog, shift: db.openShift(), phase: device && catalog ? "locked" : "setup" });
+  set({ device, catalog, shift: db.openShift(), phase: device && catalog ? "locked" : "setup", menuCollapsed: db.kvGet<boolean>("menu_collapsed") ?? false });
   refreshLocal();
   if (device) startSync();
 }
@@ -118,7 +123,7 @@ export async function unlock(pin: string): Promise<boolean> {
   }
   if (match) {
     db.kvSet("pin_guard", { fails: 0, lockedUntil: 0, level: 0 });
-    set({ employee: match, phase: "selling" });
+    set({ employee: match, phase: "selling", page: "pos" });
     const st = state.catalog!.settings;
     if (!state.shift && st.auto_shift_enabled) startShift(st.default_starting_cash ?? 0);
     return true;
@@ -132,6 +137,48 @@ export async function unlock(pin: string): Promise<boolean> {
   return false;
 }
 export function lock() { set({ employee: null, phase: "locked" }); }
+
+// ───────────────────────────────────────────── navigation
+export function go(page: Page) { set({ page }); }
+export function toggleMenu() {
+  const menuCollapsed = !state.menuCollapsed;
+  db.kvSet("menu_collapsed", menuCollapsed);
+  set({ menuCollapsed });
+}
+
+// ───────────────────────────────────────────── tablet settings
+/** Receipt printer preferences, kept on this tablet only. */
+export type PrinterSettings = {
+  connection: "none" | "bluetooth" | "network" | "usb";
+  address: string;            // IP for network printers, device name/MAC for Bluetooth
+  paper: 58 | 80;             // mm
+  autoPrint: boolean;         // print a receipt after every sale
+  copies: number;
+};
+export const defaultPrinter: PrinterSettings = { connection: "none", address: "", paper: 58, autoPrint: false, copies: 1 };
+export const printerSettings = (): PrinterSettings => ({ ...defaultPrinter, ...(db.kvGet<PrinterSettings>("printer") ?? {}) });
+export function savePrinterSettings(p: PrinterSettings) { db.kvSet("printer", p); }
+
+/** Shift options are location settings (every tablet at the location); needs a connection. */
+export async function saveShiftSettings(p: { auto_shift_enabled?: boolean; default_starting_cash?: number }) {
+  if (!can("shift_settings_manage")) throw new Error("Your role can't change shift options.");
+  const { data, error } = await supabase.rpc("pos_shift_settings", { p_device: state.device!.id, p: p as never });
+  if (error) {
+    if (!error.code) throw new Error("No connection. Shift options need internet; try again in a moment.");
+    if (classifySyncError(error) === "auth") throw new Error("This tablet needs to sign in again (sync badge) first.");
+    throw new Error(error.message);
+  }
+  const settings = { ...state.catalog!.settings, ...(data as object) } as Catalog["settings"];
+  const catalog = { ...state.catalog!, settings };
+  db.kvSet("catalog", catalog);
+  set({ catalog });
+}
+
+/** The backoffice account this tablet is signed in with (owner/admin who set it up). */
+export async function signedInEmail(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.email ?? null;
+}
 
 // ───────────────────────────────────────────── order editing
 function ensureOrder(): OrderDoc {

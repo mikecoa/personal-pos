@@ -1,18 +1,17 @@
 import { useMemo, useState } from "react";
 import { FlatList, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { can, clearOrder, lock, notify, setSalesType, tableLabel, useStore } from "../lib/store";
+import { can, clearOrder, notify, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Chip, Keypad, money, Muted, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
-import { ActivitySheet } from "./ActivitySheet";
 import { BillDiscountSheet, CancelBillSheet, SaveBillSheet } from "./BillActions";
 import { BillsSheet } from "./BillsSheet";
 import { ChargeSheet } from "./ChargeSheet";
 import { ItemSheet } from "./ItemSheet";
 import { LineSheet } from "./LineSheet";
 import { SyncBadge } from "./SyncBadge";
-import { ShiftSheet, StartShiftPanel } from "./ShiftSheets";
+import { StartShiftPanel } from "./ShiftSheets";
 import { SeatingSheet, TablesSheet } from "./TablesSheet";
 import { addCustom, addItem } from "../lib/store";
 
@@ -20,7 +19,6 @@ type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kin
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
-  const employee = useStore((s) => s.employee)!;
   const order = useStore((s) => s.order);
   const openCount = useStore((s) => s.openOrders.length);
   const notice = useStore((s) => s.notice);
@@ -57,19 +55,11 @@ export function Sell() {
       {/* ── catalog ── */}
       <View style={{ flex: 1, padding: 16, gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }} numberOfLines={1}>{catalog.location.name}</Text>
-            <Text style={{ color: c.ink2 }}>{employee.name} · {employee.role}</Text>
-          </View>
+          <TextInput value={q} onChangeText={setQ} placeholder="Search item or scan SKU…" placeholderTextColor="#a3968a" accessibilityLabel="Search items"
+            style={{ flex: 1, height: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingHorizontal: 14, fontSize: 17, color: c.ink }} />
           <SyncBadge />
-          <Btn kind="secondary" title={shift ? "Shift" : "No shift"} onPress={() => setModal({ kind: "shift" })} />
-          {hasTables && <Btn kind="secondary" title="Tables" onPress={() => setModal({ kind: "tables" })} />}
-          <Btn kind="secondary" title={`Bills${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
-          {can("activity_view") && <Btn kind="secondary" title="Sales" onPress={() => setModal({ kind: "sales" })} />}
-          <Btn kind="secondary" title="Lock" onPress={lock} />
+          <Btn kind="secondary" title={`Open bills${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
         </View>
-        <TextInput value={q} onChangeText={setQ} placeholder="Search item or scan SKU…" placeholderTextColor="#a3968a" accessibilityLabel="Search items"
-          style={{ height: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingHorizontal: 14, fontSize: 17, color: c.ink }} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flexGrow: 0 }}>
           <Chip label="All" active={!cat} onPress={() => setCat(null)} />
           {catalog.categories.map((k) => <Chip key={k.id} label={k.name} active={cat === k.id} onPress={() => setCat(k.id)} />)}
@@ -197,12 +187,10 @@ export function Sell() {
       {modal?.kind === "line" && <LineSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "charge" && <ChargeSheet onClose={() => setModal(null)} />}
       {modal?.kind === "bills" && <BillsSheet onClose={() => setModal(null)} />}
-      {modal?.kind === "sales" && <ActivitySheet onClose={() => setModal(null)} />}
       {modal?.kind === "save" && <SaveBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "discount" && <BillDiscountSheet onClose={() => setModal(null)} />}
       {modal?.kind === "cancel" && <CancelBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "custom" && <CustomAmount onClose={() => setModal(null)} />}
-      {modal?.kind === "shift" && <ShiftSheet onClose={() => setModal(null)} />}
       {modal?.kind === "tables" && <TablesSheet mode="seat" onClose={() => setModal(null)} />}
       {modal?.kind === "move" && <TablesSheet mode="move" onClose={() => setModal(null)} />}
       {modal?.kind === "seating" && <SeatingSheet onClose={() => setModal(null)} />}

@@ -26,7 +26,7 @@ type Panel =
  * - Edit (managers; "Edit tables", or hold a table or an area tab): tap tables to select them. One selected →
  *   full editor; several → change seats/area or delete them together. Add/rename/delete areas.
  */
-export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose: () => void }) {
+export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; onClose: () => void; /** full page in the side menu instead of a pop-up */ page?: boolean }) {
   const catalog = useStore((s) => s.catalog)!;            // derive below: `?? []` inside a selector re-renders forever
   const order = useStore((s) => s.order);
   const openOrders = useStore((s) => s.openOrders);
@@ -93,11 +93,8 @@ export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose:
   const allShownSelected = shown.length > 0 && shown.every((t) => selection.includes(t.id));
   const showTabs = areas.length > 0 || editing;
 
-  return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose} supportedOrientations={["landscape", "portrait"]}>
-      <View style={st.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-        <View style={st.card}>
+  const card = (
+        <View style={[st.card, page && st.cardPage]}>
           {/* header */}
           <View style={st.head}>
             <View style={{ flex: 1 }}>
@@ -112,9 +109,11 @@ export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose:
             {canEdit && (
               <Btn kind={editing ? "primary" : "secondary"} title={editing ? "Done" : "Edit tables"} onPress={() => (editing ? stopEditing() : startEditing())} />
             )}
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12} style={{ paddingLeft: 8 }}>
-              <Text style={{ fontSize: 22, color: c.ink2 }}>✕</Text>
-            </Pressable>
+            {!page && (
+              <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12} style={{ paddingLeft: 8 }}>
+                <Text style={{ fontSize: 22, color: c.ink2 }}>✕</Text>
+              </Pressable>
+            )}
           </View>
 
           {/* area tabs */}
@@ -180,6 +179,13 @@ export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose:
             )}
           </View>
         </View>
+  );
+  if (page) return card;
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose} supportedOrientations={["landscape", "portrait"]}>
+      <View style={st.overlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
+        {card}
       </View>
     </Modal>
   );
@@ -427,6 +433,7 @@ export function SeatingSheet({ onClose }: { onClose: () => void }) {
 const st = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(42,33,27,0.35)", alignItems: "center", justifyContent: "center", padding: 24 },
   card: { width: "100%", maxWidth: 1120, height: "94%", backgroundColor: c.bg, borderRadius: r.lg, overflow: "hidden" },
+  cardPage: { flex: 1, maxWidth: undefined, height: undefined, borderRadius: 0 },
   head: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
   title: { fontSize: 22, fontWeight: "800", color: c.ink },
   sub: { color: c.ink2, fontSize: 14, marginTop: 2 },
