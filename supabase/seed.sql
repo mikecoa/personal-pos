@@ -261,3 +261,9 @@ begin
     insert into public.dining_tables (account_id, location_id, area_id, name, seats, sort_order) values (acc, loc, teras, 'T' || i, 4, 10 + i);
   end loop;
 end $$;
+
+-- ── Quick notes (Djoeragan Kopitiam) ──────────────────────────────────────
+insert into public.quick_notes (account_id, location_id, text, sort_order) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', 'Less sugar', 1),
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', 'No sugar', 2),
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', 'Tanpa Sayur', 3);

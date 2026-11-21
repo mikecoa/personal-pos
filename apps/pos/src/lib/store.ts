@@ -6,7 +6,7 @@ import * as db from "./db";
 import Constants from "expo-constants";
 import { supabase } from "./supabase";
 import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice } from "./order";
-import type { Catalog, Customer, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
+import type { Catalog, Customer, QuickNote, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
 
 type Phase = "loading" | "setup" | "locked" | "selling";
 /** Pages in the side menu while selling. */
@@ -229,12 +229,23 @@ export function setLineDetails(lineId: string, patch: { note?: string | null; di
 }
 
 // ───────────────────────────────────────────── notes
-const PRESET_NOTES = ["Less sugar", "No sugar", "Less ice", "No ice", "Extra spicy", "Not spicy", "No MSG", "Separate plate"];
-/** One-tap notes: what this tablet used recently first, then common ones. */
-export function quickNotes(): string[] {
-  const recent = db.kvGet<string[]>("recent_notes") ?? [];
-  const seen = new Set<string>();
-  return [...recent, ...PRESET_NOTES].filter((n) => { const k = n.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 14);
+/**
+ * One-tap notes for an item: the location's quick notes (those for its category, or for every
+ * item) in their set order, then up to 4 notes typed recently on this tablet.
+ */
+export function quickNotes(categoryId?: string | null): string[] {
+  const set = (state.catalog?.quick_notes ?? []).filter((n) => !n.category_ids.length || (categoryId && n.category_ids.includes(categoryId))).map((n) => n.text);
+  const known = new Set((state.catalog?.quick_notes ?? []).map((n) => n.text.toLowerCase()));
+  const recent = (db.kvGet<string[]>("recent_notes") ?? []).filter((n) => !known.has(n.toLowerCase())).slice(0, 4);
+  return [...set, ...recent];
+}
+/** Replace the location's quick notes (order as given). Existing notes keep their categories. */
+export async function saveQuickNotes(list: { id?: string; text: string }[]) {
+  if (!can("items_manage")) throw new Error("Your role can't edit quick notes.");
+  const notes = (await callTablet("pos_save_quick_notes", list)) as QuickNote[];
+  const catalog = { ...state.catalog!, quick_notes: notes };
+  db.kvSet("catalog", catalog);
+  set({ catalog });
 }
 function rememberNote(note: string) {
   const parts = note.split(",").map((x) => x.trim()).filter(Boolean);
