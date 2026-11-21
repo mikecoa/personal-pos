@@ -9,6 +9,8 @@ export type ModifierSet = { id: string; name: string; min_select: number; max_se
 /** pin_lookup = sha256_hex(account_id + ":" + pin); pin_hash (bcrypt) only for PINs set before lookups existed. */
 export type Employee = { id: string; name: string; pin_lookup?: string | null; pin_hash?: string | null; role: string; permissions: string[] };
 export type PaymentMethod = { id: string; name: string; kind: "cash" | "qr" | "card" | "delivery" | "other" | "invoice"; sort_order: number };
+/** A saved customer of this location (owners, regulars). discount_id: applied when added to a bill. */
+export type Customer = { id: string; name: string; phone: string | null; email: string | null; note: string | null; discount_id: string | null };
 export type Discount = { id: string; name: string; kind: "percent" | "amount"; value: number; scope: "bill" | "item" | "both" };
 
 export type Settings = {
@@ -33,6 +35,7 @@ export type Catalog = {
   items: Item[];
   table_areas?: { id: string; name: string }[];
   tables?: DiningTable[];
+  customers?: Customer[];
   employees: Employee[];
 };
 
@@ -69,6 +72,8 @@ export type OrderDoc = {
   shift_id?: string | null;
   /** Table the customers are seated at (name is a snapshot for receipts if the table is later removed). */
   table_id?: string | null; table_name?: string | null; guests?: number | null;
+  /** Saved customer the bill is for (customer_name is the snapshot shown on bills and receipts). */
+  customer_id?: string | null;
 };
 
 export type CashMove = { id: string; kind: "in" | "out"; amount: number; description: string; employee_id: string | null; employee_name: string | null; moved_at: string };
