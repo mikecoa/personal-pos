@@ -10,6 +10,7 @@ export type ModifierSet = { id: string; name: string; min_select: number; max_se
 export type Employee = { id: string; name: string; pin_lookup?: string | null; pin_hash?: string | null; role: string; permissions: string[] };
 export type PaymentMethod = { id: string; name: string; kind: "cash" | "qr" | "card" | "delivery" | "other" | "invoice"; sort_order: number };
 /** A saved customer of this location (owners, regulars). discount_id: applied when added to a bill. */
+export type QuickNote = { id: string; text: string; category_ids: string[] };
 export type Customer = { id: string; name: string; phone: string | null; email: string | null; note: string | null; discount_id: string | null };
 export type Discount = { id: string; name: string; kind: "percent" | "amount"; value: number; scope: "bill" | "item" | "both" };
 
@@ -36,6 +37,8 @@ export type Catalog = {
   table_areas?: { id: string; name: string }[];
   tables?: DiningTable[];
   customers?: Customer[];
+  /** One-tap note buttons for this location; category_ids empty = every item. */
+  quick_notes?: QuickNote[];
   employees: Employee[];
 };
 

@@ -23,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { label: "Modifiers", href: "/library/modifiers" },
         { label: "Sales types", href: "/library/sales-types" },
         { label: "Discounts", href: "/library/discounts" },
+        { label: "Quick notes", href: "/library/quick-notes" },
       ],
     });
     groups.push({

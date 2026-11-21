@@ -6,7 +6,7 @@ import * as db from "./db";
 import Constants from "expo-constants";
 import { supabase } from "./supabase";
 import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice } from "./order";
-import type { Catalog, Customer, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
+import type { Catalog, Customer, QuickNote, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
 
 type Phase = "loading" | "setup" | "locked" | "selling";
 /** Pages in the side menu while selling. */
@@ -226,6 +226,55 @@ export function setQty(lineId: string, qty: number, voidReason?: string) {
 }
 export function setLineDetails(lineId: string, patch: { note?: string | null; discount?: AppliedDiscount | null }) {
   update((o) => ({ ...o, lines: o.lines.map((l) => (l.id === lineId ? { ...l, ...patch } : l)) }));
+}
+
+// ───────────────────────────────────────────── notes
+/**
+ * One-tap notes for an item: the location's quick notes (those for its category, or for every
+ * item) in their set order, then up to 4 notes typed recently on this tablet.
+ */
+export function quickNotes(categoryId?: string | null): string[] {
+  const set = (state.catalog?.quick_notes ?? []).filter((n) => !n.category_ids.length || (categoryId && n.category_ids.includes(categoryId))).map((n) => n.text);
+  const known = new Set((state.catalog?.quick_notes ?? []).map((n) => n.text.toLowerCase()));
+  const recent = (db.kvGet<string[]>("recent_notes") ?? []).filter((n) => !known.has(n.toLowerCase())).slice(0, 4);
+  return [...set, ...recent];
+}
+/** Replace the location's quick notes (order as given). Existing notes keep their categories. */
+export async function saveQuickNotes(list: { id?: string; text: string }[]) {
+  if (!can("items_manage")) throw new Error("Your role can't edit quick notes.");
+  const notes = (await callTablet("pos_save_quick_notes", list)) as QuickNote[];
+  const catalog = { ...state.catalog!, quick_notes: notes };
+  db.kvSet("catalog", catalog);
+  set({ catalog });
+}
+function rememberNote(note: string) {
+  const parts = note.split(",").map((x) => x.trim()).filter(Boolean);
+  const recent = (db.kvGet<string[]>("recent_notes") ?? []).filter((n) => !parts.some((p) => p.toLowerCase() === n.toLowerCase()));
+  db.kvSet("recent_notes", [...parts, ...recent].slice(0, 10));
+}
+
+/**
+ * Set a note on a cart line. With several on the line and `all` false, only one gets the note:
+ * it moves to its own line (or joins a line that already has that note). Nothing is voided:
+ * an already-saved unit stays saved on its new line.
+ */
+export function setLineNote(lineId: string, note: string | null, all: boolean) {
+  if (note) rememberNote(note);
+  update((o) => {
+    const line = o.lines.find((l) => l.id === lineId)!;
+    if (all || line.qty <= 1) return { ...o, lines: o.lines.map((l) => (l.id === lineId ? { ...l, note } : l)) };
+    const saved = line.saved_qty ?? 0;
+    const movedSaved = saved > 0 ? 1 : 0;          // keep the saved count the same overall
+    const one = { ...line, id: randomUUID(), qty: 1, note, saved_qty: movedSaved };
+    const target = o.lines.find((l) => l.id !== lineId && sameLine(l, one));
+    const rest = { ...line, qty: line.qty - 1, saved_qty: saved - movedSaved };
+    const lines = o.lines.flatMap((l) => {
+      if (l.id === lineId) return target ? [rest] : [rest, one];
+      if (target && l.id === target.id) return [{ ...l, qty: l.qty + 1, saved_qty: (l.saved_qty ?? 0) + movedSaved }];
+      return [l];
+    });
+    return { ...o, lines };
+  });
 }
 
 export function setSalesType(id: string) {
@@ -508,6 +557,23 @@ export function cashMove(kind: "in" | "out", amount: number, description: string
   set({ shift: next });
   refreshLocal();
   void syncNow();
+}
+
+/** Items sold in a shift on this tablet, most sold first (refunded items in their own list). */
+export function shiftItems(shiftId: string) {
+  const sold = new Map<string, { name: string; qty: number; amount: number }>();
+  for (const o of db.ordersInShift(shiftId)) for (const l of o.lines) {
+    const name = l.variant_name && l.variant_name !== "Regular" ? `${l.item_name} (${l.variant_name})` : l.item_name;
+    const row = sold.get(name) ?? { name, qty: 0, amount: 0 };
+    row.qty += l.qty; row.amount += l.line_total; sold.set(name, row);
+  }
+  const refunded = new Map<string, { name: string; qty: number; amount: number }>();
+  for (const r of db.refundsInShift(shiftId)) for (const l of r.lines) {
+    const row = refunded.get(l.item_name) ?? { name: l.item_name, qty: 0, amount: 0 };
+    row.qty += l.qty; row.amount += l.amount; refunded.set(l.item_name, row);
+  }
+  const sort = (m: Map<string, { name: string; qty: number; amount: number }>) => [...m.values()].sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name));
+  return { sold: sort(sold), refunded: sort(refunded) };
 }
 
 export function shiftSummary(s: ShiftDoc) {

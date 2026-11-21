@@ -587,6 +587,26 @@ isOneToOne: false
       referencedColumns: ["id","location_id"]
     }
                   ]
+                },"quick_notes": {
+                  Row: {
+                    "account_id": string,"category_ids": (string)[],"created_at": string,"id": string,"location_id": string,"sort_order": number,"text": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"category_ids"?: (string)[],"created_at"?: string,"id"?: string,"location_id": string,"sort_order"?: number,"text": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "account_id"?: string,"category_ids"?: (string)[],"created_at"?: string,"id"?: string,"location_id"?: string,"sort_order"?: number,"text"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "quick_notes_location_id_account_id_fkey"
+      columns: ["location_id","account_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id","account_id"]
+    }
+                  ]
                 },"receipt_profiles": {
                   Row: {
                     "account_id": string,"address": string | null,"footer": string | null,"header_name": string,"location_id": string,"logo_url": string | null,"phone": string | null,"show_cashier": boolean,"show_server": boolean,"social": string | null,"updated_at": string
@@ -805,6 +825,9 @@ isOneToOne: false
 { Args: { "p": Json,"p_device": string }; Returns: Json
                            },
 "pos_save_item":
+{ Args: { "p": Json,"p_device": string }; Returns: Json
+                           },
+"pos_save_quick_notes":
 { Args: { "p": Json,"p_device": string }; Returns: Json
                            },
 "pos_shift_settings":
