@@ -228,6 +228,44 @@ export function setLineDetails(lineId: string, patch: { note?: string | null; di
   update((o) => ({ ...o, lines: o.lines.map((l) => (l.id === lineId ? { ...l, ...patch } : l)) }));
 }
 
+// ───────────────────────────────────────────── notes
+const PRESET_NOTES = ["Less sugar", "No sugar", "Less ice", "No ice", "Extra spicy", "Not spicy", "No MSG", "Separate plate"];
+/** One-tap notes: what this tablet used recently first, then common ones. */
+export function quickNotes(): string[] {
+  const recent = db.kvGet<string[]>("recent_notes") ?? [];
+  const seen = new Set<string>();
+  return [...recent, ...PRESET_NOTES].filter((n) => { const k = n.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 14);
+}
+function rememberNote(note: string) {
+  const parts = note.split(",").map((x) => x.trim()).filter(Boolean);
+  const recent = (db.kvGet<string[]>("recent_notes") ?? []).filter((n) => !parts.some((p) => p.toLowerCase() === n.toLowerCase()));
+  db.kvSet("recent_notes", [...parts, ...recent].slice(0, 10));
+}
+
+/**
+ * Set a note on a cart line. With several on the line and `all` false, only one gets the note:
+ * it moves to its own line (or joins a line that already has that note). Nothing is voided:
+ * an already-saved unit stays saved on its new line.
+ */
+export function setLineNote(lineId: string, note: string | null, all: boolean) {
+  if (note) rememberNote(note);
+  update((o) => {
+    const line = o.lines.find((l) => l.id === lineId)!;
+    if (all || line.qty <= 1) return { ...o, lines: o.lines.map((l) => (l.id === lineId ? { ...l, note } : l)) };
+    const saved = line.saved_qty ?? 0;
+    const movedSaved = saved > 0 ? 1 : 0;          // keep the saved count the same overall
+    const one = { ...line, id: randomUUID(), qty: 1, note, saved_qty: movedSaved };
+    const target = o.lines.find((l) => l.id !== lineId && sameLine(l, one));
+    const rest = { ...line, qty: line.qty - 1, saved_qty: saved - movedSaved };
+    const lines = o.lines.flatMap((l) => {
+      if (l.id === lineId) return target ? [rest] : [rest, one];
+      if (target && l.id === target.id) return [{ ...l, qty: l.qty + 1, saved_qty: (l.saved_qty ?? 0) + movedSaved }];
+      return [l];
+    });
+    return { ...o, lines };
+  });
+}
+
 export function setSalesType(id: string) {
   const st = state.catalog!.sales_types.find((s) => s.id === id)!;
   const variants = new Map(state.catalog!.items.flatMap((i) => i.variants.map((v) => [v.id, v] as const)));

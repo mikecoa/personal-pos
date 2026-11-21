@@ -7,6 +7,7 @@ import { lineLabel, variantPrice } from "../lib/order";
 import type { Item, ModifierSet, OrderLine, Variant } from "../lib/types";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
+import { NoteSheet } from "./NoteSheet";
 
 type Combo = { key: string; variant: Variant; modifiers: ModifierChoice[]; label: string; price: number };
 const MAX_COMBOS = 16;
@@ -39,6 +40,7 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
   }, [item, sets, quickSets, salesType]);
   const quickOk = !otherRequired && combos.length > 1 && combos.length <= MAX_COMBOS;
   const [mode, setMode] = useState<"quick" | "form">(quickOk ? "quick" : "form");
+  const [noteFor, setNoteFor] = useState<string | null>(null);
 
   const lines = (order?.lines ?? []).filter((l) => l.item_id === item.id);
   const inOrder = lines.reduce((n, l) => n + l.qty, 0);
@@ -103,6 +105,12 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
                   </Text>
                   {(l.note || l.discount) && <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={1}>{[l.note && `“${l.note}”`, l.discount?.name].filter(Boolean).join(" · ")}</Text>}
                 </View>
+                <Pressable onPress={() => setNoteFor(l.id)} accessibilityRole="button" hitSlop={4}
+                  accessibilityLabel={l.note ? `Note: ${l.note}. Change` : `Add a note to ${lineLabel(l)}`}
+                  style={({ pressed }) => [st.noteBtn, pressed && { backgroundColor: c.surface2 }]}>
+                  <MaterialCommunityIcons name="note-plus-outline" size={18} color={c.accent} />
+                  <Text style={{ color: c.accent, fontWeight: "700" }}>Note</Text>
+                </Pressable>
                 <Pressable onPress={() => less(l)} disabled={l.qty <= (l.saved_qty ?? 0)} accessibilityRole="button" accessibilityLabel={`One less ${lineLabel(l)}`} hitSlop={4}
                   style={({ pressed }) => [st.small, pressed && { backgroundColor: c.surface2 }, l.qty <= (l.saved_qty ?? 0) && { opacity: 0.35 }]}>
                   <MaterialCommunityIcons name={l.qty === 1 && !(l.saved_qty ?? 0) ? "trash-can-outline" : "minus"} size={18} color={c.ink} />
@@ -119,6 +127,7 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
         </View>
       )}
       {stockLeft !== null && <Muted>{stockLeft} in stock</Muted>}
+      {noteFor && <NoteSheet lineId={noteFor} onClose={() => setNoteFor(null)} />}
     </Sheet>
   );
 }
@@ -218,4 +227,5 @@ const st = StyleSheet.create({
   lineRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 12 },
   small: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  noteBtn: { flexDirection: "row", alignItems: "center", gap: 4, height: 36, paddingHorizontal: 10, borderRadius: 18, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, marginRight: 4 },
 });

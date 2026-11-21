@@ -16,9 +16,10 @@ import { StartShiftPanel } from "./ShiftSheets";
 import { SeatingSheet, TablesSheet } from "./TablesSheet";
 import { CategoryEditor, CategoryPicker, ItemEditor } from "./MenuEditor";
 import { CustomerSheet } from "./CustomerSheet";
+import { NoteSheet } from "./NoteSheet";
 import { addCustom, addItem } from "../lib/store";
 
-type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string }
+type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "note"; id: string }
   | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "charge" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
 
 export function Sell() {
@@ -243,9 +244,14 @@ export function Sell() {
                 style={({ pressed }) => ({ flex: 1, gap: 2, paddingVertical: 4, opacity: pressed ? 0.6 : 1 })}>
                 <Text style={{ fontWeight: "600", color: c.ink, fontSize: 16 }} numberOfLines={2}>{lineLabel(l)}</Text>
                 {l.modifiers.length > 0 && <Text style={{ color: c.ink2 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
-                {l.note && <Text style={{ color: c.warn }}>“{l.note}”</Text>}
                 {l.discount_amount > 0 && <Text style={{ color: c.accent }}>{l.discount!.name} −{money(l.discount_amount)}</Text>}
                 <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }}>{money(l.line_total)}</Text>
+                <Pressable onPress={() => setModal({ kind: "note", id: l.id })} accessibilityRole="button" hitSlop={8}
+                  accessibilityLabel={l.note ? `Note: ${l.note}. Change` : `Add a note to ${lineLabel(l)}`}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", paddingVertical: 2 }}>
+                  <MaterialCommunityIcons name={l.note ? "note-text-outline" : "note-plus-outline"} size={16} color={l.note ? c.warn : c.accent} />
+                  <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : "Note"}</Text>
+                </Pressable>
               </Pressable>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                 <Pressable onPress={() => step(l.id, -1)} accessibilityRole="button" accessibilityLabel={`One less ${lineLabel(l)}`} hitSlop={4}
@@ -292,6 +298,7 @@ export function Sell() {
 
       {modal?.kind === "item" && <ItemSheet item={modal.item} onClose={() => setModal(null)} />}
       {modal?.kind === "line" && <LineSheet lineId={modal.id} onClose={() => setModal(null)} />}
+      {modal?.kind === "note" && <NoteSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "charge" && <ChargeSheet onClose={() => setModal(null)} />}
       {modal?.kind === "bills" && <BillsSheet onClose={() => setModal(null)} />}
       {modal?.kind === "save" && <SaveBillSheet onClose={() => setModal(null)} />}
