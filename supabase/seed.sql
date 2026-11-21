@@ -3,7 +3,7 @@
 -- Test logins (local Supabase only, password for all: posdemo123):
 --   owner@pos.test  - owner of "Demo Café", sees every location
 --   admin@pos.test  - admin, assigned to "Second Branch" only
---   staff@pos.test  - staff, assigned to "Main Café" only
+--   staff@pos.test  - staff, assigned to "Djoeragan Kopitiam" only
 
 create or replace function pg_temp.make_user(p_id uuid, p_email text) returns void
 language sql as $$
@@ -33,7 +33,7 @@ insert into public.members (account_id, user_id, role, display_name) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'staff', 'Cashier');
 
 insert into public.locations (id, account_id, name, address) values
-  ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'Main Café', 'Jl. Contoh No. 1'),
+  ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'Djoeragan Kopitiam', 'Jl. Contoh No. 1'),
   ('bbbbbbbb-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'Second Branch', 'Jl. Contoh No. 2');
 
 insert into public.member_locations (account_id, user_id, location_id) values
@@ -47,7 +47,7 @@ insert into public.categories (account_id, location_id, name, sort_order) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000002', 'Kopi', 1),
   ('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000002', 'Kue', 2);
 
--- ── Phase 1 demo catalog (Main Café) ─────────────────────────────────────
+-- ── Phase 1 demo catalog (Djoeragan Kopitiam) ─────────────────────────────────────
 -- Employee PINs (local only): Ani 1111 (Manager), Budi 2222 (Cashier)
 do $$
 declare
@@ -243,7 +243,7 @@ begin
   end loop;
 end $$;
 
--- ── Tables (Main Café): Indoor 1–8 + Sofa, Teras T1–T4 ──────────────────
+-- ── Tables (Djoeragan Kopitiam): Indoor 1–8 + Sofa, Teras T1–T4 ──────────────────
 do $$
 declare
   acc uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
