@@ -1,0 +1,75 @@
+import Link from "next/link";
+import { requireOwner } from "@/lib/session";
+import { Badge, ButtonLink, EmptyState, Field, PageHeader, Panel, Select, Table, Toggle } from "@/components/ui";
+import { EditorForm } from "@/components/editor-form";
+import { deleteEmployee, saveEmployee } from "./actions";
+
+const BASE = "/employees";
+
+export default async function EmployeesPage({ searchParams }: { searchParams: Promise<{ edit?: string; new?: string }> }) {
+  const { supabase, membership, allLocations } = await requireOwner();
+  const sp = await searchParams;
+  const [{ data: emps }, { data: roles }] = await Promise.all([
+    supabase.from("employees").select("id, name, phone, role_id, has_pin, is_active, roles(name), employee_locations(location_id)")
+      .eq("account_id", membership.account_id).order("name"),
+    supabase.from("roles").select("id, name").eq("account_id", membership.account_id).order("name"),
+  ]);
+  const locName = new Map(allLocations.map((l) => [l.id, l.name]));
+  const editing = sp.edit ? emps?.find((e) => e.id === sp.edit) : undefined;
+  const assigned = new Set(editing?.employee_locations.map((l) => l.location_id) ?? (allLocations.length === 1 ? [allLocations[0]!.id] : []));
+
+  return (
+    <div className="mx-auto max-w-5xl">
+      <PageHeader title="Employees" description="Staff who use the POS. Each unlocks the tablet with their own 4-digit PIN."
+        actions={<ButtonLink href={`${BASE}?new=1`}>Add employee</ButtonLink>} />
+      {emps?.length ? (
+        <Table head={["Name", "Role", "Locations", "PIN", "Status"]}>
+          {emps.map((e) => (
+            <tr key={e.id} className="hover:bg-surface-2/60">
+              <td className="px-4 py-3 font-medium"><Link href={`${BASE}?edit=${e.id}`} scroll={false} className="hover:underline">{e.name}</Link></td>
+              <td className="px-4 py-3 text-ink-2">{e.roles?.name}</td>
+              <td className="px-4 py-3 text-ink-2">{e.employee_locations.map((l) => locName.get(l.location_id)).filter(Boolean).join(", ") || "—"}</td>
+              <td className="px-4 py-3">{e.has_pin ? <Badge tone="accent">Set</Badge> : <Badge tone="danger">Missing</Badge>}</td>
+              <td className="px-4 py-3">{e.is_active ? <Badge tone="accent">Active</Badge> : <Badge>Inactive</Badge>}</td>
+            </tr>
+          ))}
+        </Table>
+      ) : <EmptyState title="No employees yet">Add your cashiers so each sale and shift is recorded under their name.</EmptyState>}
+
+      {(sp.new || editing) && (
+        <Panel title={editing ? "Edit employee" : "Add employee"} closeHref={BASE}>
+          <EditorForm action={saveEmployee} deleteAction={editing ? deleteEmployee : undefined} closeHref={BASE} hidden={{ id: editing?.id }}
+            confirmDelete={`Remove ${editing?.name}? Their past sales keep their name.`}>
+            <Field label="Name" name="name" defaultValue={editing?.name} required autoFocus maxLength={80} />
+            <Field label="Phone (optional)" name="phone" type="tel" defaultValue={editing?.phone ?? ""} maxLength={40} />
+            <Select label="Role" name="role_id" defaultValue={editing?.role_id ?? roles?.find((r) => r.name === "Cashier")?.id} required>
+              {roles?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </Select>
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-medium text-ink-2">Works at</legend>
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                {allLocations.map((l) => (
+                  <label key={l.id} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="location" value={l.id} defaultChecked={assigned.has(l.id)} className="accent-[var(--accent)]" />
+                    {l.name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <div>
+              <Field label={editing?.has_pin ? "New PIN (leave empty to keep current)" : "PIN"} name="pin" inputMode="numeric"
+                pattern="\d{4}" maxLength={4} autoComplete="off" placeholder="4 digits" required={!editing}
+                hint="Must be different from every other employee's PIN." />
+              {editing?.has_pin && (
+                <label className="mt-2 flex items-center gap-2 text-sm text-ink-2">
+                  <input type="checkbox" name="clear_pin" className="accent-[var(--accent)]" /> Remove PIN (employee can&apos;t unlock the POS)
+                </label>
+              )}
+            </div>
+            <Toggle label="Active" name="is_active" defaultChecked={editing?.is_active ?? true} />
+          </EditorForm>
+        </Panel>
+      )}
+    </div>
+  );
+}

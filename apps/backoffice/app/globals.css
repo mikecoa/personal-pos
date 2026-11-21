@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/* Warm "kopitiam" palette: espresso ink on paper, with a pandan-green accent. */
+:root {
+  --bg: #f7f4ef;
+  --surface: #ffffff;
+  --surface-2: #f1ece4;
+  --ink: #2a211b;
+  --ink-2: #6b5d52;
+  --line: #e4dcd1;
+  --accent: #2f6b4f;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3efe8;
+  --danger: #b4412f;
+  --series-1: #2a78d6;      /* data marks (validated vs --surface) */
+  --grid: #ece6dd;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17130f;
+    --surface: #211b16;
+    --surface-2: #2a231d;
+    --ink: #f1e9df;
+    --ink-2: #b3a497;
+    --line: #3a3028;
+    --accent: #6fbf95;
+    --accent-ink: #10231a;
+    --accent-soft: #1f3529;
+    --danger: #e0806f;
+    --series-1: #3987e5;
+    --grid: #2f2720;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-series-1: var(--series-1);
+  --color-grid: var(--grid);
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}

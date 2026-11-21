@@ -1,0 +1,14 @@
+node_modules
+.next
+.turbo
+dist
+.env*.local
+.DS_Store
+supabase/.branches
+supabase/.temp
+.next-build
+backups/
+*.tsbuildinfo
+next-env.d.ts
+.expo/
+.claude/

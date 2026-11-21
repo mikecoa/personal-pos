@@ -1,0 +1,61 @@
+import { useState } from "react";
+import { KeyboardAvoidingView, Pressable, Text, View } from "react-native";
+import { manageableLocations, registerDevice, signIn } from "../lib/store";
+import { Btn, Field, H, Muted } from "../ui/kit";
+import { c, r } from "../ui/theme";
+
+export function Setup() {
+  const [step, setStep] = useState<"login" | "location">("login");
+  const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
+  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [name, setName] = useState("Cashier tablet");
+  const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null);
+
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true); setError(null);
+    try { await fn(); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong. Check the internet connection."); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: c.bg }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 460, gap: 18 }}>
+        <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: c.accentInk, fontSize: 24, fontWeight: "800" }}>K</Text>
+        </View>
+        <H size={28}>{step === "login" ? "Set up this tablet" : "Which location is this tablet at?"}</H>
+        <Muted>{step === "login"
+          ? "Sign in once with the owner or an admin account. Staff then unlock the tablet with their own PIN."
+          : "The tablet only gets this location's menu, staff and bills. You can't change it later without resetting."}</Muted>
+
+        {step === "login" ? (
+          <>
+            <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
+            <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" />
+            {error && <Text style={{ color: c.danger }}>{error}</Text>}
+            <Btn big title="Continue" loading={busy} disabled={!email || !password}
+              onPress={() => run(async () => { await signIn(email.trim(), password); setLocations(await manageableLocations()); setStep("location"); })} />
+          </>
+        ) : (
+          <>
+            <View style={{ gap: 10 }}>
+              {locations.map((l) => (
+                <Pressable key={l.id} onPress={() => setChosen(l.id)} accessibilityRole="radio" accessibilityState={{ checked: chosen === l.id }}
+                  style={{ padding: 16, borderRadius: r.md, borderWidth: 2, borderColor: chosen === l.id ? c.accent : c.line, backgroundColor: c.surface }}>
+                  <Text style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>{l.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Field label="Tablet name" value={name} onChangeText={setName} maxLength={60} />
+            {error && <Text style={{ color: c.danger }}>{error}</Text>}
+            <Btn big title="Finish setup" loading={busy} disabled={!chosen}
+              onPress={() => run(() => registerDevice(locations.find((l) => l.id === chosen)!, name))} />
+          </>
+        )}
+      </View>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
