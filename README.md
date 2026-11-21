@@ -60,6 +60,9 @@ cd apps/pos && npx expo start --android         # opens in Expo Go on the emulat
 
 The emulator reaches your Mac as `10.0.2.2`; a real tablet needs your Mac's LAN IP in `EXPO_PUBLIC_SUPABASE_URL`.
 
+- **Side menu** (collapsible; the choice is remembered on the tablet): *Point of Sale*, *Tables* (floor map, busy-table badge), *Activity* (completed sales by day, search by receipt number; details: payment method, receipt number, time, items with modifiers and totals; receipt and refund), *Shift* (Shift option, Current shift, Shift history; a dot means no shift is open), *Settings* (Account, Printer, Log out). On the POS screen, *Billing list* shows open bills (all tablets), cancelled bills with their reason, and item voids with reason, bill and who did it. The bottom shows who is signed in, with a lock button to switch employee.
+- **Shift option** on the tablet changes the location's *Start shift automatically* and *Default starting cash* (`pos_shift_settings`, needs a connection and the *Change shift options on the POS* permission, on by default for Managers).
+- **Printer settings** (connection, IP or name, paper 58/80 mm, print after every sale, copies) are saved on the tablet; *Test print* shows a preview. Sending to a real printer comes once the printer model is known.
 - **Setup:** an owner/admin signs in once and picks the location; the tablet is registered (`register_device`) and gets a receipt prefix (A1, A2…).
 - **Unlock:** staff enter their 4-digit PIN, checked offline against bcrypt hashes in the catalog; their role's permissions apply.
 - **Offline-first:** everything is written to on-device SQLite first. A sync loop (every 10 s and after each change) uploads the outbox (shifts → orders → refunds) via `upsert_shift` / `upsert_order` / `submit_refund` (idempotent, versioned; completed sales are immutable), pulls open bills shared by all tablets at the location (`pos_open_orders`) and refreshes the catalog (`pos_catalog`) every 5 min.

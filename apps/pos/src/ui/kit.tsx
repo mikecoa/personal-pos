@@ -42,6 +42,19 @@ export function Label({ children }: { children: ReactNode }) { return <Text styl
 export function H({ children, size = 22 }: { children: ReactNode; size?: number }) { return <Text style={{ fontSize: size, fontWeight: "700", color: c.ink }}>{children}</Text>; }
 export function Muted({ children, style }: { children: ReactNode; style?: object }) { return <Text style={[{ color: c.ink2, fontSize: 15 }, style]}>{children}</Text>; }
 
+/** Title bar for a full page in the side menu (same height as the selling screen's top bar). */
+export function PageTop({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderColor: c.line }}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 22, fontWeight: "800", color: c.ink }}>{title}</Text>
+        {subtitle ? <Text style={{ color: c.ink2, fontSize: 14, marginTop: 2 }}>{subtitle}</Text> : null}
+      </View>
+      {right}
+    </View>
+  );
+}
+
 /** Centered modal card; `side` docks it to the right edge for longer flows. */
 export function Sheet({ visible, onClose, title, children, footer, width = 560, side }: {
   visible: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; width?: number; side?: boolean;

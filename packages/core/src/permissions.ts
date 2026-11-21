@@ -27,6 +27,7 @@ export const PERMISSION_GROUPS = [
       { key: "cash_in_out", label: "Record cash in / cash out" },
       { key: "shift_view_details", label: "See expected cash in current shift" },
       { key: "shift_history_view", label: "View past shifts" },
+      { key: "shift_settings_manage", label: "Change shift options on the POS", hint: "Start shifts automatically, default starting cash" },
     ],
   },
   {
