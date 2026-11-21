@@ -217,6 +217,19 @@ export function saveBill(name: string) {
   refreshLocal();
   void syncNow();
 }
+/**
+ * Save the bill on screen at a table (or with just a name when `table` is null). Choosing a
+ * table sets guests and an optional customer; the bill is named "T1 · Pak Budi".
+ */
+export function saveBillAt(opts: { table: DiningTable | null; guests: number | null; customer: string | null; name: string }) {
+  const o = state.order!;
+  const t = opts.table;
+  if (t && billsAt(t.id).some((b) => b.id !== o.id)) throw new Error(`${t.name} already has a bill. Pick another table.`);
+  const name = t ? (opts.customer ? `${t.name} · ${opts.customer}` : t.name) : opts.name;
+  set({ order: { ...o, table_id: t?.id ?? null, table_name: t?.name ?? null, guests: t ? opts.guests : null,
+    customer_name: t ? opts.customer : o.customer_name } });
+  saveBill(name);
+}
 export function openBill(id: string) {
   const o = db.getOrder(id);
   if (o) set({ order: reprice(o, state.catalog!) });

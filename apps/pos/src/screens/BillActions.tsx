@@ -1,21 +1,90 @@
-import { useState } from "react";
-import { Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { AppliedDiscount } from "@pos/core";
-import { can, cancelBill, saveBill, setBillDiscounts, setBillInfo, useStore } from "../lib/store";
-import { Btn, Chip, Field, Label, money, Muted, Sheet } from "../ui/kit";
-import { c } from "../ui/theme";
+import { billsAt, byTableName, can, cancelBill, saveBillAt, setBillDiscounts, setBillInfo, useStore } from "../lib/store";
+import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
+import { c, r } from "../ui/theme";
 
 export function SaveBillSheet({ onClose }: { onClose: () => void }) {
   const order = useStore((s) => s.order)!;
-  const employees = useStore((s) => s.catalog!.employees);
-  const trackServer = useStore((s) => s.catalog!.settings.track_server);
-  const [name, setName] = useState(order.bill_name ?? "");
+  const catalog = useStore((s) => s.catalog)!;           // derive lists below (stable selector)
+  useStore((s) => s.openOrders);                         // re-render when tables become busy/free
+  const employees = catalog.employees;
+  const trackServer = catalog.settings.track_server;
+  const tables = useMemo(() => [...(catalog.tables ?? [])].sort(byTableName), [catalog.tables]);
+  const areas = catalog.table_areas ?? [];
+  const hasTables = tables.length > 0;
+
+  const [tableId, setTableId] = useState<string | null>(order.table_id ?? null);
+  const [guests, setGuests] = useState(order.guests ?? 2);
+  const [customer, setCustomer] = useState(order.customer_name ?? "");
+  const [name, setName] = useState(order.table_id ? "" : order.bill_name ?? "");
   const [server, setServer] = useState(order.served_by);
+  const [error, setError] = useState<string | null>(null);
+  const table = tables.find((t) => t.id === tableId) ?? null;
+  const busy = (id: string) => billsAt(id).some((b) => b.id !== order.id);
+
+  const ok = table ? true : !!name.trim();
+  const save = () => {
+    try {
+      if (trackServer) setBillInfo({ served_by: employees.find((e) => e.id === server) ?? null });
+      saveBillAt({ table, guests, customer: customer.trim() || null, name: name.trim() });
+      onClose();
+    } catch (e) { setError((e as Error).message); }
+  };
+
+  // Group by area, in the area order; tables without an area last.
+  const groups = [...areas.map((a) => ({ key: a.id, name: a.name, list: tables.filter((t) => t.area_id === a.id) })),
+    { key: "none", name: areas.length ? "No area" : "", list: tables.filter((t) => !t.area_id || !areas.some((a) => a.id === t.area_id)) }]
+    .filter((g) => g.list.length);
+
   return (
-    <Sheet visible onClose={onClose} title={order.version ? "Update bill" : "Save bill"} width={520}
-      footer={<><Btn kind="secondary" title="Cancel" onPress={onClose} /><Btn style={{ flex: 1 }} big title="Save bill" disabled={!name.trim()}
-        onPress={() => { if (trackServer) setBillInfo({ served_by: employees.find((e) => e.id === server) ?? null }); saveBill(name.trim()); onClose(); }} /></>}>
-      <Field label="Table or customer name" value={name} onChangeText={setName} autoFocus placeholder="e.g. 12, Sofa, Pak Budi" maxLength={40} />
+    <Sheet visible onClose={onClose} title={order.version ? "Update bill" : "Save bill"} width={hasTables ? 640 : 520}
+      footer={<><Btn kind="secondary" title="Cancel" onPress={onClose} />
+        <Btn style={{ flex: 1 }} big title={table ? `Save to table ${table.name}` : "Save bill"} disabled={!ok} onPress={save} /></>}>
+      {hasTables && (
+        <View style={{ gap: 10 }}>
+          <Label>Table</Label>
+          {groups.map((g) => (
+            <View key={g.key} style={{ gap: 6 }}>
+              {!!g.name && <Text style={{ color: c.ink2, fontSize: 13, fontWeight: "600" }}>{g.name}</Text>}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {g.list.map((t) => {
+                  const taken = busy(t.id);
+                  const on = tableId === t.id;
+                  return (
+                    <Pressable key={t.id} disabled={taken} onPress={() => { setTableId(on ? null : t.id); setError(null); }}
+                      accessibilityRole="radio" accessibilityState={{ selected: on, disabled: taken }}
+                      accessibilityLabel={`Table ${t.name}${taken ? ", in use" : ""}`}
+                      style={[st.tableBtn, on && st.tableOn, taken && { opacity: 0.35 }]}>
+                      <Text style={[st.tableText, on && { color: c.accentInk }]}>{t.name}</Text>
+                      {taken && <Text style={{ fontSize: 10, color: c.ink2 }}>in use</Text>}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+          <Pressable onPress={() => setTableId(null)} accessibilityRole="radio" accessibilityState={{ selected: !tableId }}
+            style={[st.tableBtn, { alignSelf: "flex-start", paddingHorizontal: 16 }, !tableId && st.tableOn]}>
+            <Text style={[st.tableText, { fontSize: 15 }, !tableId && { color: c.accentInk }]}>No table (takeaway, bar…)</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {table ? (
+        <>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Label>Guests</Label>
+            <Stepper value={guests} min={1} onChange={setGuests} />
+          </View>
+          <Field label="Customer name (optional)" value={customer} onChangeText={setCustomer} placeholder="e.g. Pak Budi" maxLength={40} />
+        </>
+      ) : (
+        <Field label={hasTables ? "Bill name" : "Table or customer name"} value={name} onChangeText={setName} autoFocus={!hasTables}
+          placeholder={hasTables ? "e.g. Pak Budi, Ojol 3" : "e.g. 12, Sofa, Pak Budi"} maxLength={40} />
+      )}
+
       {trackServer && (
         <View style={{ gap: 10 }}>
           <Label>Served by</Label>
@@ -24,9 +93,16 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
           </View>
         </View>
       )}
+      {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
 }
+
+const st = StyleSheet.create({
+  tableBtn: { minWidth: 64, height: 52, paddingHorizontal: 12, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
+  tableOn: { backgroundColor: c.accent, borderColor: c.accent },
+  tableText: { fontSize: 18, fontWeight: "800", color: c.ink },
+});
 
 export function BillDiscountSheet({ onClose }: { onClose: () => void }) {
   // Select stable references; filtering inside a selector would create a new array on every read.
