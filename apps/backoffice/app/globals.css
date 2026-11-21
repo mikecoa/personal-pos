@@ -1,35 +1,21 @@
 @import "tailwindcss";
 
-/* Warm "kopitiam" palette: espresso ink on paper, with a pandan-green accent. */
+/* Light theme, Moka-like neutrals: white pages, navy ink, cool greys, pandan-green accent.
+   Always light (no dark variant), whatever the computer's setting. */
 :root {
-  --bg: #f7f4ef;
+  color-scheme: light;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f1ece4;
-  --ink: #2a211b;
-  --ink-2: #6b5d52;
-  --line: #e4dcd1;
+  --surface-2: #f4f6f8;
+  --ink: #012133;
+  --ink-2: #5b6f7c;
+  --line: #e1e6ea;
   --accent: #2f6b4f;
   --accent-ink: #ffffff;
-  --accent-soft: #e3efe8;
-  --danger: #b4412f;
+  --accent-soft: #e6f1eb;
+  --danger: #c0392b;
   --series-1: #2a78d6;      /* data marks (validated vs --surface) */
-  --grid: #ece6dd;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #17130f;
-    --surface: #211b16;
-    --surface-2: #2a231d;
-    --ink: #f1e9df;
-    --ink-2: #b3a497;
-    --line: #3a3028;
-    --accent: #6fbf95;
-    --accent-ink: #10231a;
-    --accent-soft: #1f3529;
-    --danger: #e0806f;
-    --series-1: #3987e5;
-    --grid: #2f2720;
-  }
+  --grid: #e9edf0;
 }
 
 @theme inline {
@@ -45,10 +31,13 @@
   --color-danger: var(--danger);
   --color-series-1: var(--series-1);
   --color-grid: var(--grid);
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Figtree", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
+  font-feature-settings: "tnum" 0;
 }
+/* Numbers line up in tables and totals. */
+td, .tabular-nums { font-variant-numeric: tabular-nums; }

@@ -8,12 +8,12 @@ import type {
 } from "react";
 
 const inputCls =
-  "h-11 w-full rounded-lg border border-line bg-surface px-3 text-ink outline-none transition placeholder:text-ink-2/60 focus:border-accent focus:ring-2 focus:ring-accent/25 disabled:opacity-60";
+  "h-11 w-full rounded-lg border border-line bg-surface px-3.5 text-[15px] text-ink outline-none transition placeholder:text-ink-2/55 hover:border-ink-2/40 focus:border-accent focus:ring-3 focus:ring-accent/15 disabled:opacity-60";
 
 export function Field({ label, hint, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-ink-2">{label}</span>
+      <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
       <input {...props} className={inputCls} />
       {hint && <span className="mt-1 block text-xs text-ink-2">{hint}</span>}
     </label>
@@ -57,7 +57,7 @@ export function Toggle({ label, description, ...props }: InputHTMLAttributes<HTM
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 const btn: Record<Variant, string> = {
-  primary: "bg-accent text-accent-ink hover:brightness-110",
+  primary: "bg-accent text-accent-ink shadow-sm hover:brightness-110",
   secondary: "border border-line bg-surface hover:bg-surface-2",
   danger: "border border-danger/40 text-danger hover:bg-danger/10",
   ghost: "text-ink-2 hover:bg-surface-2 hover:text-ink",
@@ -92,10 +92,10 @@ export function SavedNote({ show, children = "Saved" }: { show?: boolean; childr
 
 export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        {description && <p className="mt-1 text-ink-2">{description}</p>}
+        <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.01em]">{title}</h1>
+        {description && <p className="mt-1.5 max-w-2xl text-[15px] text-ink-2">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -104,8 +104,8 @@ export function PageHeader({ title, description, actions }: { title: string; des
 
 export function Card({ title, description, children, className = "" }: { title?: string; description?: string; children: ReactNode; className?: string }) {
   return (
-    <section className={`min-w-0 rounded-2xl border border-line bg-surface p-5 ${className}`}>
-      {title && <h2 className="font-semibold">{title}</h2>}
+    <section className={`min-w-0 rounded-xl border border-line bg-surface p-6 shadow-[0_1px_2px_rgba(1,33,51,0.04)] ${className}`}>
+      {title && <h2 className="text-[17px] font-semibold">{title}</h2>}
       {description && <p className="mt-0.5 text-sm text-ink-2">{description}</p>}
       <div className={title || description ? "mt-4" : ""}>{children}</div>
     </section>
@@ -119,7 +119,7 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-line px-6 py-12 text-center">
+    <div className="rounded-xl border border-dashed border-line bg-surface-2/50 px-6 py-14 text-center">
       <p className="font-semibold">{title}</p>
       {children && <div className="mt-1 text-sm text-ink-2">{children}</div>}
     </div>
@@ -131,12 +131,12 @@ export function Panel({ title, closeHref, children }: { title: string; closeHref
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <Link href={closeHref} aria-label="Close" className="absolute inset-0 bg-ink/30 backdrop-blur-[1px]" scroll={false} />
-      <aside className="relative flex h-full w-full max-w-xl flex-col bg-bg shadow-2xl" role="dialog" aria-label={title}>
-        <header className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="text-lg font-bold">{title}</h2>
+      <aside className="relative flex h-full w-full max-w-xl flex-col bg-surface shadow-2xl" role="dialog" aria-label={title}>
+        <header className="flex items-center justify-between border-b border-line px-6 py-4">
+          <h2 className="text-lg font-semibold">{title}</h2>
           <Link href={closeHref} scroll={false} className="rounded-lg px-2 py-1 text-ink-2 hover:bg-surface-2" aria-label="Close">✕</Link>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div>
       </aside>
     </div>
   );
@@ -144,10 +144,10 @@ export function Panel({ title, closeHref, children }: { title: string; closeHref
 
 export function Table({ head, children }: { head: ReactNode[]; children: ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
+    <div className="overflow-x-auto rounded-xl border border-line bg-surface shadow-[0_1px_2px_rgba(1,33,51,0.04)]">
       <table className="w-full min-w-[560px] text-left text-sm">
-        <thead className="border-b border-line text-xs font-semibold text-ink-2">
-          <tr>{head.map((h, i) => <th key={i} className="px-4 py-3">{h}</th>)}</tr>
+        <thead className="border-b border-line bg-surface-2 text-[13px] font-semibold text-ink">
+          <tr>{head.map((h, i) => <th key={i} className="px-4 py-3.5">{h}</th>)}</tr>
         </thead>
         <tbody className="divide-y divide-line">{children}</tbody>
       </table>
