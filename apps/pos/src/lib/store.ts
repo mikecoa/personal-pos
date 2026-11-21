@@ -302,7 +302,20 @@ export async function editTables(change: BulkTableChange) {
   await applyFloorPlan("pos_tables_bulk", change);
 }
 
-async function applyFloorPlan(fn: "pos_table_setup" | "pos_tables_bulk", p: object) {
+/**
+ * Save positions on the floor map. The tablet shows the new layout at once; if the server
+ * refuses (or there is no connection) the previous layout comes back and the error is thrown.
+ */
+export async function saveLayout(cells: { id: string; x: number; y: number }[]) {
+  const before = state.catalog!;
+  const at = new Map(cells.map((c) => [c.id, c]));
+  const tables = (before.tables ?? []).map((t) => (at.has(t.id) ? { ...t, pos_x: at.get(t.id)!.x, pos_y: at.get(t.id)!.y } : t));
+  set({ catalog: { ...before, tables } });
+  try { await applyFloorPlan("pos_tables_layout", cells); }
+  catch (e) { set({ catalog: before }); throw e; }
+}
+
+async function applyFloorPlan(fn: "pos_table_setup" | "pos_tables_bulk" | "pos_tables_layout", p: object) {
   if (!can("tables_manage")) throw new Error("Your role can't edit tables.");
   const { data, error } = await supabase.rpc(fn, { p_device: state.device!.id, p: p as never });
   if (error) {

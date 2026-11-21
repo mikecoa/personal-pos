@@ -1,9 +1,10 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { billsAt, byTableName, can, editFloorPlan, editTables, getState, moveToTable, openBill, seatAtTable, tableLabel, updateSeating, useStore } from "../lib/store";
+import { billsAt, byTableName, can, editFloorPlan, editTables, getState, saveLayout, moveToTable, openBill, seatAtTable, tableLabel, updateSeating, useStore } from "../lib/store";
 import type { DiningTable, OrderDoc } from "../lib/types";
 import { Btn, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
+import { FloorBoard } from "./FloorBoard";
 
 const NO_AREA = "none";
 const ago = (iso: string) => {
@@ -42,6 +43,9 @@ export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose:
   const [panel, setPanel] = useState<Panel>(null);
   const [selection, setSelection] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [, tick] = useState(0);
+  useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 30_000); return () => clearInterval(t); }, []);  // keep "16 min" fresh
 
   const currentArea = areas.some((a) => a.id === area) || area === NO_AREA ? area : (areas[0]?.id ?? NO_AREA);
   const inArea = (t: DiningTable, a: string) => (a === NO_AREA ? !t.area_id : t.area_id === a);
@@ -133,23 +137,16 @@ export function TablesSheet({ mode, onClose }: { mode: "seat" | "move"; onClose:
 
           <View style={{ flexDirection: "row", flex: 1, minHeight: 0 }}>
             {/* grid */}
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, gap: 14 }}>
+            <ScrollView style={{ flex: 1 }} scrollEnabled={!dragging} contentContainerStyle={{ padding: 20, gap: 14 }}>
               {notice && <Text style={st.notice}>{notice}</Text>}
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-                {shown.map((t) => (
-                  <TableTile key={t.id} table={t} mode={editing ? "edit" : mode}
-                    current={!!order && order.table_id === t.id}
-                    selected={editing ? selection.includes(t.id) : (panel?.kind === "seat" || panel?.kind === "bills") && panel.table.id === t.id}
-                    onPress={() => tap(t)} onLongPress={() => hold(t)} />
-                ))}
-                {editing && (
-                  <Pressable accessibilityRole="button" accessibilityLabel="Add table" onPress={() => { setSelection([]); setPanel({ kind: "new" }); }}
-                    style={({ pressed }) => [st.tile, st.addTile, panel?.kind === "new" && { borderWidth: 2.5 }, pressed && { opacity: 0.7 }]}>
-                    <Text style={{ fontSize: 28, color: c.accent, fontWeight: "500" }}>+</Text>
-                    <Text style={{ color: c.accent, fontWeight: "700" }}>Add table</Text>
-                  </Pressable>
-                )}
-              </View>
+              {(shown.length > 0 || editing) && (
+                <FloorBoard tables={shown} mode={editing ? "edit" : mode} currentTableId={order?.table_id ?? null}
+                  isSelected={(t) => (editing ? selection.includes(t.id) : (panel?.kind === "seat" || panel?.kind === "bills") && panel.table.id === t.id)}
+                  onPress={tap} onLongPress={hold} onDragging={setDragging}
+                  onAdd={editing ? () => { setSelection([]); setPanel({ kind: "new" }); } : undefined} addActive={panel?.kind === "new"}
+                  onLayoutChange={(cells) => { setNotice(null); saveLayout(cells).catch((e) => setNotice((e as Error).message)); }} />
+              )}
+              {editing && shown.length > 1 && <Muted style={{ fontSize: 13 }}>Drag a table to move it on the map. Drop it on another table to swap them.</Muted>}
               {!shown.length && !editing && (
                 <View style={st.empty}>
                   <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }}>No tables here yet</Text>
@@ -197,44 +194,6 @@ function Tab({ label, count = 0, active, muted, hint, onPress, onLongPress }: {
       <Text style={[st.tabText, active && { color: c.ink }, muted && { color: c.accent }]}>{label}</Text>
       {count > 0 && <View style={st.badge}><Text style={st.badgeText}>{count}</Text></View>}
       {hint && <Text style={{ color: c.ink2, fontSize: 13 }}>{hint}</Text>}
-    </Pressable>
-  );
-}
-
-function TableTile({ table, mode, current, selected, onPress, onLongPress }: {
-  table: DiningTable; mode: "seat" | "move" | "edit"; current: boolean; selected: boolean; onPress: () => void; onLongPress: () => void;
-}) {
-  const bills = billsAt(table.id);
-  const busy = bills.length > 0 && mode !== "edit";
-  const total = bills.reduce((s, b) => s + b.total, 0);
-  const guests = bills.reduce((s, b) => s + (b.guests ?? 0), 0);
-  const oldest = bills.map((b) => b.opened_at).sort()[0];
-  const dim = mode === "move" && (bills.length > 0 || current);
-  const fg = busy ? c.accentInk : c.ink;
-  const label = mode === "edit" ? `Table ${table.name}${selected ? ", selected" : ""}` : `Table ${table.name}, ${busy ? `in use, ${money(total)}` : "free"}`;
-  return (
-    <Pressable onPress={onPress} onLongPress={onLongPress} delayLongPress={400} accessibilityRole={mode === "edit" ? "checkbox" : "button"}
-      accessibilityState={mode === "edit" ? { checked: selected } : undefined} accessibilityLabel={label}
-      style={({ pressed }) => [st.tile,
-        busy ? { backgroundColor: c.accent, borderColor: c.accent } : null,
-        mode === "edit" && selected && { backgroundColor: c.accentSoft },
-        (current || selected) && { borderColor: mode === "edit" ? c.accent : c.ink, borderWidth: 2.5 },
-        { opacity: dim ? 0.35 : pressed ? 0.75 : 1 }]}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <Text style={[st.tileName, { color: fg }]} numberOfLines={1}>{table.name}</Text>
-        {mode === "edit" && (
-          <View style={[st.check, selected && st.checkOn]}>{selected && <Text style={{ color: c.accentInk, fontSize: 13, fontWeight: "800" }}>✓</Text>}</View>
-        )}
-        {busy && bills.length > 1 && <Text style={{ color: fg, fontSize: 12, fontWeight: "700" }}>{bills.length} bills</Text>}
-      </View>
-      {busy ? (
-        <View>
-          <Text style={{ color: fg, fontWeight: "700", fontSize: 15 }}>{money(total)}</Text>
-          <Text style={{ color: fg, opacity: 0.8, fontSize: 12 }}>{guests ? `${guests} guests · ` : ""}{oldest ? ago(oldest) : ""}</Text>
-        </View>
-      ) : (
-        <Text style={{ color: c.ink2, fontSize: 13 }}>{current ? "This bill" : `${table.seats} seats`}</Text>
-      )}
     </Pressable>
   );
 }

@@ -99,14 +99,14 @@ isOneToOne: false
                   ]
                 },"dining_tables": {
                   Row: {
-                    "account_id": string,"area_id": string | null,"created_at": string,"id": string,"is_active": boolean,"location_id": string,"name": string,"seats": number,"shape": "square"|"round"|"long","sort_order": number,"updated_at": string
+                    "account_id": string,"area_id": string | null,"created_at": string,"id": string,"is_active": boolean,"location_id": string,"name": string,"pos_x": number | null,"pos_y": number | null,"seats": number,"shape": "square"|"round"|"long","sort_order": number,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"area_id"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"location_id": string,"name": string,"seats"?: number,"shape"?: "square"|"round"|"long","sort_order"?: number,"updated_at"?: string
+                    "account_id": string,"area_id"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"location_id": string,"name": string,"pos_x"?: number | null,"pos_y"?: number | null,"seats"?: number,"shape"?: "square"|"round"|"long","sort_order"?: number,"updated_at"?: string
                   }
                   Update: {
-                    "account_id"?: string,"area_id"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"location_id"?: string,"name"?: string,"seats"?: number,"shape"?: "square"|"round"|"long","sort_order"?: number,"updated_at"?: string
+                    "account_id"?: string,"area_id"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"location_id"?: string,"name"?: string,"pos_x"?: number | null,"pos_y"?: number | null,"seats"?: number,"shape"?: "square"|"round"|"long","sort_order"?: number,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -770,6 +770,9 @@ isOneToOne: false
 { Args: { "p": Json,"p_device": string }; Returns: Json
                            },
 "pos_tables_bulk":
+{ Args: { "p": Json,"p_device": string }; Returns: Json
+                           },
+"pos_tables_layout":
 { Args: { "p": Json,"p_device": string }; Returns: Json
                            },
 "register_device":

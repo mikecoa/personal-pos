@@ -36,7 +36,8 @@ export type Catalog = {
   employees: Employee[];
 };
 
-export type DiningTable = { id: string; name: string; area_id: string | null; seats: number; shape: "square" | "round" | "long" };
+/** pos_x / pos_y: cell on the area's floor map (null = placed automatically in the first free cell). */
+export type DiningTable = { id: string; name: string; area_id: string | null; seats: number; shape: "square" | "round" | "long"; pos_x?: number | null; pos_y?: number | null };
 
 export type Device = { id: string; name: string; receipt_prefix: string; location_id: string; location_name: string };
 

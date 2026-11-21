@@ -1,7 +1,7 @@
 -- Table management: set-up permissions, seating and moving bills, safety on deleted tables.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(26);
+select plan(31);
 
 insert into auth.users (id, email, aud, role) values
   ('a0000000-0000-0000-0000-00000000000a', 'ownerA@t.test', 'authenticated', 'authenticated'),
@@ -96,6 +96,19 @@ select throws_ok($$ select public.pos_tables_bulk('de000000-0000-0000-0000-00000
   'ids', (select jsonb_agg(id) from public.dining_tables where name in ('T1','T2')))) $$, '55006', 'Open bill on T1. Move or close it first.',
   'deleting a selection with a busy table is refused');
 select is((select count(*)::int from public.dining_tables where name in ('T1','T2')), 2, '…and nothing was deleted');
+
+-- ── floor map (pos_tables_layout) ─────────────────────────────────────
+select is(public.pos_tables_layout('de000000-0000-0000-0000-000000000001', jsonb_build_array(
+  jsonb_build_object('id', (select id from public.dining_tables where name = 'T1'), 'x', 2, 'y', 1),
+  jsonb_build_object('id', '7b000000-0000-0000-0000-000000000009', 'x', 5, 'y', 5)))->'tables' @> '[{"name":"T1","pos_x":2,"pos_y":1}]', true,
+  'place T1 on the board; the new plan comes back');
+select is((select coalesce(pos_x::text, 'none') from public.dining_tables where id = '7b000000-0000-0000-0000-000000000009'), 'none',
+  'another location''s table is not moved');
+select is(public.pos_catalog('de000000-0000-0000-0000-000000000001')->'tables' @> '[{"name":"T1","pos_x":2,"pos_y":1}]', true, 'the catalog carries positions');
+select lives_ok($$ select public.pos_tables_bulk('de000000-0000-0000-0000-000000000001', jsonb_build_object('op','update',
+  'ids', (select jsonb_agg(id) from public.dining_tables where name = 'T1'), 'set_area', true, 'area_id', (select id from public.table_areas where name = 'Teras'))) $$,
+  'move T1 to another area');
+select is((select coalesce(pos_x::text, 'none') from public.dining_tables where name = 'T1'), 'none', 'changing area clears the board position');
 
 select * from finish();
 rollback;
