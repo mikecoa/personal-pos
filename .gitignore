@@ -12,3 +12,5 @@ backups/
 next-env.d.ts
 .expo/
 .claude/
+.vercel
+.env*.local
