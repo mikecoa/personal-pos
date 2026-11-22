@@ -3,7 +3,7 @@
 #
 # The app's Supabase address and public key are baked in at build time. They are set here from
 # the linked Supabase project, overriding apps/pos/.env.local (which points at the local database).
-# Output: dist/pos-<version>.apk
+# Output: dist/orda-<version>.apk
 #
 # Needs: `supabase link` done once, Java 17 and the Android SDK (paths below).
 set -euo pipefail
@@ -25,5 +25,5 @@ npx expo prebuild -p android --no-install
 
 version="$(node -p 'require("./app.json").expo.version')"
 mkdir -p "$root/dist"
-cp android/app/build/outputs/apk/release/app-release.apk "$root/dist/pos-$version.apk"
-echo "Built dist/pos-$version.apk for $EXPO_PUBLIC_SUPABASE_URL"
+cp android/app/build/outputs/apk/release/app-release.apk "$root/dist/orda-$version.apk"
+echo "Built dist/orda-$version.apk for $EXPO_PUBLIC_SUPABASE_URL"

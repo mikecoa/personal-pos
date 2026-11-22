@@ -17,7 +17,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.personal.pos"
+      "package": "com.personal.pos",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
