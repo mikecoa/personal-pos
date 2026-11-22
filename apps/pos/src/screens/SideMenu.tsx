@@ -35,8 +35,11 @@ export function SideMenu() {
       <View style={[st.outlet, { gap: 6 }]} accessibilityRole="header" accessibilityLabel={`Outlet ${catalog.location.name}`}>
         {catalog.location.logo
           ? <View style={st.logoTile}><Image source={{ uri: catalog.location.logo }} resizeMode="contain" style={{ width: "100%", height: "100%" }} /></View>
-          : <MaterialCommunityIcons name="storefront-outline" size={24} color={ink} />}
-        <Text style={st.outletName} numberOfLines={3}>{catalog.location.name}</Text>
+          : <>
+            {/* No logo yet: show the outlet's name instead. */}
+            <MaterialCommunityIcons name="storefront-outline" size={24} color={ink} />
+            <Text style={st.outletName} numberOfLines={3}>{catalog.location.name}</Text>
+          </>}
       </View>
 
       <View style={{ gap: 6, paddingHorizontal: 10, paddingTop: 12 }}>
