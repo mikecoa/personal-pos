@@ -26,7 +26,6 @@ export type State = {
   };
   notice: string | null;
   page: Page;
-  menuCollapsed: boolean;
   /** An action waiting for a manager's PIN. */
   approval: { perm: string; label: string } | null;
 };
@@ -34,7 +33,7 @@ export type State = {
 let state: State = {
   phase: "loading", device: null, catalog: null, employee: null, order: null, openOrders: [], shift: null,
   sync: { online: false, pending: 0, rejected: 0, lastSync: null, error: null, problem: null }, notice: null,
-  page: "pos", menuCollapsed: false, approval: null,
+  page: "pos", approval: null,
 };
 const listeners = new Set<() => void>();
 function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
@@ -61,7 +60,7 @@ export function notify(notice: string | null) {
 export async function boot() {
   const device = db.kvGet<Device>("device");
   const catalog = db.kvGet<Catalog>("catalog");
-  set({ device, catalog, shift: db.openShift(), phase: device && catalog ? "locked" : "setup", menuCollapsed: db.kvGet<boolean>("menu_collapsed") ?? false });
+  set({ device, catalog, shift: db.openShift(), phase: device && catalog ? "locked" : "setup" });
   refreshLocal();
   if (device) startSync();
 }
@@ -186,11 +185,6 @@ export function lock() { set({ employee: null, phase: "locked" }); }
 
 // ───────────────────────────────────────────── navigation
 export function go(page: Page) { set({ page }); }
-export function toggleMenu() {
-  const menuCollapsed = !state.menuCollapsed;
-  db.kvSet("menu_collapsed", menuCollapsed);
-  set({ menuCollapsed });
-}
 
 // ───────────────────────────────────────────── tablet settings
 /** Receipt printer preferences, kept on this tablet only. */
