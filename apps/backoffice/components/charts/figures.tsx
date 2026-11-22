@@ -7,9 +7,9 @@ export function KpiTile({ label, value, current, previous, invert, hint }: {
   const change = previous === 0 ? null : (current - previous) / previous;
   const good = change === null ? null : invert ? change < 0 : change > 0;
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="min-w-0 rounded-xl border border-line bg-surface p-3.5 sm:p-4">
       <p className="text-sm text-ink-2">{label}</p>
-      <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums">{value}</p>
+      <p className="mt-1 whitespace-nowrap text-[clamp(1.05rem,4.6vw,1.5rem)] font-bold tracking-tight tabular-nums">{value}</p>
       <p className={`mt-1 text-xs font-medium ${change === null || Math.abs(change) < 0.005 ? "text-ink-2" : good ? "text-accent" : "text-danger"}`}>
         {change === null ? (hint ?? "No earlier data") : Math.abs(change) < 0.005 ? "No change vs previous period"
           : `${change > 0 ? "▲" : "▼"} ${Math.abs(change * 100).toFixed(change > 9.995 ? 0 : 1)}% vs previous period`}

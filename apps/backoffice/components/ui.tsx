@@ -94,7 +94,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.01em]">{title}</h1>
+        <h1 className="text-2xl font-semibold leading-tight tracking-[-0.01em] sm:text-[28px]">{title}</h1>
         {description && <p className="mt-1.5 max-w-2xl text-[15px] text-ink-2">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -145,7 +145,7 @@ export function Panel({ title, closeHref, children }: { title: string; closeHref
 export function Table({ head, children }: { head: ReactNode[]; children: ReactNode }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-line bg-surface shadow-[0_1px_2px_rgba(1,33,51,0.04)]">
-      <table className="w-full min-w-[560px] text-left text-sm">
+      <table className={`w-full text-left text-sm ${head.length >= 5 ? "min-w-[640px]" : head.length === 4 ? "min-w-[520px]" : ""}`}>
         <thead className="border-b border-line bg-surface-2 text-[13px] font-semibold text-ink">
           <tr>{head.map((h, i) => <th key={i} className="px-4 py-3.5">{h}</th>)}</tr>
         </thead>

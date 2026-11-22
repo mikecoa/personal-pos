@@ -560,4 +560,8 @@ export const ID: Record<string, string> = {
   "Wi-Fi: the printer must be on the same network as this tablet.": "Wi-Fi: printer harus di jaringan yang sama dengan tablet ini.",
   "may not be a printer": "mungkin bukan printer",
   "{name} is now this tablet's printer.": "{name} sekarang jadi printer tablet ini.",
+  "Back to menu": "Kembali ke menu",
+  "View order": "Lihat pesanan",
+  "Bills": "Bill",
+  "← All sales": "← Semua penjualan",
 };

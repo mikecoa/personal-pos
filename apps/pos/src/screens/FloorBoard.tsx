@@ -18,6 +18,8 @@ const elapsed = (iso: string) => {
 };
 
 type Props = {
+  /** Phones: a simple grid of table tiles (3 per row) instead of the floor map. */
+  list?: boolean;
   tables: DiningTable[];
   mode: "seat" | "move" | "edit";
   currentTableId: string | null;
@@ -39,7 +41,7 @@ type Props = {
  * 2D floor map of one area. Tables sit on a grid so the board stays tidy; in edit mode they can
  * be dragged to another cell (dropping on a table swaps the two).
  */
-export function FloorBoard({ tables, mode, currentTableId, isSelected, onPress, onLongPress, onLayoutChange, onAdd, addActive, onDragging, fullWidth = 0, canArrange = false }: Props) {
+export function FloorBoard({ list, tables, mode, currentTableId, isSelected, onPress, onLongPress, onLayoutChange, onAdd, addActive, onDragging, fullWidth = 0, canArrange = false }: Props) {
   const [avail, setAvail] = useState(0);
   const [lifted, setLifted] = useState<string | null>(null);     // held down long enough to drag
   const [dragging, setDragging] = useState(false);
@@ -63,6 +65,22 @@ export function FloorBoard({ tables, mode, currentTableId, isSelected, onPress, 
   const box = (p: { x: number; y: number }) => ({ left: PAD + p.x * cellW + GAP / 2, top: PAD + p.y * cellH + GAP / 2, width: cellW - GAP, height: cellH - GAP });
 
   const dragState = (d: boolean) => { setDragging(d); onDragging?.(d); };
+
+  if (list) {
+    const per = avail >= 420 ? 4 : 3, gap = 10;
+    const tileW = avail ? (avail - gap * (per - 1)) / per : 0;
+    const sorted = [...tables].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    return (
+      <View onLayout={(e: LayoutChangeEvent) => setAvail(e.nativeEvent.layout.width)} style={{ flexDirection: "row", flexWrap: "wrap", gap }}>
+        {tileW > 0 && sorted.map((t) => (
+          <View key={t.id} style={{ width: tileW, height: Math.max(96, tileW * 0.9) }}>
+            <MapTile table={t} mode={mode} scale={0.9} current={currentTableId === t.id} selected={isSelected(t)}
+              onPress={() => onPress(t)} onLongPress={() => onLongPress(t)} />
+          </View>
+        ))}
+      </View>
+    );
+  }
 
   return (
     <View onLayout={(e: LayoutChangeEvent) => setAvail(e.nativeEvent.layout.width)} style={{ borderRadius: 16, backgroundColor: c.surface2, overflow: "hidden" }}>

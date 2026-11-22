@@ -8,11 +8,11 @@ export function Nav({ groups }: { groups: NavGroup[] }) {
   const path = usePathname();
   const isActive = (href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"));
   return (
-    <nav className="flex gap-4 overflow-x-auto md:flex-col md:gap-5">
+    <nav className="flex flex-col gap-5">
       {groups.map((g) => (
-        <div key={g.label} className="shrink-0">
-          <p className="mb-1.5 hidden px-3 text-[11px] font-semibold tracking-[0.06em] text-ink-2/75 md:block">{g.label}</p>
-          <ul className="flex gap-1 md:flex-col">
+        <div key={g.label}>
+          <p className="mb-1.5 px-3 text-[11px] font-semibold tracking-[0.06em] text-ink-2/75">{g.label}</p>
+          <ul className="flex flex-col gap-0.5">
             {g.items.map((i) => (
               <li key={i.href}>
                 <Link

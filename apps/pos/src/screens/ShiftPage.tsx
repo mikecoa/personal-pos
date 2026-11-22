@@ -3,7 +3,8 @@ import { useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { can, guard, saveShiftSettings, shiftHistory, startShift, useStore } from "../lib/store";
 import type { ShiftDoc } from "../lib/types";
-import { Btn, Keypad, money, Muted, PageTop } from "../ui/kit";
+import { Btn, Chip, Keypad, money, Muted, PageTop } from "../ui/kit";
+import { useLayout } from "../ui/layout";
 import { c, r } from "../ui/theme";
 import { CashMoveForm, CloseForm, keyInto } from "./ShiftSheets";
 import { ShiftReport } from "./ShiftReport";
@@ -22,12 +23,19 @@ export function ShiftPage() {
   const shift = useStore((s) => s.shift);
   const auto = useStore((s) => s.catalog!.settings.auto_shift_enabled);
   const [section, setSection] = useState<Section>("current");
+  const { compact } = useLayout();                           // phones: sections as a row of tabs
 
   return (
     <View style={{ flex: 1 }}>
       <PageTop title={t("Shift")} subtitle={shift ? t("Open since {v0} · {opened_by_name}", { v0: hhmm(shift.opened_at), opened_by_name: shift.opened_by_name }) : t("No shift open")} />
-      <View style={{ flex: 1, flexDirection: "row" }}>
-        <View style={st.nav}>
+      <View style={{ flex: 1, flexDirection: compact ? "column" : "row" }}>
+        {compact ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, borderBottomWidth: 1, borderColor: c.line }} contentContainerStyle={{ gap: 8, padding: 12 }}>
+            <Chip label={t("Current shift")} active={section === "current"} onPress={() => setSection("current")} />
+            <Chip label={t("Shift history")} active={section === "history"} onPress={() => guard("shift_history_view", "View past shifts", () => setSection("history"))} />
+            <Chip label={`${t("Shift option")} · ${auto ? t("On") : t("Off")}`} active={section === "option"} onPress={() => setSection("option")} />
+          </ScrollView>
+        ) : <View style={st.nav}>
           <View style={st.status}>
             <MaterialCommunityIcons name="treasure-chest-outline" size={36} color={shift ? c.accent : c.ink2} />
             <View style={{ flex: 1 }}>
@@ -39,7 +47,7 @@ export function ShiftPage() {
           <NavItem label={t("Shift option")} right={auto ? t("On") : t("Off")} active={section === "option"} onPress={() => setSection("option")} />
           <NavItem label={t("Current shift")} active={section === "current"} onPress={() => setSection("current")} />
           <NavItem label={t("Shift history")} active={section === "history"} onPress={() => guard("shift_history_view", "View past shifts", () => setSection("history"))} />
-        </View>
+        </View>}
         <View style={{ flex: 1 }}>
           {section === "option" && <ShiftOption />}
           {section === "current" && <CurrentShift />}

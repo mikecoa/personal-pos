@@ -10,6 +10,7 @@ import { printReceipt, toReceipt } from "./receipt";
 import { printerSettings } from "../lib/store";
 import { ReceiptView } from "./ReceiptView";
 import { FadeIn, Tap } from "../ui/motion";
+import { useLayout } from "../ui/layout";
 import { t } from "../lib/i18n";
 
 type Tender = Omit<OrderPayment, "id" | "paid_at">;
@@ -20,6 +21,7 @@ const KIND_ICON: Record<PaymentMethod["kind"], ComponentProps<typeof MaterialCom
 
 export function ChargeSheet({ onClose }: { onClose: () => void }) {
   const catalog = useStore((s) => s.catalog)!;
+  const { compact } = useLayout();                 // phones: everything stacks in one column
   const order = useStore((s) => s.order);
   const [tenders, setTenders] = useState<Tender[]>([]);
   // Cash is picked to start with: it's the most common, so most sales need one tap less.
@@ -51,7 +53,7 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
           <Muted style={{ flex: 1, alignSelf: "center" }}>{printMsg ?? (hasPrinter ? "" : t("No printer set up (Settings → Printer)"))}</Muted>
           <Btn big style={{ minWidth: 220 }} title={t("New sale")} onPress={onClose} />
         </>}>
-        <View style={{ flexDirection: "row", gap: 28 }}>
+        <View style={{ flexDirection: compact ? "column" : "row", gap: compact ? 16 : 28 }}>
           <View style={{ flex: 1, gap: 14 }}>
             <Muted>Total {money(done.total)} · {done.payments.map((p) => p.method_name).join(" + ")}</Muted>
             {done.change_due > 0 ? (
@@ -87,8 +89,8 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet visible onClose={onClose} title={t("Charge {number}", { number: order.number })} width={900}
       footer={<><Btn kind="secondary" title={t("Back to order")} onPress={onClose} />{tenders.length > 0 && <Btn kind="ghost" title={t("Clear payments")} onPress={() => setTenders([])} />}</>}>
-      <View style={{ flexDirection: "row", gap: 24 }}>
-        <View style={{ width: 300, gap: 16 }}>
+      <View style={{ flexDirection: compact ? "column" : "row", gap: compact ? 18 : 24 }}>
+        <View style={{ width: compact ? "100%" : 300, gap: compact ? 12 : 16 }}>
           <View style={{ gap: 4 }}>
             <Label>{tenders.length ? t("Still to pay") : t("Total")}</Label>
             <Text style={{ fontSize: 40, fontWeight: "800", color: c.ink }} testID="amount-due">{money(st.remaining)}</Text>
@@ -101,13 +103,15 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
           ))}
           <View style={{ gap: 10 }}>
             <Label>{t("Pay with")}</Label>
+            <View style={compact ? { flexDirection: "row", flexWrap: "wrap", gap: 8 } : { gap: 10 }}>
             {catalog.payment_methods.map((m) => {
               const on = method?.id === m.id;
               return (
                 <Tap key={m.id} onPress={() => { setMethod(m); setEntry(""); }} accessibilityRole="radio" accessibilityState={{ selected: on }}
                   accessibilityLabel={`Pay with ${m.name}`} scaleTo={0.97}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, borderRadius: r.md, borderWidth: 2,
-                    borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accentSoft : c.surface }}>
+                  style={[{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, borderRadius: r.md, borderWidth: 2,
+                    borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accentSoft : c.surface },
+                    compact && { width: "48.6%", minHeight: 56, gap: 8, paddingHorizontal: 10 }]}>
                   <MaterialCommunityIcons name={KIND_ICON[m.kind]} size={28} color={on ? c.accent : c.ink2} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: c.ink }} numberOfLines={1}>{m.name}</Text>
@@ -117,10 +121,11 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
                 </Tap>
               );
             })}
+            </View>
           </View>
         </View>
 
-        <View style={{ flex: 1, gap: 16, borderLeftWidth: 1, borderColor: c.line, paddingLeft: 24 }}>
+        <View style={compact ? { gap: 14, borderTopWidth: 1, borderColor: c.line, paddingTop: 16 } : { flex: 1, gap: 16, borderLeftWidth: 1, borderColor: c.line, paddingLeft: 24 }}>
           {!method && <Muted>{t("Choose how the customer pays.")}</Muted>}
           {method?.kind === "cash" && (
             <>
@@ -131,9 +136,9 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
                     title={v === st.remaining ? t("Exact {v0}", { v0: money(v) }) : money(v)} onPress={() => payCash(v)} />
                 ))}
               </View>
-              <View style={{ flexDirection: "row", gap: 16, alignItems: "flex-start" }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" }}>
                 <Keypad compact onKey={(k) => setEntry((e) => (k === "⌫" ? e.slice(0, -1) : (e + k).replace(/^0+/, "").slice(0, 10)))} />
-                <View style={{ flex: 1, gap: 10 }}>
+                <View style={{ flex: 1, minWidth: 200, gap: 10 }}>
                   <Label>{t("Other amount")}</Label>
                   <Text style={{ fontSize: 26, fontWeight: "700", color: c.ink }}>{money(amountEntered)}</Text>
                   <Btn big title={!amountEntered ? t("Type the amount") : amountEntered >= st.remaining ? t("Change {v0}", { v0: money(amountEntered - st.remaining) }) : split ? t("Pay {v0} now", { v0: money(amountEntered) }) : t("Not enough")}
@@ -152,9 +157,9 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
                 const confirm = <Btn big title={split ? t("Payment received") : t("Received {v0}", { v0: money(amt) })} disabled={!!entry && amountEntered <= 0} onPress={() => payOther(amt)} />;
                 // The confirm button sits beside the keypad so it is always on screen without scrolling.
                 return split ? (
-                  <View style={{ flexDirection: "row", gap: 16, alignItems: "flex-start" }}>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" }}>
                     <Keypad compact onKey={(k) => setEntry((e) => (k === "⌫" ? e.slice(0, -1) : (e + k).replace(/^0+/, "").slice(0, 10)))} />
-                    <View style={{ flex: 1, gap: 10 }}>
+                    <View style={{ flex: 1, minWidth: 200, gap: 10 }}>
                       <Label>{t("Amount (for split payment)")}</Label>
                       <Text style={{ fontSize: 26, fontWeight: "700", color: c.ink }}>{money(amt)}</Text>
                       {confirm}
