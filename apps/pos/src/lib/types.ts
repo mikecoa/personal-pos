@@ -27,7 +27,7 @@ export type Settings = {
 
 export type Catalog = {
   synced_at: string;
-  location: { id: string; account_id?: string; name: string; address: string | null; phone: string | null };
+  location: { id: string; account_id?: string; name: string; address: string | null; phone: string | null; logo?: string | null };
   settings: Settings;
   receipt: { header_name: string; address: string | null; phone: string | null; social: string | null; footer: string | null; show_server: boolean; show_cashier: boolean };
   categories: { id: string; name: string }[];

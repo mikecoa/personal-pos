@@ -9,6 +9,7 @@ const schema = z.object({
   address: z.string().max(200).nullable(),
   phone: z.string().max(40).nullable(),
   is_active: z.boolean(),
+  logo: z.string().max(300_000, "The logo is too large").regex(/^data:image\/(png|jpeg|webp);base64,/, "Logo must be an image").nullable(),
 });
 
 export async function saveLocation(_: ActionState, form: FormData): Promise<ActionState> {
@@ -17,6 +18,7 @@ export async function saveLocation(_: ActionState, form: FormData): Promise<Acti
   const parsed = schema.safeParse({
     name: str(form, "name"), address: str(form, "address") || null, phone: str(form, "phone") || null,
     is_active: id ? bool(form, "is_active") : true,
+    logo: str(form, "logo") || null,
   });
   if (!parsed.success) return fail(parsed.error);
   if (id && !parsed.data.is_active && allLocations.filter((l) => l.is_active && l.id !== id).length === 0) {

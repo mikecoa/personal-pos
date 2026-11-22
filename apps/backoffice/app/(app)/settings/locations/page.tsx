@@ -3,13 +3,16 @@ import { requireOwner } from "@/lib/session";
 import { Badge, ButtonLink, Field, PageHeader, Panel, Table, TextArea, Toggle } from "@/components/ui";
 import { EditorForm } from "@/components/editor-form";
 import { saveLocation } from "./actions";
+import { LogoInput } from "./logo-input";
 
 const BASE = "/settings/locations";
 
 export default async function LocationsPage({ searchParams }: { searchParams: Promise<{ edit?: string; new?: string }> }) {
-  const { allLocations } = await requireOwner();
+  const { supabase, allLocations } = await requireOwner();
   const sp = await searchParams;
   const editing = sp.edit ? allLocations.find((l) => l.id === sp.edit) : undefined;
+  // Logos are only loaded for the location being edited (they're small images, kept off the list query).
+  const logo = editing ? (await supabase.from("locations").select("logo").eq("id", editing.id).single()).data?.logo ?? null : null;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -33,6 +36,7 @@ export default async function LocationsPage({ searchParams }: { searchParams: Pr
             <Field label="Name" name="name" defaultValue={editing?.name} required autoFocus maxLength={120} />
             <TextArea label="Address" name="address" defaultValue={editing?.address ?? ""} maxLength={200} />
             <Field label="Phone" name="phone" defaultValue={editing?.phone ?? ""} maxLength={40} />
+            <LogoInput key={editing?.id ?? "new"} initial={logo} />
             {editing ? (
               <Toggle label="Open" name="is_active" defaultChecked={editing.is_active}
                 description="Closed locations are hidden from the POS and the location picker. Their data is kept." />

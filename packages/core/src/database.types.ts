@@ -327,14 +327,14 @@ isOneToOne: false
                   ]
                 },"locations": {
                   Row: {
-                    "account_id": string,"address": string | null,"created_at": string,"currency": string,"id": string,"is_active": boolean,"name": string,"phone": string | null,"timezone": string
+                    "account_id": string,"address": string | null,"created_at": string,"currency": string,"id": string,"is_active": boolean,"logo": string | null,"name": string,"phone": string | null,"timezone": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"address"?: string | null,"created_at"?: string,"currency"?: string,"id"?: string,"is_active"?: boolean,"name": string,"phone"?: string | null,"timezone"?: string
+                    "account_id": string,"address"?: string | null,"created_at"?: string,"currency"?: string,"id"?: string,"is_active"?: boolean,"logo"?: string | null,"name": string,"phone"?: string | null,"timezone"?: string
                   }
                   Update: {
-                    "account_id"?: string,"address"?: string | null,"created_at"?: string,"currency"?: string,"id"?: string,"is_active"?: boolean,"name"?: string,"phone"?: string | null,"timezone"?: string
+                    "account_id"?: string,"address"?: string | null,"created_at"?: string,"currency"?: string,"id"?: string,"is_active"?: boolean,"logo"?: string | null,"name"?: string,"phone"?: string | null,"timezone"?: string
                   }
                   Relationships: [
                     {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Alert, Image, Pressable, Text, View } from "react-native";
 import { pinLockedFor, resetDevice, unlock, unsentCount, useStore } from "../lib/store";
 import { H, Keypad, Muted } from "../ui/kit";
 import { c } from "../ui/theme";
@@ -7,6 +7,7 @@ import { SyncBadge } from "./SyncBadge";
 
 export function Lock() {
   const location = useStore((s) => s.catalog?.location.name);
+  const logo = useStore((s) => s.catalog?.location.logo ?? null);
   const device = useStore((s) => s.device);
   const [pin, setPin] = useState("");
   const [wrong, setWrong] = useState(false);
@@ -39,6 +40,11 @@ export function Lock() {
           <Muted>{device?.name}</Muted>
           <H size={34}>{location}</H>
         </View>
+        {logo ? (
+          <View style={{ alignSelf: "center", padding: 24, borderRadius: 28, backgroundColor: "#ffffff", borderWidth: 1, borderColor: c.line }}>
+            <Image source={{ uri: logo }} resizeMode="contain" accessibilityLabel={`${location} logo`} style={{ width: 260, height: 260 }} />
+          </View>
+        ) : null}
         <View style={{ gap: 12 }}>
           <SyncBadge />
           <Pressable onLongPress={() => {

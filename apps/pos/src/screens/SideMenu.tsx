@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { type ComponentProps } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { billsAt, can, go, guard, lock, useStore, type Page } from "../lib/store";
 import { c } from "../ui/theme";
 
@@ -32,8 +32,10 @@ export function SideMenu() {
 
   return (
     <View style={st.rail}>
-      <View style={st.outlet} accessibilityRole="header" accessibilityLabel={`Outlet ${catalog.location.name}`}>
-        <MaterialCommunityIcons name="storefront-outline" size={24} color={ink} />
+      <View style={[st.outlet, { gap: 6 }]} accessibilityRole="header" accessibilityLabel={`Outlet ${catalog.location.name}`}>
+        {catalog.location.logo
+          ? <View style={st.logoTile}><Image source={{ uri: catalog.location.logo }} resizeMode="contain" style={{ width: "100%", height: "100%" }} /></View>
+          : <MaterialCommunityIcons name="storefront-outline" size={24} color={ink} />}
         <Text style={st.outletName} numberOfLines={3}>{catalog.location.name}</Text>
       </View>
 
@@ -72,6 +74,7 @@ export function SideMenu() {
 const st = StyleSheet.create({
   rail: { width: 96, backgroundColor: rail, paddingTop: 14, paddingBottom: 14 },
   outlet: { alignItems: "center", gap: 4, paddingHorizontal: 6, paddingBottom: 12, marginHorizontal: 10, borderBottomWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  logoTile: { width: 72, height: 72, borderRadius: 14, backgroundColor: "#ffffff", padding: 4, overflow: "hidden" },
   outletName: { color: ink, fontSize: 13, fontWeight: "800", textAlign: "center", lineHeight: 16 },
   item: { alignItems: "center", justifyContent: "center", gap: 4, height: 70, borderRadius: 12 },
   itemActive: { backgroundColor: c.accent },
