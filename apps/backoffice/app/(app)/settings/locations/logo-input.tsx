@@ -114,8 +114,8 @@ async function toLogo(file: File): Promise<string> {
 }
 
 /** Logo picker for a location: preview, replace, remove. Sends the resized image as `logo`. */
-export function LogoInput({ initial, onChange, label = "Logo", hint }: {
-  initial: string | null; onChange?: (url: string) => void; label?: string; hint?: string;
+export function LogoInput({ initial, onChange, label = "Logo", hint, name = "logo" }: {
+  initial: string | null; onChange?: (url: string) => void; label?: string; hint?: string; name?: string;
 }) {
   const [logo, setLogoState] = useState(initial ?? "");
   const setLogo = (url: string) => { setLogoState(url); onChange?.(url); };
@@ -136,7 +136,7 @@ export function LogoInput({ initial, onChange, label = "Logo", hint }: {
   return (
     <div>
       <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
-      <input type="hidden" name="logo" value={logo} />
+      <input type="hidden" name={name} value={logo} />
       <div className="flex items-center gap-4 rounded-xl border border-line bg-surface-2/50 p-4">
         <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line"
           style={{ backgroundColor: "#fff", backgroundImage: "conic-gradient(#e9edf0 25%, transparent 0 50%, #e9edf0 0 75%, transparent 0)", backgroundSize: "14px 14px" }}>

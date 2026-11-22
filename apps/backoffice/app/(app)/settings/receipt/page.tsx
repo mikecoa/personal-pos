@@ -8,7 +8,7 @@ export default async function ReceiptPage() {
   const { supabase, location, isOwner } = await requireManage();
   const [{ data, error }, { data: loc }, { data: s }, { data: disc }] = await Promise.all([
     supabase.from("receipt_profiles")
-      .select("header_name, address, phone, instagram, website, tiktok, footer, show_server, show_cashier").eq("location_id", location.id).single(),
+      .select("header_name, address, phone, instagram, website, tiktok, footer, show_server, show_cashier, logo").eq("location_id", location.id).single(),
     supabase.from("locations").select("logo").eq("id", location.id).single(),
     supabase.from("location_settings")
       .select("tax_enabled, tax_name, tax_rate_bp, gratuity_enabled, gratuity_name, gratuity_rate_bp, prices_include_tax, tax_after_discount, rounding_enabled, rounding_unit, rounding_mode")
@@ -21,7 +21,7 @@ export default async function ReceiptPage() {
     <div className="mx-auto max-w-6xl">
       <PageHeader title="Receipt" description={<>What customers see on printed receipts from <b>{location.name}</b>.</>} />
       <SettingsForm action={saveReceipt}>
-        <ReceiptEditor key={location.id} initial={data} logo={loc?.logo ?? null} canEditLogo={isOwner} settings={s ?? null} discount={disc?.[0] ?? null} />
+        <ReceiptEditor key={location.id} initial={data} logo={loc?.logo ?? null} receiptLogo={data.logo} canEditLogo={isOwner} settings={s ?? null} discount={disc?.[0] ?? null} />
       </SettingsForm>
     </div>
   );
