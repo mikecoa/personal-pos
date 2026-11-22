@@ -6,6 +6,7 @@ import { boot, useStore } from "./src/lib/store";
 import { Lock } from "./src/screens/Lock";
 import { Main } from "./src/screens/Main";
 import { Setup } from "./src/screens/Setup";
+import { UpdatePrompt } from "./src/screens/UpdatePrompt";
 import { c } from "./src/ui/theme";
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
       {phase === "setup" && <Setup />}
       {phase === "locked" && <Lock />}
       {phase === "selling" && <Main />}
+      <UpdatePrompt />
     </SafeAreaView>
     </SafeAreaProvider>
   );

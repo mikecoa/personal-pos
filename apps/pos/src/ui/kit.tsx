@@ -92,14 +92,15 @@ export function Stepper({ value, onChange, min = 0 }: { value: number; onChange:
 }
 
 /** Numeric keypad for PINs and cash amounts. */
-export function Keypad({ onKey, extra = "00", compact }: { onKey: (k: string) => void; extra?: string; compact?: boolean }) {
+/** Number pad. `fill`: stretch across the available width (phones). */
+export function Keypad({ onKey, extra = "00", compact, fill }: { onKey: (k: string) => void; extra?: string; compact?: boolean; fill?: boolean }) {
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", extra, "0", "⌫"];
   const w = compact ? 88 : 96, h = compact ? 60 : 72, gap = compact ? 10 : 12;
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", width: 3 * w + 2 * gap, gap }}>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", width: fill ? "100%" : 3 * w + 2 * gap, gap }}>
       {keys.map((k) => (
         <Tap key={k} accessibilityRole="button" accessibilityLabel={k === "⌫" ? "Delete" : k} disabled={!k} onPress={() => onKey(k)} scaleTo={0.92}
-          style={[s.key, { width: w, height: h }, !k && { opacity: 0 }]}>
+          style={[s.key, fill ? { flexBasis: "30%", flexGrow: 1, height: h } : { width: w, height: h }, !k && { opacity: 0 }]}>
           <Text style={{ fontSize: compact ? 22 : 26, fontWeight: "600", color: c.ink }}>{k}</Text>
         </Tap>
       ))}

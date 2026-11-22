@@ -132,12 +132,12 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
               <H size={18}>{t("Cash received")}</H>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
                 {cashSuggestions(st.remaining).map((v) => (
-                  <Btn key={v} kind={v === st.remaining ? "primary" : "secondary"} style={{ minWidth: 150, minHeight: 60 }}
+                  <Btn key={v} kind={v === st.remaining ? "primary" : "secondary"} style={compact ? { flexBasis: "45%", flexGrow: 1, minHeight: 60 } : { minWidth: 150, minHeight: 60 }}
                     title={v === st.remaining ? t("Exact {v0}", { v0: money(v) }) : money(v)} onPress={() => payCash(v)} />
                 ))}
               </View>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" }}>
-                <Keypad compact onKey={(k) => setEntry((e) => (k === "⌫" ? e.slice(0, -1) : (e + k).replace(/^0+/, "").slice(0, 10)))} />
+                <Keypad compact fill={compact} onKey={(k) => setEntry((e) => (k === "⌫" ? e.slice(0, -1) : (e + k).replace(/^0+/, "").slice(0, 10)))} />
                 <View style={{ flex: 1, minWidth: 200, gap: 10 }}>
                   <Label>{t("Other amount")}</Label>
                   <Text style={{ fontSize: 26, fontWeight: "700", color: c.ink }}>{money(amountEntered)}</Text>
@@ -158,7 +158,7 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
                 // The confirm button sits beside the keypad so it is always on screen without scrolling.
                 return split ? (
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16, alignItems: "flex-start" }}>
-                    <Keypad compact onKey={(k) => setEntry((e) => (k === "⌫" ? e.slice(0, -1) : (e + k).replace(/^0+/, "").slice(0, 10)))} />
+                    <Keypad compact fill={compact} onKey={(k) => setEntry((e) => (k === "⌫" ? e.slice(0, -1) : (e + k).replace(/^0+/, "").slice(0, 10)))} />
                     <View style={{ flex: 1, minWidth: 200, gap: 10 }}>
                       <Label>{t("Amount (for split payment)")}</Label>
                       <Text style={{ fontSize: 26, fontWeight: "700", color: c.ink }}>{money(amt)}</Text>

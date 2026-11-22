@@ -10,6 +10,8 @@ import { SyncBadge } from "./SyncBadge";
 import { dateLocale, LANGS, t } from "../lib/i18n";
 import { allowUsb, findPrinters, lineWidth, openBluetoothSettings, printingAvailable, printLines, type FoundPrinter } from "../lib/printer";
 import { FadeIn, Tap } from "../ui/motion";
+import { installedVersion } from "../lib/updater";
+import { checkNow } from "./UpdatePrompt";
 
 type Section = "account" | "language" | "printer" | "logout";
 let lastSection: Section = "account";          // stays put when the app redraws after a language change
@@ -126,13 +128,28 @@ function Account() {
       <Info rows={[
         ["Tablet name", device.name],
         ["Receipt numbers", `${device.receipt_prefix}-000001, ${device.receipt_prefix}-000002 …`],
-        ["App version", Constants.expoConfig?.version ?? "dev"],
+        ["App version", installedVersion()?.versionName ?? Constants.expoConfig?.version ?? "dev"],
         ["Menu last updated", new Date(catalog.synced_at).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })],
       ]} />
+      <UpdateCheck />
       <Label>{t("Employee")}</Label>
       <Info rows={[["Signed in", employee.name], ["Role", employee.role]]} />
       <Muted style={{ fontSize: 14 }}>{t("Business details, employees and roles are changed in the backoffice.")}</Muted>
     </Pane>
+  );
+}
+
+/** Looks for a newer Orda right away; the update prompt opens when there is one. */
+function UpdateCheck() {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  if (!installedVersion()) return null;                      // dev builds can't update themselves
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      <Btn kind="secondary" title={t("Check for updates")} loading={busy}
+        onPress={async () => { setBusy(true); setNote(null); const found = await checkNow(); setBusy(false); if (!found) setNote(t("Orda is up to date.")); }} />
+      {note ? <Muted style={{ fontSize: 14 }}>{note}</Muted> : null}
+    </View>
   );
 }
 
