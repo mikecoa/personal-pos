@@ -1,6 +1,11 @@
-# POS
+<img src="brand/orda-mark-512.png" alt="Orda" width="72" />
 
-Personal Moka-style point of sale: web **backoffice** + Android tablet **POS app** (Phase 2), one account with many locations whose data is kept separate.
+# Orda
+
+Point of sale for our cafés: a web **backoffice** and an Android tablet **POS app**. One account with many locations whose data is kept separate.
+
+- **Backoffice:** https://ordapos.vercel.app
+- **Tablet app (APK):** [download the latest release](https://github.com/mikecoa/personal-pos/releases/latest). Copy it to the tablet and tap it to install; a newer version installs over the old one and keeps the tablet's data.
 
 - Research: [docs/moka-study.md](docs/moka-study.md)
 - Plan: [docs/mvp-plan.md](docs/mvp-plan.md)
@@ -23,6 +28,17 @@ supabase/tests       pgTAP tests proving location isolation
 - Node 22 (`nvm use`, see `.nvmrc`) and pnpm 9 (`corepack enable`)
 - One React version for the whole repo (19.3.0, pinned by `pnpm.overrides`): Expo requires it, and mixing versions breaks the Next.js build
 - Docker engine (Colima: `colima start`) and the Supabase CLI
+
+## Releasing
+
+```bash
+scripts/deploy-web.sh                       # publish the backoffice to Vercel
+supabase db push --remote                   # first, when there are new migrations
+scripts/build-apk.sh                        # build dist/orda-<version>.apk for the live system
+gh release create v<version> dist/orda-<version>.apk --title "Orda <version>"   # publish it for download
+```
+
+Before building a new app release, bump `version` and `android.versionCode` (1, 2, 3 …) in `apps/pos/app.json`, so Android treats it as an update.
 
 ## Run locally
 

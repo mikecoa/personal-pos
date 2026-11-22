@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ConfirmProvider, Toaster } from "@/components/controls";
 
-export const metadata: Metadata = { title: "Backoffice", description: "POS backoffice" };
+export const metadata: Metadata = {
+  title: { default: "Orda Backoffice", template: "%s · Orda" },
+  description: "Orda: point of sale and backoffice for your cafés",
+  applicationName: "Orda",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

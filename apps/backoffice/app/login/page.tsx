@@ -1,6 +1,7 @@
 "use client";
 import { startTransition, useActionState, useState, type FormEvent } from "react";
 import { checkForm } from "@/components/controls";
+import { OrdaLogo } from "@/components/brand";
 import { Button, ErrorNote, Field } from "@/components/ui";
 import { authenticate } from "./actions";
 
@@ -21,8 +22,8 @@ export default function LoginPage() {
     <main className="grid min-h-dvh place-items-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8">
-          <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-accent text-lg font-bold text-accent-ink">K</div>
-          <h1 className="text-2xl font-bold tracking-tight">{mode === "in" ? "Sign in to your backoffice" : "Create your account"}</h1>
+          <div className="mb-6"><OrdaLogo size={44} /></div>
+          <h1 className="text-2xl font-bold tracking-tight">{mode === "in" ? "Sign in to Orda" : "Create your Orda account"}</h1>
           <p className="mt-1 text-ink-2">{mode === "in" ? "Sales, menu and staff for all your locations." : "Owners set up their business next. Staff: use the email the owner added to your employee slot."}</p>
         </div>
         <form onSubmit={submit} noValidate className="anim-rise space-y-4 rounded-2xl border border-line bg-surface p-6 shadow-sm">
