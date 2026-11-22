@@ -1,6 +1,7 @@
 "use client";
 import { startTransition, useActionState, useState, type FormEvent } from "react";
 import { checkForm } from "@/components/controls";
+import { OrdaLogo } from "@/components/brand";
 import { Button, ErrorNote, Field } from "@/components/ui";
 import { createBusiness } from "./actions";
 
@@ -18,6 +19,7 @@ export function OnboardingForm() {
   return (
     <main className="grid min-h-dvh place-items-center px-4">
       <div className="w-full max-w-md">
+        <div className="mb-6"><OrdaLogo size={44} /></div>
         <h1 className="text-2xl font-bold tracking-tight">Set up your business</h1>
         <p className="mt-1 mb-6 text-ink-2">You can add more locations later. Each location keeps its own menu, sales and shifts.</p>
         <form onSubmit={submit} noValidate className="anim-rise space-y-4 rounded-2xl border border-line bg-surface p-6 shadow-sm">

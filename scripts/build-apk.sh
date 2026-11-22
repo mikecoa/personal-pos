@@ -19,7 +19,8 @@ export EXPO_PUBLIC_SUPABASE_ANON_KEY="$(cd "$root" && supabase projects api-keys
   | python3 -c 'import json,sys; print([k["api_key"] for k in json.load(sys.stdin) if k["name"]=="anon"][0])')"
 
 cd "$root/apps/pos"
-[ -d android ] || npx expo prebuild -p android --no-install
+# Refresh the native project from app.json every time, so the name and icons are always current.
+npx expo prebuild -p android --no-install
 (cd android && ./gradlew --no-daemon assembleRelease)
 
 version="$(node -p 'require("./app.json").expo.version')"

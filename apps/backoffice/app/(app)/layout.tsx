@@ -5,6 +5,7 @@ import { LocationSwitcher } from "@/components/location-switcher";
 import { Nav, type NavGroup } from "@/components/nav";
 import { AppShell } from "@/components/app-shell";
 import { PageFade } from "@/components/page-fade";
+import { OrdaMark } from "@/components/brand";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, membership, role, isOwner, canManage, locations, location, pages } = await getSession();
@@ -60,7 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-dvh lg:flex">
       <AppShell brand={
         <div className="flex min-w-0 items-center gap-2.5 px-1">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent font-bold text-accent-ink">K</div>
+          <OrdaMark size={36} />
           <div className="min-w-0">
             <p className="truncate font-bold leading-tight">{membership.accounts?.name}</p>
             <p className="truncate text-xs capitalize text-ink-2">{location ? `${role} · ${location.name}` : role}</p>
