@@ -25,26 +25,20 @@ export default async function CheckoutSettingsPage() {
             <Field label="Service charge (%)" name="gratuity_rate" inputMode="decimal" defaultValue={s.gratuity_rate_bp / 100} />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Select label="Item prices" name="prices_include_tax" defaultValue={s.prices_include_tax ? "include" : "add"}>
-              <option value="add">Add tax & service on top</option>
-              <option value="include">Already include tax & service</option>
-            </Select>
-            <Select label="Apply tax" name="tax_after_discount" defaultValue={s.tax_after_discount ? "after" : "before"}>
-              <option value="after">After discounts</option>
-              <option value="before">Before discounts</option>
-            </Select>
+            <Select label="Item prices" name="prices_include_tax" defaultValue={s.prices_include_tax ? "include" : "add"}
+              options={[{ value: "add", label: "Add tax & service on top" }, { value: "include", label: "Already include tax & service" }]} />
+            <Select label="Apply tax" name="tax_after_discount" defaultValue={s.tax_after_discount ? "after" : "before"}
+              options={[{ value: "after", label: "After discounts" }, { value: "before", label: "Before discounts" }]} />
           </div>
         </Card>
 
         <Card title="Rounding" description="Round the total so cash is easier to give change for.">
           <Toggle label="Round totals" name="rounding_enabled" defaultChecked={s.rounding_enabled} />
           <div className="grid grid-cols-2 gap-3">
-            <Select label="Round to" name="rounding_unit" defaultValue={String(s.rounding_unit)}>
-              {[50, 100, 500, 1000].map((u) => <option key={u} value={u}>Rp {u.toLocaleString("id-ID")}</option>)}
-            </Select>
-            <Select label="Direction" name="rounding_mode" defaultValue={s.rounding_mode}>
-              <option value="nearest">Nearest</option><option value="down">Always down</option><option value="up">Always up</option>
-            </Select>
+            <Select label="Round to" name="rounding_unit" defaultValue={String(s.rounding_unit)}
+              options={[50, 100, 500, 1000].map((u) => ({ value: String(u), label: `Rp ${u.toLocaleString("id-ID")}` }))} />
+            <Select label="Direction" name="rounding_mode" defaultValue={s.rounding_mode}
+              options={[{ value: "nearest", label: "Nearest" }, { value: "down", label: "Always down" }, { value: "up", label: "Always up" }]} />
           </div>
         </Card>
 

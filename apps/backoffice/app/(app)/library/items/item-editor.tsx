@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { MoneyBox } from "@/components/money-input";
-import { Button, Field, Select, TextArea, Toggle } from "@/components/ui";
+import { Button, Checkbox, Field, Select, TextArea, Toggle } from "@/components/ui";
 
 export type EditorItem = {
   id: string; name: string; category_id: string | null; description: string | null; is_active: boolean;
@@ -52,10 +52,8 @@ export function ItemEditor({ item, categories, salesTypes, modifierSets }: {
 
       <section className="space-y-4">
         <Field label="Item name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus maxLength={120} placeholder="e.g. Kopi Susu" />
-        <Select label="Category" value={fields.category_id} onChange={(e) => setFields({ ...fields, category_id: e.target.value })}>
-          <option value="">Uncategorised</option>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </Select>
+        <Select label="Category" value={fields.category_id} onChange={(v) => setFields({ ...fields, category_id: v })}
+          options={[{ value: "", label: "Uncategorised" }, ...categories.map((c) => ({ value: c.id, label: c.name }))]} />
         <TextArea label="Description (optional)" value={fields.description} maxLength={500} onChange={(e) => setFields({ ...fields, description: e.target.value })} />
       </section>
 
@@ -63,10 +61,7 @@ export function ItemEditor({ item, categories, salesTypes, modifierSets }: {
         <div className="mb-2 flex items-center justify-between">
           <h3 className="font-semibold">Price{hasVariants ? "s & variants" : ""}</h3>
           {salesTypes.length > 0 && (
-            <label className="flex items-center gap-2 text-sm text-ink-2">
-              <input type="checkbox" checked={multiPrice} onChange={(e) => setMultiPrice(e.target.checked)} className="accent-[var(--accent)]" />
-              Different price per sales type
-            </label>
+            <Checkbox checked={multiPrice} onChange={(e) => setMultiPrice(e.target.checked)} label="Different price per sales type" className="text-sm text-ink-2" />
           )}
         </div>
         <div className="space-y-3">
@@ -121,11 +116,8 @@ export function ItemEditor({ item, categories, salesTypes, modifierSets }: {
           <ul className="space-y-1">
             {modifierSets.map((m) => (
               <li key={m.id}>
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-1.5 hover:bg-surface-2">
-                  <input type="checkbox" className="mt-1 accent-[var(--accent)]" checked={mods.includes(m.id)}
-                    onChange={(e) => setMods(e.target.checked ? [...mods, m.id] : mods.filter((x) => x !== m.id))} />
-                  <span><span className="font-medium">{m.name}</span><span className="block text-xs text-ink-2">{m.summary}</span></span>
-                </label>
+                <Checkbox checked={mods.includes(m.id)} onChange={(e) => setMods(e.target.checked ? [...mods, m.id] : mods.filter((x) => x !== m.id))}
+                  label={<span className="font-medium">{m.name}</span>} description={m.summary} className="rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-2" />
               </li>
             ))}
           </ul>
@@ -138,10 +130,10 @@ export function ItemEditor({ item, categories, salesTypes, modifierSets }: {
         {track && (
           <div className="grid grid-cols-2 gap-3">
             <Field label="In stock" type="number" value={fields.stock} disabled={!!item?.track_stock}
-              onChange={(e) => setFields({ ...fields, stock: Number(e.target.value) })}
+              onChange={(e) => setFields({ ...fields, stock: Number(e.target.value.replace(/\D/g, "")) })}
               hint={item?.track_stock ? "Change stock with an adjustment (coming in Inventory)." : "Starting stock."} />
             <Field label="Alert when at or below" type="number" min={0} value={fields.stock_alert ?? ""}
-              onChange={(e) => setFields({ ...fields, stock_alert: e.target.value === "" ? null : Number(e.target.value) })} />
+              onChange={(e) => { const d = e.target.value.replace(/\D/g, ""); setFields({ ...fields, stock_alert: d === "" ? null : Number(d) }); }} />
           </div>
         )}
         <label className="block w-48">

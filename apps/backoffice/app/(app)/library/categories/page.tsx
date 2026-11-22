@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireManage } from "@/lib/session";
-import { ButtonLink, EmptyState, Field, PageHeader, Panel, Table } from "@/components/ui";
+import { ButtonLink, EmptyState, Field, PageHeader, Panel, RowLink, Table } from "@/components/ui";
 import { EditorForm } from "@/components/editor-form";
 import { deleteCategory, saveCategory } from "./actions";
 
@@ -25,13 +25,13 @@ export default async function CategoriesPage({ searchParams }: { searchParams: P
         actions={<ButtonLink href={`${BASE}?new=1`}>New category</ButtonLink>}
       />
       {categories?.length ? (
-        <Table head={["Name", "Items", "Order"]}>
+        <Table head={["Name", "Items", "Order on POS"]} rows="link">
           {categories.map((c) => (
-            <tr key={c.id} className="hover:bg-surface-2/60">
-              <td className="px-4 py-3 font-medium"><Link href={`${BASE}?edit=${c.id}`} scroll={false} className="hover:underline">{c.name}</Link></td>
-              <td className="px-4 py-3 text-ink-2">{counts.get(c.id) ?? 0}</td>
-              <td className="px-4 py-3 text-ink-2 tabular-nums">{c.sort_order}</td>
-            </tr>
+            <RowLink key={c.id} href={`${BASE}?edit=${c.id}`}>
+              <td className="px-4 py-3.5 font-medium"><Link href={`${BASE}?edit=${c.id}`} scroll={false}>{c.name}</Link></td>
+              <td className="px-4 py-3.5 text-ink-2">{counts.get(c.id) ?? 0} items</td>
+              <td className="px-4 py-3.5 text-ink-2 tabular-nums">{c.sort_order}</td>
+            </RowLink>
           ))}
         </Table>
       ) : (

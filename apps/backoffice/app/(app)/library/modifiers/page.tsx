@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatRupiah, rp } from "@pos/core";
 import { requireManage } from "@/lib/session";
-import { ButtonLink, EmptyState, Field, PageHeader, Panel, Table } from "@/components/ui";
+import { ButtonLink, EmptyState, Field, PageHeader, Panel, RowLink, Table } from "@/components/ui";
 import { EditorForm } from "@/components/editor-form";
 import { deleteModifierSet, saveModifierSet } from "./actions";
 import { OptionRows } from "./option-rows";
@@ -34,16 +34,16 @@ export default async function ModifiersPage({ searchParams }: { searchParams: Pr
       <PageHeader title="Modifiers" description="Choices added to items, like temperature, spice level, toppings or combo picks."
         actions={<ButtonLink href={`${BASE}?new=1`}>New modifier set</ButtonLink>} />
       {sets?.length ? (
-        <Table head={["Set", "Options", "Rule", "Used by"]}>
+        <Table head={["Set", "Options", "Rule", "Used by"]} rows="link">
           {sets.map((s) => (
-            <tr key={s.id} className="align-top hover:bg-surface-2/60">
-              <td className="px-4 py-3 font-medium"><Link href={`${BASE}?edit=${s.id}`} scroll={false} className="hover:underline">{s.name}</Link></td>
-              <td className="px-4 py-3 text-ink-2">
+            <RowLink key={s.id} href={`${BASE}?edit=${s.id}`}>
+              <td className="px-4 py-3.5 font-medium"><Link href={`${BASE}?edit=${s.id}`} scroll={false}>{s.name}</Link></td>
+              <td className="px-4 py-3.5 text-ink-2">
                 {opts(s).map((o) => o.price ? `${o.name} (+${formatRupiah(rp(o.price))})` : o.name).join(", ")}
               </td>
-              <td className="px-4 py-3 text-ink-2">{rule(s.min_select, s.max_select)}</td>
-              <td className="px-4 py-3 text-ink-2">{used.get(s.id) ?? 0} items</td>
-            </tr>
+              <td className="px-4 py-3.5 text-ink-2">{rule(s.min_select, s.max_select)}</td>
+              <td className="px-4 py-3.5 text-ink-2">{used.get(s.id) ?? 0} items</td>
+            </RowLink>
           ))}
         </Table>
       ) : <EmptyState title="No modifier sets yet" />}

@@ -24,11 +24,8 @@ export function DiscountFields({ d }: { d?: { name: string; kind: "percent" | "a
       ) : (
         <MoneyInput label="Amount" name="amount" defaultValue={d?.kind === "amount" ? d.value : null} required />
       )}
-      <Select label="Can be applied to" name="scope" defaultValue={d?.scope ?? "both"}>
-        <option value="both">Whole bill or single items</option>
-        <option value="bill">Whole bill only</option>
-        <option value="item">Single items only</option>
-      </Select>
+      <Select label="Can be applied to" name="scope" defaultValue={d?.scope ?? "both"}
+        options={[{ value: "both", label: "Whole bill or single items" }, { value: "bill", label: "Whole bill only" }, { value: "item", label: "Single items only" }]} />
       <Toggle label="Available on POS" name="is_active" defaultChecked={d?.is_active ?? true} />
     </>
   );
