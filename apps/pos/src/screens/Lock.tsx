@@ -3,10 +3,12 @@ import { Alert, Image, Pressable, Text, View } from "react-native";
 import { pinLockedFor, resetDevice, unlock, unsentCount, useStore } from "../lib/store";
 import { H, Keypad, Muted } from "../ui/kit";
 import { c } from "../ui/theme";
+import { useLayout } from "../ui/layout";
 import { SyncBadge } from "./SyncBadge";
 import { t } from "../lib/i18n";
 
 export function Lock() {
+  const { compact } = useLayout();                           // phones: header on top, keypad below
   const location = useStore((s) => s.catalog?.location.name);
   const logo = useStore((s) => s.catalog?.location.logo ?? null);
   const device = useStore((s) => s.device);
@@ -35,16 +37,19 @@ export function Lock() {
   };
 
   return (
-    <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.bg }}>
-      <View style={{ flex: 1, justifyContent: "space-between", padding: 40, backgroundColor: c.surface2 }}>
-        <View style={{ gap: 6 }}>
+    <View style={{ flex: 1, flexDirection: compact ? "column" : "row", backgroundColor: c.bg }}>
+      <View style={compact
+        ? { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: c.surface2 }
+        : { flex: 1, justifyContent: "space-between", padding: 40, backgroundColor: c.surface2 }}>
+        {compact && logo ? <Image source={{ uri: logo }} resizeMode="contain" style={{ width: 52, height: 52 }} /> : null}
+        <View style={{ gap: compact ? 0 : 6, flex: compact ? 1 : undefined }}>
           <Muted>{device?.name}</Muted>
-          <H size={34}>{location}</H>
+          <H size={compact ? 20 : 34}>{location}</H>
         </View>
-        {logo ? (
+        {!compact && logo ? (
           <Image source={{ uri: logo }} resizeMode="contain" accessibilityLabel={`${location} logo`} style={{ alignSelf: "center", width: 300, height: 300 }} />
         ) : null}
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: 12, alignItems: compact ? "flex-end" : undefined }}>
           <SyncBadge />
           <Pressable onLongPress={() => {
             const unsent = unsentCount();

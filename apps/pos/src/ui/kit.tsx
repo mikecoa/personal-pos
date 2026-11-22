@@ -3,6 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { formatRupiah, rp } from "@pos/core";
 import { c, r } from "./theme";
 import { FadeIn, Tap } from "./motion";
+import { useLayout } from "./layout";
 
 export const money = (n: number) => formatRupiah(rp(n));
 
@@ -60,17 +61,19 @@ export function PageTop({ title, subtitle, right }: { title: string; subtitle?: 
 export function Sheet({ visible, onClose, title, children, footer, width = 560, side }: {
   visible: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; width?: number; side?: boolean;
 }) {
+  const { w, compact } = useLayout();
+  const sheetW = Math.min(width, w - (compact ? 16 : 48));    // never wider than the screen
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} supportedOrientations={["landscape", "portrait"]}>
-      <View style={[s.overlay, side && { alignItems: "flex-end", justifyContent: "flex-start", padding: 0 }]}>
+      <View style={[s.overlay, compact && { padding: 8 }, side && { alignItems: "flex-end", justifyContent: "flex-start", padding: 0 }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-        <FadeIn from={side ? 0 : 14} scale={side ? 1 : 0.97} duration={180} style={[s.sheet, { width }, side && { height: "100%", borderRadius: 0, maxHeight: "100%" }]}>
+        <FadeIn from={side ? 0 : 14} scale={side ? 1 : 0.97} duration={180} style={[s.sheet, { width: sheetW }, compact && { maxHeight: "96%" }, side && { height: "100%", borderRadius: 0, maxHeight: "100%" }]}>
           <View style={s.sheetHead}>
             <H size={20}>{title}</H>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}
               style={({ pressed }) => [s.close, pressed && { backgroundColor: c.surface2 }]}><Text style={{ fontSize: 22, color: c.ink2 }}>✕</Text></Pressable>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }} keyboardShouldPersistTaps="handled">{children}</ScrollView>
+          <ScrollView contentContainerStyle={{ padding: compact ? 14 : 20, gap: compact ? 14 : 18 }} keyboardShouldPersistTaps="handled">{children}</ScrollView>
           {footer && <View style={s.sheetFoot}>{footer}</View>}
         </FadeIn>
       </View>

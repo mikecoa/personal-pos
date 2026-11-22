@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { canOpen, currentPath, getSession } from "@/lib/session";
 import { LocationSwitcher } from "@/components/location-switcher";
 import { Nav, type NavGroup } from "@/components/nav";
+import { AppShell } from "@/components/app-shell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, membership, role, isOwner, canManage, locations, location, pages } = await getSession();
@@ -55,23 +56,24 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (path === "/" && !allowedHere && groups[0]?.items[0]) redirect(groups[0].items[0].href);
 
   return (
-    <div className="flex min-h-dvh flex-col md:flex-row">
-      <aside className="flex shrink-0 flex-col gap-5 border-b border-line bg-surface-2 p-4 md:sticky md:top-0 md:h-dvh md:w-64 md:overflow-y-auto md:border-r md:border-b-0 md:px-4 md:py-5">
-        <div className="flex items-center gap-2.5 px-1">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent font-bold text-accent-ink">K</div>
+    <div className="min-h-dvh lg:flex">
+      <AppShell brand={
+        <div className="flex min-w-0 items-center gap-2.5 px-1">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent font-bold text-accent-ink">K</div>
           <div className="min-w-0">
             <p className="truncate font-bold leading-tight">{membership.accounts?.name}</p>
-            <p className="text-xs capitalize text-ink-2">{role}</p>
+            <p className="truncate text-xs capitalize text-ink-2">{location ? `${role} · ${location.name}` : role}</p>
           </div>
         </div>
+      }>
         <LocationSwitcher key={location?.id} locations={locations} current={location?.id} />
         <Nav groups={groups} />
-        <form action="/auth/signout" method="post" className="flex items-center gap-2 md:mt-auto md:block">
-          <p className="min-w-0 flex-1 truncate px-1 text-xs text-ink-2 md:pb-2">{user.email}</p>
-          <button className="shrink-0 rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface md:w-full">Sign out</button>
+        <form action="/auth/signout" method="post" className="mt-auto">
+          <p className="truncate px-1 pb-2 text-xs text-ink-2">{user.email}</p>
+          <button className="h-10 w-full rounded-lg border border-line px-3 text-sm font-medium hover:bg-surface">Sign out</button>
         </form>
-      </aside>
-      <main className="min-w-0 flex-1 p-4 md:px-10 md:py-9">
+      </AppShell>
+      <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-10 lg:py-9">
         {allowedHere ? children : (
           <div className="mx-auto max-w-md rounded-2xl border border-line bg-surface p-6 text-center">
             <p className="font-semibold">You don’t have access to this page</p>

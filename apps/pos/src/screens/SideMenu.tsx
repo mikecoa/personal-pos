@@ -15,7 +15,7 @@ const rail = c.surface;
 const hover = c.surface2;
 
 /** Side menu: a fixed rail with a label under every icon, and the outlet's name at the top. */
-export function SideMenu() {
+export function SideMenu({ bottom }: { bottom?: boolean }) {
   const page = useStore((s) => s.page);
   const catalog = useStore((s) => s.catalog)!;
   const employee = useStore((s) => s.employee)!;
@@ -32,6 +32,31 @@ export function SideMenu() {
     { page: "settings", label: "Settings", icon: "cog-outline", show: true },
   ];
   const initials = employee.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const open = (p: Page) => (p === "activity" ? guard("activity_view", "View sales history", () => go("activity")) : go(p));
+
+  // Phones: one row of tabs along the bottom (logo and name live in Settings → Account).
+  if (bottom) return (
+    <View style={st.bar}>
+      {items.filter((i) => i.show).map((i) => {
+        const active = page === i.page;
+        return (
+          <Tap key={i.page} scaleTo={0.92} onPress={() => open(i.page)} accessibilityRole="tab" accessibilityState={{ selected: active }}
+            accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? t(", no shift open") : ""}`} style={st.barItem}>
+            <View style={[st.barIcon, active && { backgroundColor: c.accent }]}>
+              <MaterialCommunityIcons name={i.icon} size={22} color={active ? c.accentInk : ink} />
+              {i.dot && <View style={st.dot} />}
+              {i.badge && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
+            </View>
+            <Text style={[st.barLabel, active && { color: c.accent }]} numberOfLines={1}>{t(i.label)}</Text>
+          </Tap>
+        );
+      })}
+      <Tap onPress={lock} scaleTo={0.92} accessibilityRole="button" accessibilityLabel="Lock (switch employee)" style={st.barItem}>
+        <View style={st.barIcon}><MaterialCommunityIcons name="lock-outline" size={22} color={ink} /></View>
+        <Text style={st.barLabel} numberOfLines={1}>{t("Lock")}</Text>
+      </Tap>
+    </View>
+  );
 
   return (
     <View style={st.rail}>
@@ -49,7 +74,7 @@ export function SideMenu() {
         {items.filter((i) => i.show).map((i) => {
           const active = page === i.page;
           return (
-            <Tap key={i.page} scaleTo={0.94} onPress={() => (i.page === "activity" ? guard("activity_view", "View sales history", () => go("activity")) : go(i.page))} accessibilityRole="tab" accessibilityState={{ selected: active }}
+            <Tap key={i.page} scaleTo={0.94} onPress={() => open(i.page)} accessibilityRole="tab" accessibilityState={{ selected: active }}
               accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? t(", no shift open") : ""}`}
               style={[st.item, active && st.itemActive]}>
               <View>
@@ -78,6 +103,10 @@ export function SideMenu() {
 }
 
 const st = StyleSheet.create({
+  bar: { flexDirection: "row", backgroundColor: rail, borderTopWidth: 1, borderColor: c.line, paddingHorizontal: 4, paddingTop: 6, paddingBottom: 8 },
+  barItem: { flex: 1, alignItems: "center", gap: 2, minHeight: 56, justifyContent: "center" },
+  barIcon: { width: 52, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  barLabel: { color: ink, fontSize: 12, fontWeight: "700" },
   rail: { width: 96, backgroundColor: rail, paddingTop: 14, paddingBottom: 14, borderRightWidth: 1, borderColor: c.line },
   outlet: { alignItems: "center", gap: 4, paddingHorizontal: 6, paddingBottom: 12, marginHorizontal: 10, borderBottomWidth: 1, borderColor: c.line },
   logoTile: { width: 84, height: 84 },          // logos are uploaded with a see-through background

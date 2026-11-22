@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { type ComponentProps, useMemo, useState } from "react";
-import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
-import { can, clearOrder, guard, notify, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
+import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useLayout } from "../ui/layout";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { can, clearOrder, getState, guard, notify, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, lineSalesType, mixedSalesTypes, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
@@ -35,8 +37,10 @@ export function Sell() {
   const [q, setQ] = useState("");
   const [modal, setModal] = useState<Modal>(null);
   // Start at the real width (remembered, or worked out from the screen) so tiles don't resize on open.
-  const { width: screenW } = useWindowDimensions();
-  const [gridW, setGridW] = useState(() => lastGridW ?? screenW - RAIL_W - CART_W - 32);
+  const { w: screenW, compact, narrow, cartW, railW, pad } = useLayout();
+  const tight = compact || narrow;                              // short top-row controls (phones, portrait tablets)
+  const [cartOpen, setCartOpen] = useState(false);              // phones: order shown full screen
+  const [gridW, setGridW] = useState(() => lastGridW ?? screenW - railW - cartW - pad * 2);
   const [measured, setMeasured] = useState(lastGridW !== null);
   const [editingMenu, setEditingMenu] = useState(false);       // tap items/categories to edit them
   const canEditMenu = can("items_manage");
@@ -46,7 +50,7 @@ export function Sell() {
     return catalog.items.filter((i) => (!cat || i.category_id === cat) &&
       (!term || i.name.toLowerCase().includes(term) || i.variants.some((v) => v.sku?.toLowerCase() === term)));
   }, [catalog.items, cat, q]);
-  const cols = Math.max(3, Math.floor(gridW / 170));
+  const cols = Math.max(compact ? 2 : 3, Math.floor(gridW / (compact ? 150 : 170)));
   const tileW = (gridW - 10 * (cols - 1)) / cols;
   const catName = cat ? catalog.categories.find((k) => k.id === cat)?.name ?? t("Category") : t("All items");
 
@@ -83,6 +87,7 @@ export function Sell() {
     return ps.length > 1 && Math.min(...ps) !== Math.max(...ps) ? t("from {v0}", { v0: money(Math.min(...ps)) }) : money(ps[0] ?? 0);
   };
   const hasLines = !!order && order.lines.length > 0;
+  const itemCount = order?.lines.reduce((n, l) => n + l.qty, 0) ?? 0;
   const mixed = !!order && mixedSalesTypes(order);           // some Dine In, some Take Away…
   const currentType = catalog.sales_types.find((s) => s.id === salesTypeId);
   // How many of each item are on the order, shown as a badge on the menu tile.
@@ -106,115 +111,9 @@ export function Sell() {
   // No shift yet: count the cash first. The menu stays hidden until then.
   if (!shift) return <StartShiftPanel />;
 
-  return (
-    <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.bg }}>
-      {/* ── catalog ── */}
-      <View style={{ flex: 1, padding: 16, gap: 12 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", height: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingLeft: 14 }}>
-            <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
-            <TextInput value={q} onChangeText={setQ} placeholder={t("Search item or scan SKU…")} placeholderTextColor="#a3968a" accessibilityLabel="Search items"
-              style={{ flex: 1, height: 46, paddingHorizontal: 10, fontSize: 17, color: c.ink }} />
-            {q ? (
-              <Pressable onPress={() => setQ("")} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search" style={{ paddingHorizontal: 12, height: 46, justifyContent: "center" }}>
-                <MaterialCommunityIcons name="close-circle" size={22} color={c.ink2} />
-              </Pressable>
-            ) : null}
-          </View>
-          <SyncBadge />
-          <Btn kind="secondary" title={`${t("Billing list")}${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
-        </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          {/* One button for categories, however many there are. */}
-          <Pressable onPress={() => setModal({ kind: "categories" })} accessibilityRole="button" accessibilityLabel={`Category: ${catName}. Change`}
-            style={({ pressed }) => [catBtn, pressed && { backgroundColor: c.surface2 }]}>
-            <MaterialCommunityIcons name="shape-outline" size={20} color={c.ink2} />
-            <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink, maxWidth: 260 }} numberOfLines={1}>{catName}</Text>
-            <MaterialCommunityIcons name="chevron-down" size={22} color={c.ink2} />
-          </Pressable>
-          {cat && (
-            <Pressable onPress={() => setCat(null)} accessibilityRole="button" accessibilityLabel="Show all items"
-              style={({ pressed }) => [catBtn, pressed && { backgroundColor: c.surface2 }]}>
-              <MaterialCommunityIcons name="close" size={20} color={c.accent} />
-              <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>{t("Show all")}</Text>
-            </Pressable>
-          )}
-          <View style={{ flex: 1 }} />
-          {!editingMenu && <Btn kind="secondary" title={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />}
-          {canEditMenu && (
-            <Btn kind={editingMenu ? "primary" : "secondary"} title={editingMenu ? t("Done") : t("Edit menu")} onPress={() => setEditingMenu(!editingMenu)} />
-          )}
-        </View>
-        {editingMenu && (
-          <Muted style={{ fontSize: 14 }}>{t("Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.")}</Muted>
-        )}
-        <View style={{ flex: 1, opacity: measured ? 1 : 0 }} onLayout={(e) => {
-          const w = Math.round(e.nativeEvent.layout.width);
-          lastGridW = w; setMeasured(true);
-          if (Math.abs(w - gridW) > 1) setGridW(w);
-        }}>
-          <FlatList
-            // Remount when the layout changes: Android doesn't redraw pinned headers whose positions moved.
-            key={`${editingMenu ? "edit" : "sell"}-${cat ?? "all"}-${cols}-${q ? "q" : ""}`}
-            data={rows}
-            keyExtractor={(r) => r.key}
-            stickyHeaderIndices={stickyHeaders}
-            contentContainerStyle={{ paddingBottom: 24 }}
-            ListEmptyComponent={<Muted>{q ? t("No items match “{q}”.", { q }) : t("No items in this category.")}</Muted>}
-            renderItem={({ item: row }) => row.kind === "header" ? (
-              <View style={{ backgroundColor: c.bg, paddingTop: 10, paddingBottom: 8, flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-                <Text style={{ fontSize: 15, fontWeight: "800", color: c.ink, letterSpacing: 0.3 }}>{row.name.toUpperCase()}</Text>
-                <Text style={{ color: c.ink2, fontSize: 13 }}>{row.count === 1 ? t("1 item") : t("{n} items", { n: row.count })}</Text>
-              </View>
-            ) : (
-              <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
-                {row.items.map((item) => item === ADD_TILE ? (
-                  <Pressable key="add" onPress={() => setModal({ kind: "editItem", item: null })} accessibilityRole="button" accessibilityLabel="New item"
-                    style={({ pressed }) => ({ width: tileW, minHeight: 150, borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent,
-                      alignItems: "center", justifyContent: "center", gap: 4, opacity: pressed ? 0.7 : 1 })}>
-                    <MaterialCommunityIcons name="plus" size={30} color={c.accent} />
-                    <Text style={{ color: c.accent, fontWeight: "700" }}>{t("New item")}</Text>
-                  </Pressable>
-                ) : (() => {
-                  const out = item.track_stock && item.stock <= 0;
-                  return (
-                    <Tap key={item.id} onPress={() => (editingMenu ? setModal({ kind: "editItem", item }) : tap(item))} accessibilityRole="button"
-                      accessibilityLabel={editingMenu ? t("Edit {name}", { name: item.name }) : `${item.name}, ${priceLabel(item)}`} scaleTo={0.95}
-                      style={{ width: tileW, borderRadius: r.md, overflow: "hidden", backgroundColor: c.surface,
-                        borderWidth: 1, borderColor: c.line, opacity: out ? 0.55 : 1 }}>
-                      {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: 88 }} /> : (
-                        <View style={{ height: 88, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
-                          <Text style={{ fontSize: 30, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
-                        </View>
-                      )}
-                      {!editingMenu && (inCart.get(item.id) ?? 0) > 0 && (
-                        <Pop value={inCart.get(item.id)} style={{ position: "absolute", top: 8, right: 8 }}>
-                          <FadeIn from={0} scale={0.4} duration={160} style={{ minWidth: 30, height: 30, borderRadius: 15, paddingHorizontal: 8, backgroundColor: c.accent,
-                            alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: c.surface }}>
-                            <Text style={{ color: c.accentInk, fontWeight: "800" }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>{inCart.get(item.id)}</Text>
-                          </FadeIn>
-                        </Pop>
-                      )}
-                      {editingMenu && (
-                        <View style={{ position: "absolute", top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" }}>
-                          <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink} />
-                        </View>
-                      )}
-                      <View style={{ padding: 10, gap: 2 }}>
-                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }} numberOfLines={2}>{item.name}</Text>
-                        <Text style={{ color: c.ink2 }}>{out ? t("Out of stock") : priceLabel(item)}</Text>
-                      </View>
-                    </Tap>
-                  );
-                })())}
-              </View>
-            )}
-          />
-        </View>
-      </View>
-
-      {/* ── cart ── */}
-      <View style={{ width: 400, backgroundColor: c.surface, borderLeftWidth: 1, borderColor: c.line }}>
+  // The order panel's content; shown beside the menu, or full screen on phones.
+  const cartBody = (
+    <>
         <View style={{ padding: 16, gap: 12, borderBottomWidth: 1, borderColor: c.line }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
             <Text style={{ fontSize: 22, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
@@ -310,10 +209,151 @@ export function Sell() {
           </View>
           <Btn big testID="charge" title={hasLines ? t("Charge {v0}", { v0: money(order!.total) }) : t("Charge")} disabled={!hasLines || !can("charge")} onPress={() => setModal({ kind: "charge" })} />
         </View>
+    </>
+  );
+
+  return (
+    <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.bg }}>
+      {/* ── catalog ── */}
+      <View style={{ flex: 1, padding: pad, gap: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", height: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingLeft: 14 }}>
+            <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
+            <TextInput value={q} onChangeText={setQ} placeholder={t("Search item or scan SKU…")} placeholderTextColor="#a3968a" accessibilityLabel="Search items"
+              style={{ flex: 1, height: 46, paddingHorizontal: 10, fontSize: 17, color: c.ink }} />
+            {q ? (
+              <Pressable onPress={() => setQ("")} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search" style={{ paddingHorizontal: 12, height: 46, justifyContent: "center" }}>
+                <MaterialCommunityIcons name="close-circle" size={22} color={c.ink2} />
+              </Pressable>
+            ) : null}
+          </View>
+          {!tight && <SyncBadge />}
+          <Btn kind="secondary" title={`${tight ? t("Bills") : t("Billing list")}${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: tight ? 8 : 10 }}>
+          {/* One button for categories, however many there are. */}
+          <Pressable onPress={() => setModal({ kind: "categories" })} accessibilityRole="button" accessibilityLabel={`Category: ${catName}. Change`}
+            style={({ pressed }) => [catBtn, pressed && { backgroundColor: c.surface2 }]}>
+            <MaterialCommunityIcons name="shape-outline" size={20} color={c.ink2} />
+            <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink, maxWidth: tight ? 150 : 260 }} numberOfLines={1}>{catName}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={22} color={c.ink2} />
+          </Pressable>
+          {cat && (
+            <Pressable onPress={() => setCat(null)} accessibilityRole="button" accessibilityLabel="Show all items"
+              style={({ pressed }) => [catBtn, pressed && { backgroundColor: c.surface2 }]}>
+              <MaterialCommunityIcons name="close" size={20} color={c.accent} />
+              {!tight && <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>{t("Show all")}</Text>}
+            </Pressable>
+          )}
+          <View style={{ flex: 1 }} />
+          {/* Phones: icon buttons so everything fits on one row. */}
+          {!editingMenu && (tight
+            ? <IconBtn icon="plus-circle-outline" label={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />
+            : <Btn kind="secondary" title={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />)}
+          {canEditMenu && (tight && !editingMenu
+            ? <IconBtn icon="pencil-outline" label={t("Edit menu")} onPress={() => setEditingMenu(true)} />
+            : <Btn kind={editingMenu ? "primary" : "secondary"} title={editingMenu ? t("Done") : t("Edit menu")} onPress={() => setEditingMenu(!editingMenu)} />)}
+        </View>
+        {editingMenu && (
+          <Muted style={{ fontSize: 14 }}>{t("Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.")}</Muted>
+        )}
+        <View style={{ flex: 1, opacity: measured ? 1 : 0 }} onLayout={(e) => {
+          const w = Math.round(e.nativeEvent.layout.width);
+          lastGridW = w; setMeasured(true);
+          if (Math.abs(w - gridW) > 1) setGridW(w);
+        }}>
+          <FlatList
+            // Remount when the layout changes: Android doesn't redraw pinned headers whose positions moved.
+            key={`${editingMenu ? "edit" : "sell"}-${cat ?? "all"}-${cols}-${q ? "q" : ""}`}
+            data={rows}
+            keyExtractor={(r) => r.key}
+            stickyHeaderIndices={stickyHeaders}
+            contentContainerStyle={{ paddingBottom: 24 }}
+            ListEmptyComponent={<Muted>{q ? t("No items match “{q}”.", { q }) : t("No items in this category.")}</Muted>}
+            renderItem={({ item: row }) => row.kind === "header" ? (
+              <View style={{ backgroundColor: c.bg, paddingTop: 10, paddingBottom: 8, flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+                <Text style={{ fontSize: 15, fontWeight: "800", color: c.ink, letterSpacing: 0.3 }}>{row.name.toUpperCase()}</Text>
+                <Text style={{ color: c.ink2, fontSize: 13 }}>{row.count === 1 ? t("1 item") : t("{n} items", { n: row.count })}</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+                {row.items.map((item) => item === ADD_TILE ? (
+                  <Pressable key="add" onPress={() => setModal({ kind: "editItem", item: null })} accessibilityRole="button" accessibilityLabel="New item"
+                    style={({ pressed }) => ({ width: tileW, minHeight: 150, borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent,
+                      alignItems: "center", justifyContent: "center", gap: 4, opacity: pressed ? 0.7 : 1 })}>
+                    <MaterialCommunityIcons name="plus" size={30} color={c.accent} />
+                    <Text style={{ color: c.accent, fontWeight: "700" }}>{t("New item")}</Text>
+                  </Pressable>
+                ) : (() => {
+                  const out = item.track_stock && item.stock <= 0;
+                  return (
+                    <Tap key={item.id} onPress={() => (editingMenu ? setModal({ kind: "editItem", item }) : tap(item))} accessibilityRole="button"
+                      accessibilityLabel={editingMenu ? t("Edit {name}", { name: item.name }) : `${item.name}, ${priceLabel(item)}`} scaleTo={0.95}
+                      style={{ width: tileW, borderRadius: r.md, overflow: "hidden", backgroundColor: c.surface,
+                        borderWidth: 1, borderColor: c.line, opacity: out ? 0.55 : 1 }}>
+                      {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: 88 }} /> : (
+                        <View style={{ height: 88, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ fontSize: 30, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
+                        </View>
+                      )}
+                      {!editingMenu && (inCart.get(item.id) ?? 0) > 0 && (
+                        <Pop value={inCart.get(item.id)} style={{ position: "absolute", top: 8, right: 8 }}>
+                          <FadeIn from={0} scale={0.4} duration={160} style={{ minWidth: 30, height: 30, borderRadius: 15, paddingHorizontal: 8, backgroundColor: c.accent,
+                            alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: c.surface }}>
+                            <Text style={{ color: c.accentInk, fontWeight: "800" }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>{inCart.get(item.id)}</Text>
+                          </FadeIn>
+                        </Pop>
+                      )}
+                      {editingMenu && (
+                        <View style={{ position: "absolute", top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" }}>
+                          <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink} />
+                        </View>
+                      )}
+                      <View style={{ padding: 10, gap: 2 }}>
+                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }} numberOfLines={tight ? 3 : 2}>{item.name}</Text>
+                        <Text style={{ color: c.ink2 }}>{out ? t("Out of stock") : priceLabel(item)}</Text>
+                      </View>
+                    </Tap>
+                  );
+                })())}
+              </View>
+            )}
+          />
+        </View>
+        {/* Phones: the order lives behind this bar. */}
+        {compact && (
+          <Tap onPress={() => setCartOpen(true)} accessibilityRole="button" scaleTo={0.98}
+            accessibilityLabel={t("View order")} style={[phone.bar, !hasLines && { backgroundColor: c.surface, borderWidth: 1, borderColor: c.line }]}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[phone.barTitle, !hasLines && { color: c.ink }]} numberOfLines={1}>
+                {order?.table_id ? t("Table {v0}", { v0: tableLabel(order) }) : order?.bill_name ?? t("View order")}
+              </Text>
+              <Text style={[phone.barSub, !hasLines && { color: c.ink2 }]} numberOfLines={1}>
+                {hasLines ? (itemCount === 1 ? t("1 item") : t("{n} items", { n: itemCount })) : t("Tap items to add them.")}
+              </Text>
+            </View>
+            {hasLines && <Text style={phone.barTotal}>{money(order!.total)}</Text>}
+            <MaterialCommunityIcons name="chevron-up" size={26} color={hasLines ? c.accentInk : c.ink2} />
+          </Tap>
+        )}
       </View>
 
+      {/* ── order: beside the menu on tablets, full screen on phones ── */}
+      {!compact && <View style={{ width: cartW, backgroundColor: c.surface, borderLeftWidth: 1, borderColor: c.line }}>{cartBody}</View>}
+      {compact && (
+        <RNModal visible={cartOpen && !modal} animationType="slide" onRequestClose={() => setCartOpen(false)} supportedOrientations={["portrait", "landscape"]}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: c.surface }} edges={["top", "bottom", "left", "right"]}>
+            <Tap onPress={() => setCartOpen(false)} accessibilityRole="button" scaleTo={0.98} style={phone.back}>
+              <MaterialCommunityIcons name="chevron-left" size={26} color={c.accent} />
+              <Text style={{ color: c.accent, fontWeight: "800", fontSize: 16 }}>{t("Back to menu")}</Text>
+            </Tap>
+            {cartBody}
+          </SafeAreaView>
+        </RNModal>
+      )}
+
       {notice && (
-        <Pressable onPress={() => notify(null)} style={{ position: "absolute", left: 16, bottom: 16, right: 416, padding: 14, borderRadius: r.md, backgroundColor: c.ink }}>
+        <Pressable onPress={() => notify(null)} style={{ position: "absolute", left: 16, bottom: compact ? 96 : 16, right: cartW + 16, padding: 14, borderRadius: r.md, backgroundColor: c.ink }}>
           <Text style={{ color: "#fff", fontWeight: "600" }}>{notice}  ✕</Text>
         </Pressable>
       )}
@@ -321,7 +361,7 @@ export function Sell() {
       {modal?.kind === "item" && <ItemSheet item={modal.item} onClose={() => setModal(null)} />}
       {modal?.kind === "line" && <LineSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "note" && <NoteSheet lineId={modal.id} onClose={() => setModal(null)} />}
-      {modal?.kind === "charge" && <ChargeSheet onClose={() => setModal(null)} />}
+      {modal?.kind === "charge" && <ChargeSheet onClose={() => { setModal(null); if (!getState().order?.lines.length) setCartOpen(false); }} />}
       {modal?.kind === "bills" && <BillsSheet onClose={() => setModal(null)} />}
       {modal?.kind === "save" && <SaveBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "discount" && <BillDiscountSheet onClose={() => setModal(null)} />}
@@ -384,7 +424,6 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
 
 /** Width of the menu grid the last time it was measured (the layout doesn't change between visits). */
 let lastGridW: number | null = null;
-const RAIL_W = 96, CART_W = 400;                 // side menu and order panel widths (borders included)
 
 const noteBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, alignSelf: "flex-start" as const, minHeight: 40, marginTop: 4,
   paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderStyle: "dashed" as const, borderColor: c.line };
@@ -440,6 +479,23 @@ const tile = StyleSheet.create({
   box: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", gap: 3, height: 60, paddingHorizontal: 8, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   text: { fontSize: 14, fontWeight: "700" },
   tool: { flex: 1, minWidth: 0, height: 64, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+});
+/** Square icon button (phones), with the full label for screen readers. */
+function IconBtn({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+  return (
+    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={label} scaleTo={0.92} style={phone.icon}>
+      <MaterialCommunityIcons name={icon} size={24} color={c.ink} />
+    </Tap>
+  );
+}
+
+const phone = StyleSheet.create({
+  icon: { width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
+  bar: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingHorizontal: 16, borderRadius: r.md, backgroundColor: c.accent },
+  barTitle: { color: c.accentInk, fontSize: 16, fontWeight: "800" },
+  barSub: { color: c.accentInk, opacity: 0.85, fontSize: 13, fontWeight: "600" },
+  barTotal: { color: c.accentInk, fontSize: 18, fontWeight: "800" },
+  back: { flexDirection: "row", alignItems: "center", gap: 2, height: 52, paddingHorizontal: 8, borderBottomWidth: 1, borderColor: c.line },
 });
 const typeTag = StyleSheet.create({
   box: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: c.accentSoft },

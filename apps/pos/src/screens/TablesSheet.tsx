@@ -6,6 +6,7 @@ import { Btn, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { FloorBoard } from "./FloorBoard";
 import { t } from "../lib/i18n";
+import { useLayout } from "../ui/layout";
 
 const NO_AREA = "none";
 const ago = (iso: string) => {
@@ -89,6 +90,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
     setPanel({ kind: "bills", table: tb, bills });
   };
 
+  const { compact } = useLayout();                           // phones: panels cover the map instead of sitting beside it
   const title = editing ? t("Edit tables") : mode === "move" ? t("Move {v0} to…", { v0: order?.table_id ? tableLabel(order) : "bill" }) : t("Tables");
   const subtitle = editing
     ? (selectedTables.length ? t("{length} selected", { length: selectedTables.length }) : t("Tap tables to select them"))
@@ -99,8 +101,8 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
   const card = (
         <View style={[st.card, page && st.cardPage]}>
           {/* header */}
-          <View style={st.head}>
-            <View style={{ flex: 1 }}>
+          <View style={[st.head, compact && { flexWrap: "wrap", paddingHorizontal: 14 }]}>
+            <View style={{ flex: 1, minWidth: compact ? 180 : 0 }}>
               <Text style={st.title}>{title}</Text>
               {!!subtitle && <Text style={st.sub}>{subtitle}</Text>}
             </View>
@@ -139,10 +141,10 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
 
           <View style={{ flexDirection: "row", flex: 1, minHeight: 0 }} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
             {/* grid */}
-            <ScrollView style={{ flex: 1 }} scrollEnabled={!dragging} contentContainerStyle={{ padding: 20, gap: 14 }}>
+            <ScrollView style={{ flex: 1 }} scrollEnabled={!dragging} contentContainerStyle={{ padding: compact ? 14 : 20, gap: 14 }}>
               {notice && <Text style={st.notice}>{notice}</Text>}
               {(shown.length > 0 || editing) && (
-                <FloorBoard tables={shown} mode={editing ? "edit" : mode} currentTableId={order?.table_id ?? null}
+                <FloorBoard list={compact && !editing} tables={shown} mode={editing ? "edit" : mode} currentTableId={order?.table_id ?? null}
                   isSelected={(t) => (editing ? selection.includes(t.id) : (panel?.kind === "seat" || panel?.kind === "bills") && panel.table.id === t.id)}
                   onPress={tap} onLongPress={hold} onDragging={setDragging} fullWidth={rowW - 40} canArrange={canEdit}
                   onAdd={editing ? () => { setSelection([]); setPanel({ kind: "new" }); } : undefined} addActive={panel?.kind === "new"}
@@ -159,7 +161,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
 
             {/* side panel */}
             {(panel || (editing && selectedTables.length > 0)) && (
-              <View style={st.side}>
+              <View style={compact ? [StyleSheet.absoluteFill, { backgroundColor: c.surface }] : st.side}>
                 {!panel && selectedTables.length === 1 && (
                   <TableEditor key={selectedTables[0]!.id} table={selectedTables[0]!} areaId={null} suggest={{ name: "", seats: 4 }} onDone={() => setSelection([])} />
                 )}

@@ -7,8 +7,9 @@ export function ReportTable<T>({ cols, rows, empty = "Nothing in this period." }
   if (!rows.length) return <p className="rounded-2xl border border-dashed border-line px-6 py-10 text-center text-ink-2">{empty}</p>;
   const hasTotals = cols.some((c) => c.total !== undefined);
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-      <table className="w-full min-w-[640px] text-sm">
+    <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+      {/* Only wide tables need a minimum width (they scroll sideways on phones); 2–3 columns fit any screen. */}
+      <table className={`w-full text-sm ${cols.length >= 5 ? "min-w-[640px]" : cols.length === 4 ? "min-w-[480px]" : ""}`}>
         {cols.some((c) => c.label) && (
           <thead className="border-b border-line text-xs font-semibold text-ink-2">
             <tr>{cols.map((c) => <th key={c.key} className={`px-4 py-3 ${c.align === "right" ? "text-right" : "text-left"}`}>{c.label}</th>)}</tr>

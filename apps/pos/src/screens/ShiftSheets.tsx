@@ -36,8 +36,8 @@ export function CashMoveForm({ onDone }: { onDone: () => void }) {
   const [digits, setDigits] = useState("");
   const [desc, setDesc] = useState("");
   return (
-    <View style={{ flexDirection: "row", gap: 24 }}>
-      <View style={{ flex: 1, gap: 14 }}>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 24 }}>
+      <View style={{ flex: 1, minWidth: 260, gap: 14 }}>
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Chip label={t("Cash out (expense)")} active={kind === "out"} onPress={() => setKind("out")} />
           <Chip label={t("Cash in")} active={kind === "in"} onPress={() => setKind("in")} />
@@ -59,8 +59,8 @@ export function CloseForm({ shift, onClosed }: { shift: ShiftDoc; onClosed: (s: 
   const showExpected = can("shift_view_details");
   const expected = shiftSummary(shift).expectedCash;
   return (
-    <View style={{ flexDirection: "row", gap: 24 }}>
-      <View style={{ flex: 1, gap: 14 }}>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 24 }}>
+      <View style={{ flex: 1, minWidth: 260, gap: 14 }}>
         <Text style={{ color: c.ink }}>{t("Count all the cash in the drawer and enter the total.")}</Text>
         {pending > 0 && <Text style={{ color: c.warn, fontWeight: "600" }}>{pending} open bill(s) are still unpaid. They stay open for the next shift.</Text>}
         <Label>{t("Counted cash")}</Label>

@@ -4,6 +4,7 @@ import { useEffect, useState, type ComponentProps, type ReactNode } from "react"
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { lock, printerSettings, resetDevice, savePrinterSettings, setLanguage, signedInEmail, unsentCount, useStore, type PrinterSettings } from "../lib/store";
 import { Btn, Chip, Label, Muted, PageTop, Stepper } from "../ui/kit";
+import { useLayout } from "../ui/layout";
 import { c, r } from "../ui/theme";
 import { SyncBadge } from "./SyncBadge";
 import { dateLocale, LANGS, t } from "../lib/i18n";
@@ -18,6 +19,7 @@ type Icon = ComponentProps<typeof MaterialCommunityIcons>["name"];
 export function SettingsPage() {
   const [section, setSectionState] = useState<Section>(lastSection);
   const setSection = (s: Section) => { lastSection = s; setSectionState(s); };
+  const { compact } = useLayout();                           // phones: sections as a row of tabs
   const items: { key: Section; label: string; icon: Icon }[] = [
     { key: "account", label: "Account", icon: "account-circle-outline" },
     { key: "language", label: "Language", icon: "translate" },
@@ -27,8 +29,12 @@ export function SettingsPage() {
   return (
     <View style={{ flex: 1 }}>
       <PageTop title={t("Settings")} right={<SyncBadge />} />
-      <View style={{ flex: 1, flexDirection: "row" }}>
-        <View style={st.nav}>
+      <View style={{ flex: 1, flexDirection: compact ? "column" : "row" }}>
+        {compact ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, borderBottomWidth: 1, borderColor: c.line }} contentContainerStyle={{ gap: 8, padding: 12 }}>
+            {items.map((i) => <Chip key={i.key} label={t(i.label)} active={section === i.key} onPress={() => setSection(i.key)} />)}
+          </ScrollView>
+        ) : <View style={st.nav}>
           {items.map((i) => {
             const active = section === i.key;
             return (
@@ -39,7 +45,7 @@ export function SettingsPage() {
               </Pressable>
             );
           })}
-        </View>
+        </View>}
         <View style={{ flex: 1 }}>
           {section === "account" && <Account />}
           {section === "language" && <Language />}
@@ -91,7 +97,7 @@ function Info({ rows }: { rows: [string, string][] }) {
     <View style={st.card}>
       {rows.map(([k, v], i) => (
         <View key={k} style={[st.infoRow, i > 0 && { borderTopWidth: 1, borderColor: c.line }]}>
-          <Text style={{ width: 200, color: c.ink2 }}>{t(k)}</Text>
+          <Text style={{ width: "40%", maxWidth: 200, color: c.ink2 }}>{t(k)}</Text>
           <Text style={{ flex: 1, color: c.ink, fontWeight: "600" }} selectable>{v}</Text>
         </View>
       ))}

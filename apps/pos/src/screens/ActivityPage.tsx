@@ -4,6 +4,7 @@ import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fr
 import { guard, recentSales, refundedSoFar, useStore } from "../lib/store";
 import type { OrderDoc, OrderPayment } from "../lib/types";
 import { Btn, Muted, money, PageTop, Sheet } from "../ui/kit";
+import { useLayout } from "../ui/layout";
 import { c, r, tileColor } from "../ui/theme";
 import { printReceipt, toReceipt } from "./receipt";
 import { printerSettings } from "../lib/store";
@@ -36,7 +37,9 @@ export function ActivityPage() {
   useStore((s) => s.openOrders);                           // …and after a sale
   const sales = recentSales();
   const [q, setQ] = useState("");
-  const [id, setId] = useState<string | undefined>(sales[0]?.id);
+  const { compact } = useLayout();
+  // Phones show the list or one sale's details, not both.
+  const [id, setId] = useState<string | undefined>(compact ? undefined : sales[0]?.id);
   const [refunding, setRefunding] = useState(false);
   const [receipt, setReceipt] = useState(false);
 
@@ -58,7 +61,7 @@ export function ActivityPage() {
       <PageTop title={t("Activity")} subtitle={t("Completed sales on this tablet")} />
       <View style={{ flex: 1, flexDirection: "row" }}>
         {/* list */}
-        <View style={st.list}>
+        {!(compact && sel) && <View style={[st.list, compact && { width: "100%", borderRightWidth: 0 }]}>
           <View style={st.search}>
             <MaterialCommunityIcons name="magnify" size={24} color={c.ink2} />
             <TextInput value={q} onChangeText={setQ} placeholder={t("Receipt number")} placeholderTextColor="#a3968a" accessibilityLabel="Search by receipt number"
@@ -69,18 +72,19 @@ export function ActivityPage() {
             renderItem={({ item: row }) => row.kind === "day"
               ? <Text style={st.day}>{dayLabel(row.key)}</Text>
               : <SaleRow sale={row.sale} active={row.sale.id === id} onPress={() => setId(row.sale.id)} />} />
-        </View>
+        </View>}
 
         {/* details */}
         {sel ? (
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, gap: 8 }}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: compact ? 14 : 24, gap: 8 }}>
+            {compact && <Btn kind="ghost" title={t("← All sales")} style={{ alignSelf: "flex-start" }} onPress={() => setId(undefined)} />}
             <View style={{ flexDirection: "row", gap: 16, marginBottom: 12 }}>
               <Btn kind="secondary" style={{ flex: 1 }} title={t("Receipt")} onPress={() => guard("receipts_resend", t("Reprint the receipt"), () => setReceipt(true))} />
               <Btn kind="secondary" style={{ flex: 1 }} title={t("Issue refund")} onPress={() => guard("refunds_issue", t("Issue a refund"), () => setRefunding(true))} />
             </View>
             <Details sale={sel} />
           </ScrollView>
-        ) : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Muted>{t("Pick a sale to see its details.")}</Muted></View>}
+        ) : compact ? null : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Muted>{t("Pick a sale to see its details.")}</Muted></View>}
       </View>
       {refunding && sel && <RefundSheet order={sel} onClose={() => setRefunding(false)} />}
       {receipt && sel && <ReceiptSheet sale={sel} onClose={() => setReceipt(false)} />}

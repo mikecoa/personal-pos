@@ -141,11 +141,11 @@ function Row({ label, value, onPress, strong, tone, note, small }: {
 }) {
   const body = (
     <>
-      <View style={{ flex: 1, minWidth: 0 }}>
+      <View style={{ flex: 1, minWidth: 110 }}>
         <Text style={{ fontSize: small ? 15 : 17, color: strong ? c.ink : c.ink2, fontWeight: strong ? "700" : "400" }} numberOfLines={2}>{label}</Text>
         {note ? <Text style={{ fontSize: 13, color: tone ?? c.ink2 }}>{note}</Text> : null}
       </View>
-      <Text style={{ fontSize: small ? 15 : 17, color: tone ?? c.ink, fontWeight: strong ? "800" : "500" }}>{value}</Text>
+      <Text style={{ flexShrink: 1, textAlign: "right", fontSize: small ? 15 : 17, color: tone ?? c.ink, fontWeight: strong ? "800" : "500" }}>{value}</Text>
       {onPress && <MaterialCommunityIcons name="chevron-right" size={22} color={c.accent} />}
     </>
   );
