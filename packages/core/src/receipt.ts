@@ -5,9 +5,23 @@
 import { formatRupiah, rp } from "./money";
 
 export type ReceiptProfile = {
-  header_name: string; address?: string | null; phone?: string | null; social?: string | null;
+  header_name: string; address?: string | null; phone?: string | null;
+  instagram?: string | null; website?: string | null; tiktok?: string | null;
+  /** Older single "Instagram / website" box; only printed when none of the three links are set. */
+  social?: string | null;
   footer?: string | null; show_server?: boolean; show_cashier?: boolean;
 };
+
+/** The receipt's links as printed lines, e.g. "IG: @kopi", "TikTok: @kopi", "kopi.com". */
+export function receiptLinks(p: ReceiptProfile): string[] {
+  const handle = (v: string) => (v.startsWith("@") ? v : `@${v}`);
+  const out: string[] = [];
+  if (p.instagram?.trim()) out.push(`IG: ${handle(p.instagram.trim())}`);
+  if (p.tiktok?.trim()) out.push(`TikTok: ${handle(p.tiktok.trim())}`);
+  if (p.website?.trim()) out.push(p.website.trim().replace(/^https?:\/\//i, "").replace(/\/$/, ""));
+  if (!out.length && p.social?.trim()) out.push(p.social.trim());
+  return out;
+}
 export type ReceiptOrder = {
   number: string; at: Date; salesType?: string | null; billName?: string | null;
   servedBy?: string | null; cashier?: string | null;
@@ -83,7 +97,7 @@ export function receiptLines(p: ReceiptProfile, o: ReceiptOrder, width = 32): st
   for (const pay of o.payments) L.push(...lr(pay.name, money(pay.amount), width));
   if (o.change > 0) L.push(...lr("Change", money(o.change), width));
   L.push(rule);
-  if (p.social) L.push(...center(p.social, width));
+  for (const link of receiptLinks(p)) L.push(...center(link, width));
   if (p.footer) L.push(...center(p.footer, width));
   return L;
 }

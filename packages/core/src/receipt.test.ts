@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escpos, lr, receiptLines, wrap } from "./receipt";
+import { escpos, lr, receiptLines, receiptLinks, wrap } from "./receipt";
 
 const order = {
   number: "A1-000042", at: new Date(2026, 10, 22, 19, 5), salesType: "Dine In", servedBy: "Ani", cashier: "Budi",
@@ -25,6 +25,14 @@ describe("receipt layout", () => {
     for (const s of ["A1-000042", "22/11/2026", "19:05", "Served by", "Dine In", "Suhu: Dingin", "Note: no onion", "-2.800", "Diskon Karyawan", "PB1", "Rounding", "Rp 70.500", "Change", "Terima kasih!"]) {
       expect(text).toContain(s);
     }
+  });
+
+  it("prints each link on its own line, and the old single box only when no links are set", () => {
+    expect(receiptLinks({ header_name: "X", instagram: "kopi", tiktok: "@kopi.tt", website: "https://kopi.com/" })).toEqual(["IG: @kopi", "TikTok: @kopi.tt", "kopi.com"]);
+    expect(receiptLinks({ header_name: "X", social: "@old" })).toEqual(["@old"]);
+    expect(receiptLinks({ header_name: "X", social: "@old", website: "kopi.com" })).toEqual(["kopi.com"]);
+    const text = receiptLines({ header_name: "X", instagram: "djoeragankopitiam.jbi" }, order, 32).join("\n");
+    expect(text).toContain("IG: @djoeragankopitiam.jbi");
   });
 
   it("hides server/cashier when the profile says so", () => {

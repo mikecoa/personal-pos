@@ -29,7 +29,7 @@ export type Catalog = {
   synced_at: string;
   location: { id: string; account_id?: string; name: string; address: string | null; phone: string | null; logo?: string | null };
   settings: Settings;
-  receipt: { header_name: string; address: string | null; phone: string | null; social: string | null; footer: string | null; show_server: boolean; show_cashier: boolean };
+  receipt: { header_name: string; address: string | null; phone: string | null; social: string | null; instagram?: string | null; website?: string | null; tiktok?: string | null; footer: string | null; show_server: boolean; show_cashier: boolean };
   categories: { id: string; name: string }[];
   sales_types: { id: string; name: string }[];
   payment_methods: PaymentMethod[];

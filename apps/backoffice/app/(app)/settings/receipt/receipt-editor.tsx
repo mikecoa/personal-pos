@@ -3,7 +3,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { NO_TAX, priceCart, type PricingSettings } from "@pos/core";
 import { Card, Field, TextArea, Toggle } from "@/components/ui";
 
-type Profile = { header_name: string; address: string | null; phone: string | null; social: string | null; footer: string | null; show_server: boolean; show_cashier: boolean };
+type Profile = { header_name: string; address: string | null; phone: string | null; instagram: string | null; website: string | null; tiktok: string | null; footer: string | null; show_server: boolean; show_cashier: boolean };
 type Settings = {
   tax_enabled: boolean; tax_name: string; tax_rate_bp: number; gratuity_enabled: boolean; gratuity_name: string; gratuity_rate_bp: number;
   prices_include_tax: boolean; tax_after_discount: boolean; rounding_enabled: boolean; rounding_unit: number; rounding_mode: string;
@@ -23,7 +23,8 @@ const pct = (bp: number) => `${(bp / 100).toLocaleString("id-ID")} %`;
 export function ReceiptEditor({ initial, logo, settings, discount }: {
   initial: Profile; logo: string | null; settings: Settings | null; discount: Discount | null;
 }) {
-  const [p, setP] = useState(initial);
+  // The boxes show "@" in front, so keep handles without their own "@".
+  const [p, setP] = useState(() => ({ ...initial, instagram: initial.instagram?.replace(/^@/, "") ?? null, tiktok: initial.tiktok?.replace(/^@/, "") ?? null }));
   const set = (k: keyof Profile) => (e: { target: { value: string; checked?: boolean; type?: string } }) =>
     setP({ ...p, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
@@ -46,10 +47,13 @@ export function ReceiptEditor({ initial, logo, settings, discount }: {
         <div className="space-y-4">
           <Field label="Business name on receipt" name="header_name" value={p.header_name} onChange={set("header_name")} required maxLength={60} />
           <TextArea label="Address" name="address" value={p.address ?? ""} onChange={set("address")} maxLength={200} />
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Phone" name="phone" value={p.phone ?? ""} onChange={set("phone")} maxLength={40} />
-            <Field label="Instagram / website" name="social" value={p.social ?? ""} onChange={set("social")} maxLength={80} />
-          </div>
+          <Field label="Phone" name="phone" value={p.phone ?? ""} onChange={set("phone")} maxLength={40} />
+          <fieldset className="space-y-3">
+            <legend className="mb-1.5 text-sm font-medium text-ink">Links <span className="font-normal text-ink-2">(optional)</span></legend>
+            <LinkField icon={<IgIcon />} label="Instagram" name="instagram" prefix="@" value={p.instagram ?? ""} onChange={set("instagram")} placeholder="djoeragankopitiam" />
+            <LinkField icon={<TikTokIcon />} label="TikTok" name="tiktok" prefix="@" value={p.tiktok ?? ""} onChange={set("tiktok")} placeholder="djoeragankopitiam" />
+            <LinkField icon={<WebIcon />} label="Website" name="website" value={p.website ?? ""} onChange={set("website")} placeholder="djoeragankopitiam.com" />
+          </fieldset>
           <TextArea label="Note at the bottom" name="footer" value={p.footer ?? ""} onChange={set("footer")} maxLength={200} />
           <Toggle label="Show who served" name="show_server" checked={p.show_server} onChange={set("show_server")} />
           <Toggle label="Show who collected payment" name="show_cashier" checked={p.show_cashier} onChange={set("show_cashier")} />
@@ -110,18 +114,15 @@ export function ReceiptEditor({ initial, logo, settings, discount }: {
             <Row l="Cash" r={rp(cash)} />
             <Row l="Change" r={rp(cash - bill.total)} />
 
-            {p.social && (
+            {(p.instagram || p.tiktok || p.website) && (
               <>
                 <Rule />
                 <p className="mb-2 text-[11px] font-semibold tracking-[0.04em] text-[#555]">LINKS</p>
-                <p className="flex items-center gap-2.5">
-                  <span className="grid h-6 w-6 place-items-center rounded-full bg-[#3b5b98] text-white">
-                    {/^https?:|\.(com|id|co|net|org)\b/i.test(p.social)
-                      ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
-                      : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" /></svg>}
-                  </span>
-                  <span>{p.social}</span>
-                </p>
+                <div className="space-y-2">
+                  {p.website && <PreviewLink bg="#8a9199" icon={<WebIcon />} text={p.website.replace(/^https?:\/\//i, "").replace(/\/$/, "")} />}
+                  {p.instagram && <PreviewLink bg="#3b5b98" icon={<IgIcon />} text={p.instagram.replace(/^@/, "")} />}
+                  {p.tiktok && <PreviewLink bg="#111" icon={<TikTokIcon />} text={p.tiktok.replace(/^@/, "")} />}
+                </div>
               </>
             )}
             {p.footer && (
@@ -142,4 +143,45 @@ export function ReceiptEditor({ initial, logo, settings, discount }: {
 const Rule = () => <div className="my-4 border-t border-[#e5e5e5]" />;
 function Row({ l, r }: { l: ReactNode; r: ReactNode }) {
   return <div className="flex items-baseline justify-between gap-4 py-[1px]"><span>{l}</span><span className="text-right tabular-nums">{r}</span></div>;
+}
+
+const IgIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+    <rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
+  </svg>
+);
+const TikTokIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M16.6 3c.4 2.2 1.9 3.8 4 4v3.1c-1.5 0-2.9-.4-4-1.2v6.3A6 6 0 1 1 11.6 9.3v3.2a2.9 2.9 0 1 0 2 2.7V3h3z" />
+  </svg>
+);
+const WebIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+    <path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
+  </svg>
+);
+
+function PreviewLink({ bg, icon, text }: { bg: string; icon: ReactNode; text: string }) {
+  return (
+    <p className="flex items-center gap-2.5">
+      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-white" style={{ background: bg }}>{icon}</span>
+      <span className="min-w-0 break-all">{text}</span>
+    </p>
+  );
+}
+
+/** One link box with its icon in front, e.g. [IG] @ [handle]. */
+function LinkField({ icon, label, name, prefix, value, onChange, placeholder }: {
+  icon: ReactNode; label: string; name: string; prefix?: string; value: string;
+  onChange: (e: { target: { value: string } }) => void; placeholder?: string;
+}) {
+  return (
+    <label className="flex h-11 items-center gap-2.5 rounded-lg border border-line bg-surface pl-3 pr-1 transition hover:border-ink-2/40 focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/15">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-ink-2">{icon}</span>
+      <span className="w-20 shrink-0 text-sm font-medium text-ink-2">{label}</span>
+      {prefix && <span className="-mr-1.5 text-[15px] text-ink-2">{prefix}</span>}
+      <input name={name} value={value} onChange={onChange} placeholder={placeholder} maxLength={120} autoComplete="off" aria-label={label}
+        className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-2/50" />
+    </label>
+  );
 }

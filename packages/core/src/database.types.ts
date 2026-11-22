@@ -609,14 +609,14 @@ isOneToOne: false
                   ]
                 },"receipt_profiles": {
                   Row: {
-                    "account_id": string,"address": string | null,"footer": string | null,"header_name": string,"location_id": string,"logo_url": string | null,"phone": string | null,"show_cashier": boolean,"show_server": boolean,"social": string | null,"updated_at": string
+                    "account_id": string,"address": string | null,"footer": string | null,"header_name": string,"instagram": string | null,"location_id": string,"logo_url": string | null,"phone": string | null,"show_cashier": boolean,"show_server": boolean,"social": string | null,"tiktok": string | null,"updated_at": string,"website": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"address"?: string | null,"footer"?: string | null,"header_name"?: string,"location_id": string,"logo_url"?: string | null,"phone"?: string | null,"show_cashier"?: boolean,"show_server"?: boolean,"social"?: string | null,"updated_at"?: string
+                    "account_id": string,"address"?: string | null,"footer"?: string | null,"header_name"?: string,"instagram"?: string | null,"location_id": string,"logo_url"?: string | null,"phone"?: string | null,"show_cashier"?: boolean,"show_server"?: boolean,"social"?: string | null,"tiktok"?: string | null,"updated_at"?: string,"website"?: string | null
                   }
                   Update: {
-                    "account_id"?: string,"address"?: string | null,"footer"?: string | null,"header_name"?: string,"location_id"?: string,"logo_url"?: string | null,"phone"?: string | null,"show_cashier"?: boolean,"show_server"?: boolean,"social"?: string | null,"updated_at"?: string
+                    "account_id"?: string,"address"?: string | null,"footer"?: string | null,"header_name"?: string,"instagram"?: string | null,"location_id"?: string,"logo_url"?: string | null,"phone"?: string | null,"show_cashier"?: boolean,"show_server"?: boolean,"social"?: string | null,"tiktok"?: string | null,"updated_at"?: string,"website"?: string | null
                   }
                   Relationships: [
                     {

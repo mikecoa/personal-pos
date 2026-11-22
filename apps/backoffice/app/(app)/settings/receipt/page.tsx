@@ -8,7 +8,7 @@ export default async function ReceiptPage() {
   const { supabase, location } = await requireManage();
   const [{ data, error }, { data: loc }, { data: s }, { data: disc }] = await Promise.all([
     supabase.from("receipt_profiles")
-      .select("header_name, address, phone, social, footer, show_server, show_cashier").eq("location_id", location.id).single(),
+      .select("header_name, address, phone, instagram, website, tiktok, footer, show_server, show_cashier").eq("location_id", location.id).single(),
     supabase.from("locations").select("logo").eq("id", location.id).single(),
     supabase.from("location_settings")
       .select("tax_enabled, tax_name, tax_rate_bp, gratuity_enabled, gratuity_name, gratuity_rate_bp, prices_include_tax, tax_after_discount, rounding_enabled, rounding_unit, rounding_mode")
