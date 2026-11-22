@@ -14,7 +14,7 @@ export async function saveRole(_: ActionState, form: FormData): Promise<ActionSt
   const { error } = id
     ? await supabase.from("roles").update({ name, permissions, backoffice_pages }).eq("id", id)
     : await supabase.from("roles").insert({ name, permissions, backoffice_pages, account_id: membership.account_id });
-  if (error) return fail(error);
+  if (error) return error.code === "23505" ? fail("A role with this name already exists. Pick another name.") : fail(error);
   revalidatePath("/employees", "layout");
   return ok();
 }
