@@ -1,0 +1,31 @@
+{
+ "categories": ["Breakfast Menu","Dessert","Jus","Kue","Matcha","Menu lainnya ","Menu Mie","Menu Nasi ","Minuman","OPEN MENU","Paket BukBer","Snack Menu","Soft Drink","Tambahan Kerupuk","TEH TWG","Uncategorized","Varian jus"],
+ "modifiers": [
+  {"name":"Barakah A","min":0,"max":0,"options":[{"name":"Nasi Goreng Ayam","price":0},{"name":"Mie Goreng Ayam","price":0},{"name":"Nasi Ayam Geprek","price":0},{"name":"Nasi Telor Kecap","price":0},{"name":"Soto Ayam Bening","price":0}]},
+  {"name":"Barakah B","min":0,"max":0,"options":[{"name":"Nasi Goreng Seafood","price":0},{"name":"Mie Goreng Seafood","price":0},{"name":"Kwetiaw Medan","price":0},{"name":"Soto Betawi","price":0},{"name":"Lontong Kari Rendang","price":0}]},
+  {"name":"Barakah C","min":0,"max":0,"options":[{"name":"Nasi Goreng Djoeragan","price":0},{"name":"Nasi Ayam Kremes + Sayur Asem","price":0},{"name":"Nasi Ayam Bacem + Sayur Asem","price":0},{"name":"Nasi Ayam Madura + Sayur Asem","price":0}]},
+  {"name":"Barakah Minuman","min":0,"max":0,"options":[{"name":"Es Teh","price":0},{"name":"Mineral","price":0}]},
+  {"name":"CONDIMENT","min":0,"max":0,"options":[{"name":"Ikan","price":0},{"name":"Ayam","price":0}]},
+  {"name":"Drinks Breakfast","min":0,"max":0,"options":[{"name":"Teh Tawar [P/D]","price":0},{"name":"Teh Manis [P/D]","price":0},{"name":"Kopi Hitam Tradisional","price":0},{"name":"Kopi susu Tradisional","price":0},{"name":"Air Mineral","price":0}]},
+  {"name":"Main Course Breakfast","min":0,"max":0,"options":[{"name":"Nasi Gemuk Ayam","price":0},{"name":"Nasi Goreng Ayam","price":0},{"name":"Mie Ayam","price":0},{"name":"Mie Goreng Ayam","price":0},{"name":"Soto Ayam + Nasi","price":0}]},
+  {"name":"Rasa","min":0,"max":0,"options":[{"name":"Srikaya","price":0},{"name":"Coklat","price":0},{"name":"Pandan","price":0}]},
+  {"name":"Soto","min":0,"max":0,"options":[{"name":"Bening","price":0},{"name":"Santan","price":0}]},
+  {"name":"Suhu","min":0,"max":0,"options":[{"name":"Panas","price":0},{"name":"Dingin","price":0}]},
+  {"name":"Tingkat Kematangan","min":0,"max":0,"options":[{"name":"1/2","price":0},{"name":"1/4","price":0},{"name":"3/4","price":0},{"name":"dadar","price":0},{"name":"mata sapi","price":0},{"name":"matang","price":0}]},
+  {"name":"Tingkat kepedasan","min":0,"max":0,"options":[{"name":"Tidak pedas","price":0},{"name":"Sedang","price":0},{"name":"Pedas","price":0},{"name":"SANGAT PEDAS","price":0}]}
+ ],
+ "sales_types": ["Dine In","Gofood","Grabfood","PEMBAYARAN BOBOHOME","Shopeefood","Take Away"],
+ "discounts": [
+  {"name":"Discount Karyawan","percent":10},
+  {"name":"Discount Owner","percent":20},
+  {"name":"MERDEKA 81","percent":17},
+  {"name":"MERDEKA 81,","percent":45},
+  {"name":"MERDEKA 81.","percent":8}
+ ],
+ "employees": [
+  {"name":"Kasir 1","role":"Cashier"},
+  {"name":"Kasir 2","role":"Cashier"},
+  {"name":"Nur Hayati","role":"Cashier"},
+  {"name":"Pak Fiki","role":"Administrator"}
+ ]
+}
