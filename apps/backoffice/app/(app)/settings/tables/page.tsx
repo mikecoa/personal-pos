@@ -22,7 +22,7 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
   const editingArea = sp.area ? areas?.find((a) => a.id === sp.area) : undefined;
   const groups = [...(areas ?? []).map((a) => ({ area: a, items: (tables ?? []).filter((t) => t.area_id === a.id) })),
     { area: null, items: (tables ?? []).filter((t) => !t.area_id) }].filter((g) => g.area || g.items.length);
-  const areaOptions = <>{<option value="">No area</option>}{areas?.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</>;
+  const areaOptions = [{ value: "", label: "No area" }, ...(areas ?? []).map((a) => ({ value: a.id, label: a.name }))];
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -57,12 +57,11 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
           <EditorForm action={saveTable} deleteAction={editingTable ? deleteTable : undefined} closeHref={BASE} hidden={{ id: editingTable?.id }}
             confirmDelete={editingTable && busy.has(editingTable.id) ? "A bill is open on this table. Delete anyway? The bill stays open, just without a table." : "Delete this table?"}>
             <Field label="Name or number" name="name" defaultValue={editingTable?.name} required autoFocus maxLength={20} placeholder="e.g. 5, T2, Sofa" />
-            <Select label="Area" name="area_id" defaultValue={editingTable?.area_id ?? ""}>{areaOptions}</Select>
+            <Select label="Area" name="area_id" defaultValue={editingTable?.area_id ?? ""} options={areaOptions} />
             <div className="grid grid-cols-2 gap-3">
               <Field label="Seats" name="seats" type="number" min={1} max={50} defaultValue={editingTable?.seats ?? 4} />
-              <Select label="Shape" name="shape" defaultValue={editingTable?.shape ?? "square"}>
-                {Object.entries(SHAPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </Select>
+              <Select label="Shape" name="shape" defaultValue={editingTable?.shape ?? "square"}
+                options={Object.entries(SHAPES).map(([value, label]) => ({ value, label }))} />
             </div>
             <input type="hidden" name="sort_order" value={editingTable?.sort_order ?? 0} />
             <Toggle label="Available" name="is_active" defaultChecked={editingTable?.is_active ?? true} description="Unavailable tables are hidden on the tablet." />
@@ -89,7 +88,7 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Seats each" name="seats" type="number" min={1} max={50} defaultValue={4} />
-              <Select label="Area" name="area_id">{areaOptions}</Select>
+              <Select label="Area" name="area_id" options={areaOptions} />
             </div>
             <p className="text-sm text-ink-2">Names that already exist are skipped.</p>
           </EditorForm>

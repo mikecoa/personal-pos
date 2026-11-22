@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PIN_LOCKABLE } from "@pos/core";
 import { requireLocation, requireOwner } from "@/lib/session";
-import { Badge, Card, PageHeader } from "@/components/ui";
+import { Badge, Card, Checkbox, PageHeader } from "@/components/ui";
 import { SettingsForm } from "@/components/settings-form";
 import { savePinApproval } from "./actions";
 
@@ -41,10 +41,7 @@ export default async function PinAccessPage() {
           <Card title="Needs a manager’s PIN" description="Ticked actions ask for a manager’s PIN even when the cashier’s role allows them. Actions a role doesn’t allow always ask.">
             <div className="divide-y divide-line">
               {PIN_LOCKABLE.map((a) => (
-                <label key={a.key} className="flex cursor-pointer items-center gap-3 py-2.5">
-                  <input type="checkbox" name="actions" value={a.key} defaultChecked={locked.has(a.key)} className="h-4 w-4 accent-[var(--color-accent)]" />
-                  <span>{a.label}</span>
-                </label>
+                <Checkbox key={a.key} name="actions" value={a.key} defaultChecked={locked.has(a.key)} label={a.label} className="py-2.5" />
               ))}
             </div>
           </Card>

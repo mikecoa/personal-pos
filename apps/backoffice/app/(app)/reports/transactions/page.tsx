@@ -72,11 +72,11 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         fromDate={range.fromDate} toDate={range.toDate} label={range.label} presets={PRESETS} />
       <Tabs tabs={TABS} active={kind} hrefFor={(id) => withFilters("/reports/transactions", sp, { kind: id, page: undefined, q: undefined })} />
       {kind === "completed" && (
-        <form className="mb-4 flex gap-2" role="search">
+        <form className="mb-4 flex gap-2" role="search" noValidate>
           {(["loc", "range", "from", "to"] as const).map((k) => sp[k] && <input key={k} type="hidden" name={k} value={sp[k]} />)}
-          <input name="q" defaultValue={sp.q} placeholder="Receipt number, e.g. D1-000123" aria-label="Search receipt number"
-            className="h-10 w-72 max-w-full rounded-lg border border-line bg-surface px-3 outline-none focus:border-accent" />
-          <button className="h-10 rounded-lg border border-line bg-surface px-4 text-sm font-semibold hover:bg-surface-2">Search</button>
+          <input name="q" defaultValue={sp.q} placeholder="Receipt number, e.g. D1-000123" aria-label="Search receipt number" autoComplete="off"
+            className="h-10 w-72 max-w-full rounded-lg border border-line bg-surface px-3 text-[15px] outline-none transition hover:border-ink-2/40 focus:border-accent focus:ring-3 focus:ring-accent/15" />
+          <button className="h-10 rounded-lg border border-line bg-surface px-4 text-sm font-semibold transition hover:bg-surface-2 active:scale-[0.98]">Search</button>
         </form>
       )}
       <ReportTable rows={rows} cols={cols[kind]!} empty={sp.q ? `No receipt matching “${sp.q}”.` : "Nothing in this period."} />

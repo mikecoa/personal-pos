@@ -5,6 +5,7 @@ import { EditorForm } from "@/components/editor-form";
 import { deleteItem, saveItem } from "./actions";
 import { ItemEditor, type EditorItem } from "./item-editor";
 import { ItemList, type ListItem } from "./item-list";
+import { ItemFilters } from "./item-filters";
 
 type SP = { edit?: string; new?: string; q?: string; cat?: string };
 
@@ -65,17 +66,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Promis
       <PageHeader title="Items" description={<>{list.length} item{list.length === 1 ? "" : "s"} at <b>{location.name}</b></>}
         actions={<><ButtonLink href="/library/import" variant="secondary">Import CSV</ButtonLink><ButtonLink href={qs({ new: "1" })}>New item</ButtonLink></>} />
 
-      <form className="mb-4 flex flex-wrap gap-2" role="search">
-        <input name="q" defaultValue={sp.q} placeholder="Search items…" aria-label="Search items"
-          className="h-10 w-64 max-w-full rounded-lg border border-line bg-surface px-3 outline-none focus:border-accent" />
-        <select name="cat" defaultValue={sp.cat ?? ""} aria-label="Category"
-          className="h-10 rounded-lg border border-line bg-surface px-2.5 outline-none focus:border-accent">
-          <option value="">All categories</option>
-          <option value="none">Uncategorised</option>
-          {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <button className="h-10 rounded-lg border border-line bg-surface px-4 text-sm font-semibold hover:bg-surface-2">Filter</button>
-      </form>
+      <ItemFilters categories={categories ?? []} />
 
       {list.length ? (
         <ItemList items={list} targets={locations.filter((l) => l.id !== location.id).map((l) => ({ id: l.id, name: l.name }))}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireOwner } from "@/lib/session";
-import { Badge, ButtonLink, Field, PageHeader, Panel, Table, TextArea, Toggle } from "@/components/ui";
+import { ButtonLink, Field, PageHeader, Panel, RowLink, Table, TextArea, Toggle } from "@/components/ui";
+import { StatusSwitch } from "@/components/status-switch";
 import { EditorForm } from "@/components/editor-form";
 import { saveLocation } from "./actions";
 import { LogoInput } from "./logo-input";
@@ -19,14 +20,14 @@ export default async function LocationsPage({ searchParams }: { searchParams: Pr
       <PageHeader title="Locations"
         description="Each location has its own menu, prices, staff access, settings and sales. Nothing is shared unless you copy it."
         actions={<ButtonLink href={`${BASE}?new=1`}>Add location</ButtonLink>} />
-      <Table head={["Name", "Address", "Phone", "Status"]}>
+      <Table head={["Name", "Address", "Phone", "Status"]} rows="link">
         {allLocations.map((l) => (
-          <tr key={l.id} className="hover:bg-surface-2/60">
-            <td className="px-4 py-3 font-medium"><Link href={`${BASE}?edit=${l.id}`} scroll={false} className="hover:underline">{l.name}</Link></td>
-            <td className="px-4 py-3 text-ink-2">{l.address ?? "—"}</td>
-            <td className="px-4 py-3 text-ink-2">{l.phone ?? "—"}</td>
-            <td className="px-4 py-3">{l.is_active ? <Badge tone="accent">Active</Badge> : <Badge>Closed</Badge>}</td>
-          </tr>
+          <RowLink key={l.id} href={`${BASE}?edit=${l.id}`}>
+            <td className="px-4 py-3.5 font-medium"><Link href={`${BASE}?edit=${l.id}`} scroll={false}>{l.name}</Link></td>
+            <td className="px-4 py-3.5 text-ink-2">{l.address ?? "—"}</td>
+            <td className="px-4 py-3.5 text-ink-2">{l.phone ?? "—"}</td>
+            <td className="px-4 py-3.5"><StatusSwitch list="locations" id={l.id} name={l.name} active={l.is_active} on="Open" off="Closed" /></td>
+          </RowLink>
         ))}
       </Table>
 

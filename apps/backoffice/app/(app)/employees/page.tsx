@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireOwner } from "@/lib/session";
-import { Badge, ButtonLink, EmptyState, Field, PageHeader, Panel, Select, Table, Toggle } from "@/components/ui";
+import { Badge, ButtonLink, Checkbox, EmptyState, Field, PageHeader, Panel, RowLink, Select, Table, Toggle } from "@/components/ui";
+import { StatusSwitch } from "@/components/status-switch";
 import { EditorForm } from "@/components/editor-form";
 import { deleteEmployee, saveEmployee } from "./actions";
 
@@ -34,16 +35,16 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
       <PageHeader title="Employee slots" description="Staff who use the POS (each unlocks the tablet with their own 4-digit PIN), and who may sign in to the backoffice."
         actions={<ButtonLink href={`${BASE}?new=1`}>Add employee</ButtonLink>} />
       {emps?.length ? (
-        <Table head={["Name", "Role", "Locations", "PIN", "Backoffice", "Status"]}>
+        <Table head={["Name", "Role", "Locations", "PIN", "Backoffice", "Status"]} rows="link">
           {emps.map((e) => (
-            <tr key={e.id} className="hover:bg-surface-2/60">
-              <td className="px-4 py-3 font-medium"><Link href={`${BASE}?edit=${e.id}`} scroll={false} className="hover:underline">{e.name}</Link></td>
-              <td className="px-4 py-3 text-ink-2">{e.roles?.name}</td>
-              <td className="px-4 py-3 text-ink-2">{e.employee_locations.map((l) => locName.get(l.location_id)).filter(Boolean).join(", ") || "—"}</td>
-              <td className="px-4 py-3">{e.has_pin ? <Badge tone="accent">Set</Badge> : <Badge tone="danger">Missing</Badge>}</td>
-              <td className="px-4 py-3 text-sm">{backoffice(e)}</td>
-              <td className="px-4 py-3">{e.is_active ? <Badge tone="accent">Active</Badge> : <Badge>Inactive</Badge>}</td>
-            </tr>
+            <RowLink key={e.id} href={`${BASE}?edit=${e.id}`}>
+              <td className="px-4 py-3.5 font-medium"><Link href={`${BASE}?edit=${e.id}`} scroll={false}>{e.name}</Link></td>
+              <td className="px-4 py-3.5 text-ink-2">{e.roles?.name}</td>
+              <td className="px-4 py-3.5 text-ink-2">{e.employee_locations.map((l) => locName.get(l.location_id)).filter(Boolean).join(", ") || "—"}</td>
+              <td className="px-4 py-3.5">{e.has_pin ? <Badge tone="accent">Set</Badge> : <Badge tone="danger">Missing</Badge>}</td>
+              <td className="px-4 py-3.5 text-sm">{backoffice(e)}</td>
+              <td className="px-4 py-3.5"><StatusSwitch list="employees" id={e.id} name={e.name} active={e.is_active} off="Inactive" /></td>
+            </RowLink>
           ))}
         </Table>
       ) : <EmptyState title="No employees yet">Add your cashiers so each sale and shift is recorded under their name.</EmptyState>}
@@ -57,28 +58,22 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
             <Field label="Email (for backoffice sign-in)" name="email" type="email" defaultValue={editing?.email ?? ""} maxLength={120}
               hint="Only needed when the role has backoffice permissions. The employee then creates their login on the sign-in page with this email." />
             {editing && <p className="-mt-2 text-sm">{backoffice(editing)}</p>}
-            <Select label="Role" name="role_id" defaultValue={editing?.role_id ?? roles?.find((r) => r.name === "Cashier")?.id} required>
-              {roles?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </Select>
+            <Select label="Role" name="role_id" defaultValue={editing?.role_id ?? roles?.find((r) => r.name === "Cashier")?.id}
+              options={(roles ?? []).map((r) => ({ value: r.id, label: r.name, hint: r.backoffice_pages.length ? "POS & backoffice" : "POS only" }))} />
             <fieldset>
               <legend className="mb-1.5 text-sm font-medium text-ink-2">Works at</legend>
               <div className="flex flex-wrap gap-x-5 gap-y-2">
                 {allLocations.map((l) => (
-                  <label key={l.id} className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="location" value={l.id} defaultChecked={assigned.has(l.id)} className="accent-[var(--accent)]" />
-                    {l.name}
-                  </label>
+                  <Checkbox key={l.id} name="location" value={l.id} defaultChecked={assigned.has(l.id)} label={l.name} className="text-sm" />
                 ))}
               </div>
             </fieldset>
             <div>
               <Field label={editing?.has_pin ? "New PIN (leave empty to keep current)" : "PIN"} name="pin" inputMode="numeric"
-                pattern="\d{4}" maxLength={4} autoComplete="off" placeholder="4 digits" required={!editing}
+                pattern="\d{4}" title="use exactly 4 digits." maxLength={4} autoComplete="off" placeholder="4 digits" required={!editing}
                 hint="Must be different from every other employee's PIN." />
               {editing?.has_pin && (
-                <label className="mt-2 flex items-center gap-2 text-sm text-ink-2">
-                  <input type="checkbox" name="clear_pin" className="accent-[var(--accent)]" /> Remove PIN (employee can&apos;t unlock the POS)
-                </label>
+                <Checkbox name="clear_pin" label="Remove PIN (employee can’t unlock the POS)" className="mt-2 text-sm text-ink-2" />
               )}
             </div>
             <Toggle label="Active" name="is_active" defaultChecked={editing?.is_active ?? true} />

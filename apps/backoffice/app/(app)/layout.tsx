@@ -4,6 +4,7 @@ import { canOpen, currentPath, getSession } from "@/lib/session";
 import { LocationSwitcher } from "@/components/location-switcher";
 import { Nav, type NavGroup } from "@/components/nav";
 import { AppShell } from "@/components/app-shell";
+import { PageFade } from "@/components/page-fade";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, membership, role, isOwner, canManage, locations, location, pages } = await getSession();
@@ -74,7 +75,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </form>
       </AppShell>
       <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-10 lg:py-9">
-        {allowedHere ? children : (
+        {allowedHere ? <PageFade>{children}</PageFade> : (
           <div className="mx-auto max-w-md rounded-2xl border border-line bg-surface p-6 text-center">
             <p className="font-semibold">You don’t have access to this page</p>
             <p className="mt-1 text-sm text-ink-2">Your role doesn’t include it. Ask the owner to change your access under Employees → Employee access.</p>

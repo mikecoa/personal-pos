@@ -41,3 +41,36 @@ body {
 }
 /* Numbers line up in tables and totals. */
 td, .tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* ── Subtle motion. Everything is short and switched off for people who prefer less motion. ── */
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes slide-in { from { opacity: 0.6; transform: translateX(32px); } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(8px) scale(0.97); } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
+.anim-fade { animation: fade-in 180ms ease-out both; }
+/* "backwards": no transform is left behind afterwards (a transform would trap fixed panels inside). */
+.anim-rise { animation: rise-in 260ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+.anim-slide { animation: slide-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.anim-pop { animation: pop-in 140ms ease-out both; transform-origin: top; }
+.anim-pop.origin-bottom { transform-origin: bottom; }
+.anim-dialog { animation: dialog-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.anim-toast { animation: toast-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+/* Table rows appear one after another, very quickly. */
+.anim-rows > tr { animation: rise-in 240ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+.anim-rows > tr:nth-child(2) { animation-delay: 15ms; } .anim-rows > tr:nth-child(3) { animation-delay: 30ms; }
+.anim-rows > tr:nth-child(4) { animation-delay: 45ms; } .anim-rows > tr:nth-child(5) { animation-delay: 60ms; }
+.anim-rows > tr:nth-child(n + 6) { animation-delay: 75ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* Our own focus and selection colours instead of the browser's. */
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
+button:focus-visible, a:focus-visible, [role="switch"]:focus-visible { outline-offset: 2px; }
+input:focus-visible, textarea:focus-visible { outline: none; }
+/* Thin, quiet scrollbars. */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--ink-2) 35%, transparent) transparent; }

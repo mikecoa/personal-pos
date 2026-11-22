@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { Disclosure } from "../controls";
 
 type Datum = { label: string; value: number; detail?: string };
 
@@ -72,14 +73,13 @@ export function ColumnChart({ data, kind = "money", title, height = 220, labelEv
           </div>
         )}
       </div>
-      <details className="mt-1 text-sm">
-        <summary className="cursor-pointer text-xs text-ink-2">Show as table</summary>
+      <Disclosure summary="Show as table">
         <table className="mt-2 w-full text-left text-sm">
           <tbody className="divide-y divide-line">
             {data.map((d) => <tr key={d.label}><td className="py-1 pr-4">{d.label}</td><td className="py-1 text-right tabular-nums">{format(d.value)}</td><td className="py-1 pl-4 text-ink-2">{d.detail}</td></tr>)}
           </tbody>
         </table>
-      </details>
+      </Disclosure>
     </figure>
   );
 }

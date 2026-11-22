@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireManage } from "@/lib/session";
-import { ButtonLink, EmptyState, Field, PageHeader, Panel, Table } from "@/components/ui";
+import { ButtonLink, Checkbox, EmptyState, Field, PageHeader, Panel, RowLink, Table } from "@/components/ui";
 import { EditorForm } from "@/components/editor-form";
 import { deleteQuickNote, moveQuickNote, saveQuickNote } from "./actions";
 
@@ -23,12 +23,12 @@ export default async function QuickNotesPage({ searchParams }: { searchParams: P
         description={<>One-tap note buttons on the tablet at <b>{location.name}</b> (e.g. “Less sugar”). The first ones are the quickest to reach.</>}
         actions={<ButtonLink href={`${BASE}?new=1`}>New note</ButtonLink>} />
       {notes?.length ? (
-        <Table head={["Note", "Shows on", "Order"]}>
+        <Table head={["Note", "Shows on", "Order"]} rows="link">
           {notes.map((n, i) => (
-            <tr key={n.id} className="hover:bg-surface-2/60">
-              <td className="px-4 py-3 font-medium"><Link href={`${BASE}?edit=${n.id}`} scroll={false} className="hover:underline">{n.text}</Link></td>
-              <td className="px-4 py-3 text-ink-2">{n.category_ids.length ? n.category_ids.map((id: string) => catName.get(id)).filter(Boolean).join(", ") : "All items"}</td>
-              <td className="px-4 py-3">
+            <RowLink key={n.id} href={`${BASE}?edit=${n.id}`}>
+              <td className="px-4 py-3.5 font-medium"><Link href={`${BASE}?edit=${n.id}`} scroll={false}>{n.text}</Link></td>
+              <td className="px-4 py-3.5 text-ink-2">{n.category_ids.length ? n.category_ids.map((id: string) => catName.get(id)).filter(Boolean).join(", ") : "All items"}</td>
+              <td className="px-4 py-2.5">
                 <div className="flex gap-1">
                   <form action={moveQuickNote}><input type="hidden" name="id" value={n.id} /><input type="hidden" name="dir" value="up" />
                     <button className={arrow} disabled={i === 0} aria-label={`Move ${n.text} up`}>↑</button></form>
@@ -36,7 +36,7 @@ export default async function QuickNotesPage({ searchParams }: { searchParams: P
                     <button className={arrow} disabled={i === notes.length - 1} aria-label={`Move ${n.text} down`}>↓</button></form>
                 </div>
               </td>
-            </tr>
+            </RowLink>
           ))}
         </Table>
       ) : (
@@ -54,10 +54,8 @@ export default async function QuickNotesPage({ searchParams }: { searchParams: P
               <p className="mb-2 text-xs text-ink-2">Leave all unticked to show it for every item. Tick categories to show it only there (e.g. sugar notes for drinks).</p>
               <div className="grid grid-cols-2 gap-2">
                 {(categories ?? []).map((c) => (
-                  <label key={c.id} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                    <input type="checkbox" name="category_ids" value={c.id} defaultChecked={editing?.category_ids.includes(c.id)} className="h-4 w-4 accent-[var(--color-accent)]" />
-                    {c.name}
-                  </label>
+                  <Checkbox key={c.id} name="category_ids" value={c.id} defaultChecked={editing?.category_ids.includes(c.id)} label={c.name}
+                    className="items-center rounded-lg border border-line px-3 py-2.5 text-sm transition-colors hover:bg-surface-2 has-[:checked]:border-accent/40 has-[:checked]:bg-accent-soft/60" />
                 ))}
               </div>
             </fieldset>
