@@ -4,6 +4,8 @@ import { requireManage } from "@/lib/session";
 import { receiptLinks } from "@pos/core";
 import { bool, fail, ok, str, type ActionState } from "@/lib/actions";
 
+const okLogo = (v: string) => v.length <= 300_000 && /^data:image\/(png|jpeg|webp);base64,/.test(v);
+
 export async function saveReceipt(_: ActionState, form: FormData): Promise<ActionState> {
   const { supabase, location, isOwner } = await requireManage();
   const header = str(form, "header_name");
@@ -30,10 +32,17 @@ export async function saveReceipt(_: ActionState, form: FormData): Promise<Actio
   }).eq("location_id", location.id);
   if (error) return fail(error);
 
-  // The logo lives on the location (the tablets show it too); only the owner may change it.
+  // A receipt-only logo, or none (= use the location's logo).
+  const receiptLogo = str(form, "logo_mode") === "own" ? str(form, "receipt_logo") || null : null;
+  if (receiptLogo && !okLogo(receiptLogo)) return fail("That logo can't be used. Try a PNG, JPG or WebP image.");
+  if (str(form, "logo_mode") === "own" && !receiptLogo) return fail("Upload the receipt logo, or choose “Same as location”.");
+  const { error: rlError } = await supabase.from("receipt_profiles").update({ logo: receiptLogo }).eq("location_id", location.id);
+  if (rlError) return fail(rlError);
+
+  // The location logo lives on the location (the tablets show it too); only the owner may change it.
   if (form.has("logo") && isOwner) {
     const logo = str(form, "logo") || null;
-    if (logo && (logo.length > 300_000 || !/^data:image\/(png|jpeg|webp);base64,/.test(logo))) return fail("That logo can't be used. Try a PNG, JPG or WebP image.");
+    if (logo && !okLogo(logo)) return fail("That logo can't be used. Try a PNG, JPG or WebP image.");
     const { error: logoError } = await supabase.from("locations").update({ logo }).eq("id", location.id);
     if (logoError) return fail(logoError);
     revalidatePath("/", "layout");

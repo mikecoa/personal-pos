@@ -21,10 +21,13 @@ const SAMPLE = [
 const rp = (n: number) => `Rp. ${Math.abs(n).toLocaleString("id-ID")}`;
 const pct = (bp: number) => `${(bp / 100).toLocaleString("id-ID")} %`;
 
-export function ReceiptEditor({ initial, logo: initialLogo, canEditLogo, settings, discount }: {
-  initial: Profile; logo: string | null; canEditLogo: boolean; settings: Settings | null; discount: Discount | null;
+export function ReceiptEditor({ initial, logo: initialLogo, receiptLogo: initialReceiptLogo, canEditLogo, settings, discount }: {
+  initial: Profile; logo: string | null; receiptLogo: string | null; canEditLogo: boolean; settings: Settings | null; discount: Discount | null;
 }) {
   const [logo, setLogo] = useState(initialLogo ?? "");
+  const [receiptLogo, setReceiptLogo] = useState(initialReceiptLogo ?? "");
+  const [own, setOwn] = useState(!!initialReceiptLogo);
+  const shownLogo = own ? receiptLogo : logo;
   // The boxes show "@" in front, so keep handles without their own "@".
   const [p, setP] = useState(() => ({ ...initial, instagram: initial.instagram?.replace(/^@/, "") ?? null, tiktok: initial.tiktok?.replace(/^@/, "") ?? null }));
   const set = (k: keyof Profile) => (e: { target: { value: string; checked?: boolean; type?: string } }) =>
@@ -47,19 +50,33 @@ export function ReceiptEditor({ initial, logo: initialLogo, canEditLogo, setting
     <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
       <Card title="Receipt details">
         <div className="space-y-4">
-          {canEditLogo ? (
-            <LogoInput initial={initialLogo} onChange={setLogo} label="Outlet logo" hint="Shown on the POS tablets and in the receipt preview (paper receipts print text only for now)." />
-          ) : (
-            <div>
-              <span className="mb-1.5 block text-sm font-medium text-ink">Outlet logo</span>
+          <div>
+            <span className="mb-1.5 block text-sm font-medium text-ink">Logo on receipt</span>
+            <input type="hidden" name="logo_mode" value={own ? "own" : "location"} />
+            <div role="radiogroup" aria-label="Logo on receipt" className="mb-3 inline-flex rounded-lg border border-line bg-surface p-1">
+              {([[false, "Same as location"], [true, "Different logo"]] as const).map(([v, label]) => (
+                <button key={label} type="button" role="radio" aria-checked={own === v} onClick={() => setOwn(v)}
+                  className={`rounded-md px-3.5 py-1.5 text-sm font-semibold transition-colors duration-150 ${own === v ? "bg-accent text-accent-ink" : "text-ink-2 hover:text-ink"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {own ? (
+              <LogoInput key="own" name="receipt_logo" initial={initialReceiptLogo} onChange={setReceiptLogo} label="Receipt logo"
+                hint="Used on receipts only. The location keeps its own logo on the tablets." />
+            ) : canEditLogo ? (
+              <LogoInput key="loc" initial={initialLogo} onChange={setLogo} label="Location logo"
+                hint="Shown on the POS tablets and on receipts. Changing it here changes it in Locations too." />
+            ) : (
               <div className="flex items-center gap-4 rounded-xl border border-line bg-surface-2/50 p-4">
                 <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-white">
-                  {logo ? <img src={logo} alt="Outlet logo" className="h-full w-full object-contain p-1.5" /> : <span className="text-xs text-ink-2">No logo</span>}
+                  {logo ? <img src={logo} alt="Location logo" className="h-full w-full object-contain p-1.5" /> : <span className="text-xs text-ink-2">No logo</span>}
                 </div>
-                <p className="text-sm text-ink-2">Only the owner can change the logo.</p>
+                <p className="text-sm text-ink-2">The location&apos;s logo. Only the owner can change it, or pick “Different logo” to use another one on receipts.</p>
               </div>
-            </div>
-          )}
+            )}
+            <p className="mt-2 text-xs text-ink-2">Paper receipts print text only for now; the logo shows in the preview and will print once logo printing is added.</p>
+          </div>
           <Field label="Business name on receipt" name="header_name" value={p.header_name} onChange={set("header_name")} required maxLength={60} />
           <TextArea label="Address" name="address" value={p.address ?? ""} onChange={set("address")} maxLength={200} />
           <Field label="Phone" name="phone" value={p.phone ?? ""} onChange={set("phone")} maxLength={40} />
@@ -82,7 +99,7 @@ export function ReceiptEditor({ initial, logo: initialLogo, canEditLogo, setting
         <div className="rounded-2xl bg-surface-2 p-4 sm:p-5">
           <div aria-label="Receipt preview" className="anim-fade rounded-lg bg-white px-6 py-7 text-[13px] leading-snug text-[#2b2b2b] shadow-[0_1px_3px_rgba(1,33,51,0.08)]">
             <header className="text-center">
-              {logo && <img src={logo} alt="" className="mx-auto mb-3 h-24 w-24 rounded-full bg-[#e9dcc4] object-contain p-1" />}
+              {shownLogo && <img src={shownLogo} alt="" className="anim-fade mx-auto mb-3 h-24 w-24 rounded-full object-contain" />}
               <p className="text-[20px] font-bold leading-tight text-[#222]">{p.header_name || "Business name"}</p>
               {p.address && <p className="mt-2 whitespace-pre-line text-[12.5px] text-[#555]">{p.address}</p>}
               {p.phone && (
