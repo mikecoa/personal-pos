@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { type ComponentProps, useMemo, useState } from "react";
-import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { can, clearOrder, guard, notify, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
@@ -34,7 +34,10 @@ export function Sell() {
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [modal, setModal] = useState<Modal>(null);
-  const [gridW, setGridW] = useState(800);
+  // Start at the real width (remembered, or worked out from the screen) so tiles don't resize on open.
+  const { width: screenW } = useWindowDimensions();
+  const [gridW, setGridW] = useState(() => lastGridW ?? screenW - RAIL_W - CART_W - 32);
+  const [measured, setMeasured] = useState(lastGridW !== null);
   const [editingMenu, setEditingMenu] = useState(false);       // tap items/categories to edit them
   const canEditMenu = can("items_manage");
 
@@ -143,7 +146,11 @@ export function Sell() {
         {editingMenu && (
           <Muted style={{ fontSize: 14 }}>{t("Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.")}</Muted>
         )}
-        <View style={{ flex: 1 }} onLayout={(e) => setGridW(e.nativeEvent.layout.width)}>
+        <View style={{ flex: 1, opacity: measured ? 1 : 0 }} onLayout={(e) => {
+          const w = Math.round(e.nativeEvent.layout.width);
+          lastGridW = w; setMeasured(true);
+          if (Math.abs(w - gridW) > 1) setGridW(w);
+        }}>
           <FlatList
             // Remount when the layout changes: Android doesn't redraw pinned headers whose positions moved.
             key={`${editingMenu ? "edit" : "sell"}-${cat ?? "all"}-${cols}-${q ? "q" : ""}`}
@@ -359,6 +366,10 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
   );
 }
 
+
+/** Width of the menu grid the last time it was measured (the layout doesn't change between visits). */
+let lastGridW: number | null = null;
+const RAIL_W = 96, CART_W = 400;                 // side menu and order panel widths (borders included)
 
 const noteBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, alignSelf: "flex-start" as const, minHeight: 40, marginTop: 4,
   paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderStyle: "dashed" as const, borderColor: c.line };
