@@ -5,7 +5,7 @@
 Point of sale for our cafés: a web **backoffice** and an Android tablet **POS app**. One account with many locations whose data is kept separate.
 
 - **Backoffice:** https://ordapos.vercel.app
-- **Tablet app (APK):** [download the latest release](https://github.com/mikecoa/personal-pos/releases/latest). Copy it to the tablet and tap it to install; a newer version installs over the old one and keeps the tablet's data.
+- **Tablet app (APK):** [download the latest release](https://github.com/mikecoa/personal-pos/releases/latest). Copy it to the tablet or phone and tap it to install. From 1.0.1 on, the app offers new versions itself.
 
 - Research: [docs/moka-study.md](docs/moka-study.md)
 - Plan: [docs/mvp-plan.md](docs/mvp-plan.md)
@@ -32,13 +32,17 @@ supabase/tests       pgTAP tests proving location isolation
 ## Releasing
 
 ```bash
-scripts/deploy-web.sh                       # publish the backoffice to Vercel
-supabase db push --remote                   # first, when there are new migrations
-scripts/build-apk.sh                        # build dist/orda-<version>.apk for the live system
-gh release create v<version> dist/orda-<version>.apk --title "Orda <version>"   # publish it for download
+supabase db push --remote          # first, when there are new migrations
+scripts/deploy-web.sh              # publish the backoffice to Vercel
+scripts/release-app.sh "What's new"   # build + publish a new tablet app version
 ```
 
-Before building a new app release, bump `version` and `android.versionCode` (1, 2, 3 …) in `apps/pos/app.json`, so Android treats it as an update.
+Before `release-app.sh`, bump `version` and `android.versionCode` (1, 2, 3 …) in `apps/pos/app.json`.
+The script builds `dist/orda-<version>.apk`, uploads it with a `latest.json` to the public
+`app-releases` storage bucket, and attaches it to a GitHub release. Tablets and phones running Orda
+1.0.1 or later then offer the update by themselves (when the app opens or comes back to the front,
+and never in the middle of an order); Android asks once to allow installing from Orda, and shows its
+own confirmation for every update.
 
 ## Run locally
 

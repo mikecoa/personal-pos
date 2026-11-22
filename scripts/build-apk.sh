@@ -21,7 +21,9 @@ export EXPO_PUBLIC_SUPABASE_ANON_KEY="$(cd "$root" && supabase projects api-keys
 cd "$root/apps/pos"
 # Refresh the native project from app.json every time, so the name and icons are always current.
 npx expo prebuild -p android --no-install
-(cd android && ./gradlew --no-daemon assembleRelease)
+# 64-bit ARM only: every current phone and tablet (and Apple-silicon emulators) uses it, and it
+# keeps the APK well under the 50 MB limit of the in-app update storage. ORDA_ABIS overrides it.
+(cd android && ./gradlew --no-daemon assembleRelease -PreactNativeArchitectures="${ORDA_ABIS:-arm64-v8a}")
 
 version="$(node -p 'require("./app.json").expo.version')"
 mkdir -p "$root/dist"

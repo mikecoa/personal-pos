@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, KeyboardAvoidingView, Pressable, Text, View } from "react-native";
+import { Image, KeyboardAvoidingView, Pressable, ScrollView, Text, View } from "react-native";
 import { manageableLocations, registerDevice, signIn } from "../lib/store";
 import { Btn, Field, H, Muted } from "../ui/kit";
 import { c, r } from "../ui/theme";
@@ -21,8 +21,9 @@ export function Setup() {
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <View style={{ width: 460, gap: 18 }}>
+      {/* Phones: full width with side margins, scrolls above the keyboard. Tablets: a 460-wide column. */}
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 20, paddingVertical: 32 }}>
+      <View style={{ width: "100%", maxWidth: 460, gap: 18 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Image source={require("../../assets/icon.png")} style={{ width: 52, height: 52, borderRadius: 13 }} accessibilityLabel="Orda" />
           <Text style={{ color: c.accent, fontSize: 30, fontWeight: "700", letterSpacing: -0.5 }}>orda</Text>
@@ -56,7 +57,7 @@ export function Setup() {
           </>
         )}
       </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
