@@ -5,6 +5,7 @@ import type { DiningTable, OrderDoc } from "../lib/types";
 import { Btn, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { FloorBoard } from "./FloorBoard";
+import { t } from "../lib/i18n";
 
 const NO_AREA = "none";
 const ago = (iso: string) => {
@@ -71,28 +72,27 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
   const hold = (_t: DiningTable) => { if (!editing && canEdit) startEditing(); };
   const [rowW, setRowW] = useState(0);
 
-  const tap = (t: DiningTable) => {
+  const tap = (tb: DiningTable) => {
     setNotice(null);
-    if (editing) return toggle(t);
-    const bills = billsAt(t.id);
+    if (editing) return toggle(tb);
+    const bills = billsAt(tb.id);
     if (mode === "move") {
-      if (t.id === order?.table_id) return setNotice(`The bill is already at ${t.name}.`);
-      if (bills.length) return setNotice(`${t.name} is in use. Pick a free table.`);
-      moveToTable(t); onClose(); return;
+      if (tb.id === order?.table_id) return setNotice(t("The bill is already at {name}.", { name: tb.name }));
+      if (bills.length) return setNotice(t("{name} is in use. Pick a free table.", { name: tb.name }));
+      moveToTable(tb); onClose(); return;
     }
     if (bills.length === 0) {
-      if (order && order.version > 0) return setNotice("Save or close the bill on screen before starting a new table.");
-      return setPanel({ kind: "seat", table: t });
+      if (order && order.version > 0) return setNotice(t("Save or close the bill on screen before starting a new table."));
+      return setPanel({ kind: "seat", table: tb });
     }
     if (bills.length === 1) { openBill(bills[0]!.id); onClose(); return; }
-    setPanel({ kind: "bills", table: t, bills });
+    setPanel({ kind: "bills", table: tb, bills });
   };
 
-  const title = editing ? "Edit tables" : mode === "move" ? `Move ${order?.table_id ? tableLabel(order) : "bill"} to…` : "Tables";
+  const title = editing ? t("Edit tables") : mode === "move" ? t("Move {v0} to…", { v0: order?.table_id ? tableLabel(order) : "bill" }) : t("Tables");
   const subtitle = editing
-    ? (selectedTables.length ? `${selectedTables.length} selected` : "Tap tables to select them")
-    : mode === "move" ? "Pick a free table"
-    : tables.length ? `${totalBusy} of ${tables.length} in use${canEdit ? " · hold a table or area to edit it" : ""}` : "";
+    ? (selectedTables.length ? t("{length} selected", { length: selectedTables.length }) : t("Tap tables to select them"))
+    : mode === "move" ? t("Pick a free table") : tables.length ? t("{totalBusy} of {length} in use{v2}", { totalBusy, length: tables.length, v2: canEdit ? t(" · hold a table or area to edit it") : "" }) : "";
   const allShownSelected = shown.length > 0 && shown.every((t) => selection.includes(t.id));
   const showTabs = areas.length > 0 || editing;
 
@@ -105,12 +105,12 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
               {!!subtitle && <Text style={st.sub}>{subtitle}</Text>}
             </View>
             {editing && shown.length > 0 && (
-              <Btn kind="ghost" title={allShownSelected ? "Clear" : "Select all"}
+              <Btn kind="ghost" title={allShownSelected ? t("Clear") : t("Select all")}
                 onPress={() => { setPanel(null); setSelection(allShownSelected ? selection.filter((id) => !shown.some((t) => t.id === id))
                   : [...new Set([...selection, ...shown.map((t) => t.id)])]); }} />
             )}
             {canEdit && (
-              <Btn kind={editing ? "primary" : "secondary"} title={editing ? "Done" : "Edit tables"} onPress={() => (editing ? stopEditing() : startEditing())} />
+              <Btn kind={editing ? "primary" : "secondary"} title={editing ? t("Done") : t("Edit tables")} onPress={() => (editing ? stopEditing() : startEditing())} />
             )}
             {!page && (
               <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12} style={{ paddingLeft: 8 }}>
@@ -129,10 +129,10 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
                     hint={editing && currentArea === a.id ? "✎" : undefined} onLongPress={() => holdArea(a.id)} />
                 ))}
                 {(hasNoArea || (editing && !areas.length)) && (
-                  <Tab label={areas.length ? "No area" : "All tables"} count={editing ? 0 : busyIn(NO_AREA)} active={currentArea === NO_AREA}
+                  <Tab label={areas.length ? t("No area") : t("All tables")} count={editing ? 0 : busyIn(NO_AREA)} active={currentArea === NO_AREA}
                     onPress={() => { setArea(NO_AREA); setSelection([]); setPanel(null); }} />
                 )}
-                {editing && <Tab label="+ Area" muted active={panel?.kind === "area" && panel.id === null} onPress={() => { setSelection([]); setPanel({ kind: "area", id: null }); }} />}
+                {editing && <Tab label={t("+ Area")} muted active={panel?.kind === "area" && panel.id === null} onPress={() => { setSelection([]); setPanel({ kind: "area", id: null }); }} />}
               </ScrollView>
             </View>
           )}
@@ -148,11 +148,11 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
                   onAdd={editing ? () => { setSelection([]); setPanel({ kind: "new" }); } : undefined} addActive={panel?.kind === "new"}
                   onLayoutChange={(cells) => { setNotice(null); saveLayout(cells).catch((e) => setNotice((e as Error).message)); }} />
               )}
-              {editing && shown.length > 1 && <Muted style={{ fontSize: 13 }}>Drag a table to move it on the map. Drop it on another table to swap them.</Muted>}
+              {editing && shown.length > 1 && <Muted style={{ fontSize: 13 }}>{t("Drag a table to move it on the map. Drop it on another table to swap them.")}</Muted>}
               {!shown.length && !editing && (
                 <View style={st.empty}>
-                  <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }}>No tables here yet</Text>
-                  <Muted>{canEdit ? "Tap Edit tables to add some." : "A manager can add tables from this screen or the backoffice."}</Muted>
+                  <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }}>{t("No tables here yet")}</Text>
+                  <Muted>{canEdit ? t("Tap Edit tables to add some.") : t("A manager can add tables from this screen or the backoffice.")}</Muted>
                 </View>
               )}
             </ScrollView>
@@ -229,16 +229,16 @@ function SeatPanel({ table, onCancel, onDone }: { table: DiningTable; onCancel: 
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   return (
-    <PanelShell title={`Table ${table.name}`} sub={`${table.seats} seats`}
-      footer={<><Btn kind="secondary" title="Cancel" onPress={onCancel} />
-        <Btn style={{ flex: 1 }} title="Start bill"
-          onPress={() => guard("open_bills_manage", `Start a bill at table ${table.name}`, () => { try { seatAtTable(table, guests, name.trim() || null); onDone(); } catch (e) { setError((e as Error).message); } })} /></>}>
+    <PanelShell title={t("Table {name}", { name: table.name })} sub={t("{seats} seats", { seats: table.seats })}
+      footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onCancel} />
+        <Btn style={{ flex: 1 }} title={t("Start bill")}
+          onPress={() => guard("open_bills_manage", t("Start a bill at table {name}", { name: table.name }), () => { try { seatAtTable(table, guests, name.trim() || null); onDone(); } catch (e) { setError((e as Error).message); } })} /></>}>
       <View style={st.rowBetween}>
-        <Label>Guests</Label>
+        <Label>{t("Guests")}</Label>
         <Stepper value={guests} min={1} onChange={setGuests} />
       </View>
-      {guests > table.seats && <Muted style={{ fontSize: 13 }}>{`More than the ${table.seats} seats here.`}</Muted>}
-      <Field label="Customer name (optional)" value={name} onChangeText={setName} placeholder="e.g. Pak Budi" maxLength={40} />
+      {guests > table.seats && <Muted style={{ fontSize: 13 }}>{t("More than the {seats} seats here.", { seats: table.seats })}</Muted>}
+      <Field label={t("Customer name (optional)")} value={name} onChangeText={setName} placeholder={t("e.g. Pak Budi")} maxLength={40} />
       <Err msg={error} />
     </PanelShell>
   );
@@ -246,13 +246,13 @@ function SeatPanel({ table, onCancel, onDone }: { table: DiningTable; onCancel: 
 
 function BillsPanel({ table, bills, onPick, onCancel }: { table: DiningTable; bills: OrderDoc[]; onPick: (id: string) => void; onCancel: () => void }) {
   return (
-    <PanelShell title={`Table ${table.name}`} sub={`${bills.length} open bills`} footer={<Btn kind="secondary" style={{ flex: 1 }} title="Back" onPress={onCancel} />}>
+    <PanelShell title={t("Table {name}", { name: table.name })} sub={t("{length} open bills", { length: bills.length })} footer={<Btn kind="secondary" style={{ flex: 1 }} title={t("Back")} onPress={onCancel} />}>
       {bills.map((b) => (
         <Pressable key={b.id} onPress={() => onPick(b.id)} accessibilityRole="button" accessibilityLabel={`Open ${b.customer_name ?? b.number}`}
           style={({ pressed }) => [st.billRow, pressed && { backgroundColor: c.surface2 }]}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: "700", color: c.ink }}>{b.customer_name ?? b.number}</Text>
-            <Muted style={{ fontSize: 13 }}>{`${b.guests ? `${b.guests} guests · ` : ""}${ago(b.opened_at)}`}</Muted>
+            <Muted style={{ fontSize: 13 }}>{`${b.guests ? `${t("{n} guests", { n: b.guests })} · ` : ""}${ago(b.opened_at)}`}</Muted>
           </View>
           <Text style={{ fontWeight: "700", color: c.ink }}>{money(b.total)}</Text>
         </Pressable>
@@ -291,19 +291,19 @@ function TableEditor({ table, areaId, suggest, onDone }: {
   const remove = () => (confirmDelete ? run(() => editFloorPlan({ kind: "table", op: "delete", id: table!.id })) : setConfirmDelete(true));
 
   return (
-    <PanelShell title={table ? `Table ${table.name}` : "New table"} sub={inUse ? "In use now" : undefined}
+    <PanelShell title={table ? t("Table {name}", { name: table.name }) : t("New table")} sub={inUse ? t("In use now") : undefined}
       footer={<>
-        {table && <Btn kind="danger" title={confirmDelete ? "Tap to confirm" : "Delete"} disabled={busy || inUse} onPress={remove} />}
-        <Btn style={{ flex: 1 }} title={table ? "Save" : "Add table"} loading={busy} disabled={!name.trim()} onPress={save} />
+        {table && <Btn kind="danger" title={confirmDelete ? t("Tap to confirm") : t("Delete")} disabled={busy || inUse} onPress={remove} />}
+        <Btn style={{ flex: 1 }} title={table ? t("Save") : t("Add table")} loading={busy} disabled={!name.trim()} onPress={save} />
       </>}>
-      <Field label="Name" value={name} onChangeText={(v) => { setName(v); setConfirmDelete(false); }} maxLength={20} autoCapitalize="characters" selectTextOnFocus />
+      <Field label={t("Name")} value={name} onChangeText={(v) => { setName(v); setConfirmDelete(false); }} maxLength={20} autoCapitalize="characters" selectTextOnFocus />
       <View style={st.rowBetween}>
-        <Label>Seats</Label>
+        <Label>{t("Seats")}</Label>
         <Stepper value={seats} min={1} onChange={(n) => setSeats(Math.min(50, n))} />
       </View>
       {areas.length > 0 && (
         <View style={{ gap: 8 }}>
-          <Label>Area</Label>
+          <Label>{t("Area")}</Label>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {[...areas, { id: null as string | null, name: "No area" }].map((a) => (
               <Pressable key={a.id ?? NO_AREA} onPress={() => setArea(a.id)} accessibilityRole="radio" accessibilityState={{ selected: area === a.id }}
@@ -314,7 +314,7 @@ function TableEditor({ table, areaId, suggest, onDone }: {
           </View>
         </View>
       )}
-      {inUse && <Muted style={{ fontSize: 13 }}>A table with an open bill can be renamed but not deleted.</Muted>}
+      {inUse && <Muted style={{ fontSize: 13 }}>{t("A table with an open bill can be renamed but not deleted.")}</Muted>}
       <Err msg={error} />
     </PanelShell>
   );
@@ -346,20 +346,20 @@ function BulkEditor({ tables, onDone }: { tables: DiningTable[]; onDone: (delete
   const names = tables.map((t) => t.name).join(", ");
 
   return (
-    <PanelShell title={`${tables.length} tables`} sub={names.length > 60 ? `${names.slice(0, 57)}…` : names}
+    <PanelShell title={t("{length} tables", { length: tables.length })} sub={names.length > 60 ? `${names.slice(0, 57)}…` : names}
       footer={<>
-        <Btn kind="danger" title={confirmDelete ? `Delete ${tables.length}?` : "Delete"} disabled={busy || inUse.length > 0} onPress={remove} />
-        <Btn style={{ flex: 1 }} title="Apply to all" loading={busy} disabled={!seatsTouched && !areaTouched} onPress={apply} />
+        <Btn kind="danger" title={confirmDelete ? t("Delete {length}?", { length: tables.length }) : t("Delete")} disabled={busy || inUse.length > 0} onPress={remove} />
+        <Btn style={{ flex: 1 }} title={t("Apply to all")} loading={busy} disabled={!seatsTouched && !areaTouched} onPress={apply} />
       </>}>
       <View style={st.rowBetween}>
-        <Label>Seats</Label>
+        <Label>{t("Seats")}</Label>
         {seats === undefined && !seatsTouched
-          ? <Btn kind="secondary" title="Mixed · set" onPress={() => { setSeats(4); setSeatsTouched(true); setSaved(false); }} />
+          ? <Btn kind="secondary" title={t("Mixed · set")} onPress={() => { setSeats(4); setSeatsTouched(true); setSaved(false); }} />
           : <Stepper value={seats ?? 4} min={1} onChange={(n) => { setSeats(Math.min(50, n)); setSeatsTouched(true); setSaved(false); setConfirmDelete(false); }} />}
       </View>
       {areas.length > 0 && (
         <View style={{ gap: 8 }}>
-          <Label>{area === undefined && !areaTouched ? "Area (mixed)" : "Area"}</Label>
+          <Label>{area === undefined && !areaTouched ? t("Area (mixed)") : t("Area")}</Label>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {[...areas, { id: null as string | null, name: "No area" }].map((a) => (
               <Pressable key={a.id ?? NO_AREA} onPress={() => { setArea(a.id); setAreaTouched(true); setSaved(false); setConfirmDelete(false); }}
@@ -370,8 +370,8 @@ function BulkEditor({ tables, onDone }: { tables: DiningTable[]; onDone: (delete
           </View>
         </View>
       )}
-      {inUse.length > 0 && <Muted style={{ fontSize: 13 }}>{`In use: ${inUse.join(", ")}. Tables with an open bill can't be deleted.`}</Muted>}
-      {saved && <Text style={{ color: c.accent, fontWeight: "600" }}>Saved</Text>}
+      {inUse.length > 0 && <Muted style={{ fontSize: 13 }}>{t("In use: {v0}. Tables with an open bill can't be deleted.", { v0: inUse.join(", ") })}</Muted>}
+      {saved && <Text style={{ color: c.accent, fontWeight: "600" }}>{t("Saved")}</Text>}
       <Err msg={error} />
     </PanelShell>
   );
@@ -402,13 +402,13 @@ function AreaEditor({ id, onSaved, onDeleted }: { id: string | null; onSaved: (n
   };
 
   return (
-    <PanelShell title={area ? area.name : "New area"} sub={area ? `${count} table${count === 1 ? "" : "s"}` : "e.g. Indoor, Terrace, 2nd floor"}
+    <PanelShell title={area ? area.name : t("New area")} sub={area ? (count === 1 ? t("1 table") : t("{n} tables", { n: count })) : t("e.g. Indoor, Terrace, 2nd floor")}
       footer={<>
-        {area && <Btn kind="danger" title={confirmDelete ? "Tap to confirm" : "Delete"} disabled={busy} onPress={remove} />}
-        <Btn style={{ flex: 1 }} title={area ? "Save" : "Add area"} loading={busy} disabled={!name.trim()} onPress={save} />
+        {area && <Btn kind="danger" title={confirmDelete ? t("Tap to confirm") : t("Delete")} disabled={busy} onPress={remove} />}
+        <Btn style={{ flex: 1 }} title={area ? t("Save") : t("Add area")} loading={busy} disabled={!name.trim()} onPress={save} />
       </>}>
-      <Field label="Area name" value={name} onChangeText={(v) => { setName(v); setConfirmDelete(false); }} maxLength={40} autoFocus={!area} />
-      {area && confirmDelete && <Muted style={{ fontSize: 13 }}>{count ? `Its ${count} table${count === 1 ? "" : "s"} will stay, under "No area".` : "The area is empty."}</Muted>}
+      <Field label={t("Area name")} value={name} onChangeText={(v) => { setName(v); setConfirmDelete(false); }} maxLength={40} autoFocus={!area} />
+      {area && confirmDelete && <Muted style={{ fontSize: 13 }}>{count ? (count === 1 ? t("Its 1 table will stay, under \"No area\".") : t("Its {n} tables will stay, under \"No area\".", { n: count })) : t("The area is empty.")}</Muted>}
       <Err msg={error} />
     </PanelShell>
   );
@@ -420,13 +420,13 @@ export function SeatingSheet({ onClose }: { onClose: () => void }) {
   const [guests, setGuests] = useState(order.guests ?? 1);
   const [name, setName] = useState(order.customer_name ?? "");
   return (
-    <Sheet visible onClose={onClose} title={`Table ${tableLabel(order)}`} width={480}
-      footer={<><Btn kind="secondary" title="Cancel" onPress={onClose} /><Btn style={{ flex: 1 }} title="Save" onPress={() => { updateSeating(guests, name.trim() || null); onClose(); }} /></>}>
+    <Sheet visible onClose={onClose} title={t("Table {v0}", { v0: tableLabel(order) })} width={480}
+      footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} /><Btn style={{ flex: 1 }} title={t("Save")} onPress={() => { updateSeating(guests, name.trim() || null); onClose(); }} /></>}>
       <View style={st.rowBetween}>
-        <Label>Guests</Label>
+        <Label>{t("Guests")}</Label>
         <Stepper value={guests} min={1} onChange={setGuests} />
       </View>
-      <Field label="Customer name" value={name} onChangeText={setName} placeholder="optional" maxLength={40} />
+      <Field label={t("Customer name")} value={name} onChangeText={setName} placeholder={t("optional")} maxLength={40} />
     </Sheet>
   );
 }

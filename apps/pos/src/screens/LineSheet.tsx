@@ -4,6 +4,7 @@ import { guard, setLineDetails, setQty, useStore } from "../lib/store";
 import { lineLabel } from "../lib/order";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c } from "../ui/theme";
+import { t } from "../lib/i18n";
 
 const REASONS = ["Customer changed mind", "Wrong order", "Out of stock", "Item problem"];
 
@@ -32,36 +33,36 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
   return (
     <Sheet visible onClose={onClose} title={lineLabel(line)} width={600}
       footer={<>
-        <Btn kind="danger" title={saved ? "Void item" : "Remove"} onPress={() => setQ(0)} />
+        <Btn kind="danger" title={saved ? t("Void item") : t("Remove")} onPress={() => setQ(0)} />
         <View style={{ flex: 1 }} />
-        <Btn kind="secondary" title="Cancel" onPress={onClose} />
-        <Btn title={voiding ? `Void ${voiding} & save` : qty === 0 ? "Remove item" : "Save"} disabled={voiding > 0 && !voidReason}
-          onPress={() => (voiding > 0 ? guard("void_items", `Void ${voiding} item${voiding > 1 ? "s" : ""}`, apply) : apply())} />
+        <Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
+        <Btn title={voiding ? t("Void {voiding} & save", { voiding }) : qty === 0 ? t("Remove item") : t("Save")} disabled={voiding > 0 && !voidReason}
+          onPress={() => (voiding > 0 ? guard("void_items", (voiding > 1 ? t("Void {n} items", { n: voiding }) : t("Void 1 item")), apply) : apply())} />
       </>}>
       {line.modifiers.length > 0 && <Muted>{line.modifiers.map((m) => m.option).join(", ")}</Muted>}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Label>Quantity</Label>
+        <Label>{t("Quantity")}</Label>
         <Stepper value={qty} onChange={setQ} />
       </View>
       {voiding > 0 && (
         <View style={{ gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.dangerSoft }}>
           <Text style={{ color: c.danger, fontWeight: "700" }}>
-            {`Voiding ${voiding} already-saved item${voiding > 1 ? "s" : ""}. Why?`}
+            {voiding > 1 ? t("Voiding {n} already-saved items. Why?", { n: voiding }) : t("Voiding 1 already-saved item. Why?")}
           </Text>
           {(
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {[...REASONS, "Other"].map((r) => <Chip key={r} label={r} active={reason === r} onPress={() => setReason(r)} />)}
+              {[...REASONS, "Other"].map((r) => <Chip key={r} label={t(r)} active={reason === r} onPress={() => setReason(r)} />)}
             </View>
           )}
-          {reason === "Other" && <Field value={other} onChangeText={setOther} placeholder="Reason" maxLength={120} />}
+          {reason === "Other" && <Field value={other} onChangeText={setOther} placeholder={t("Reason")} maxLength={120} />}
         </View>
       )}
-      <Field label="Note" value={note} onChangeText={setNote} maxLength={120} />
+      <Field label={t("Note")} value={note} onChangeText={setNote} maxLength={120} />
       {discounts.length > 0 && (
         <View style={{ gap: 10 }}>
-          <Label>Discount</Label>
+          <Label>{t("Discount")}</Label>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-            <Chip label="None" active={!discountId} onPress={() => setDiscountId(null)} />
+            <Chip label={t("None")} active={!discountId} onPress={() => setDiscountId(null)} />
             {discounts.map((d) => <Chip key={d.id} label={d.kind === "percent" ? `${d.name} ${d.value / 100}%` : `${d.name} ${money(d.value)}`} active={discountId === d.id} onPress={() => guard("discounts_apply", "Apply a discount", () => setDiscountId(d.id))} />)}
           </View>
         </View>

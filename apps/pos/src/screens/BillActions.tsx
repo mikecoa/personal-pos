@@ -4,6 +4,7 @@ import type { AppliedDiscount } from "@pos/core";
 import { billsAt, byTableName, can, cancelBill, saveBillAt, setBillDiscounts, setBillInfo, useStore } from "../lib/store";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
+import { t } from "../lib/i18n";
 
 export function SaveBillSheet({ onClose }: { onClose: () => void }) {
   const order = useStore((s) => s.order)!;
@@ -35,30 +36,30 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
 
   // Group by area, in the area order; tables without an area last.
   const groups = [...areas.map((a) => ({ key: a.id, name: a.name, list: tables.filter((t) => t.area_id === a.id) })),
-    { key: "none", name: areas.length ? "No area" : "", list: tables.filter((t) => !t.area_id || !areas.some((a) => a.id === t.area_id)) }]
+    { key: "none", name: areas.length ? t("No area") : "", list: tables.filter((t) => !t.area_id || !areas.some((a) => a.id === t.area_id)) }]
     .filter((g) => g.list.length);
 
   return (
-    <Sheet visible onClose={onClose} title={order.version ? "Update bill" : "Save bill"} width={hasTables ? 640 : 520}
-      footer={<><Btn kind="secondary" title="Cancel" onPress={onClose} />
-        <Btn style={{ flex: 1 }} big title={table ? `Save to table ${table.name}` : "Save bill"} disabled={!ok} onPress={save} /></>}>
+    <Sheet visible onClose={onClose} title={order.version ? t("Update bill") : t("Save bill")} width={hasTables ? 640 : 520}
+      footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
+        <Btn style={{ flex: 1 }} big title={table ? t("Save to table {name}", { name: table.name }) : t("Save bill")} disabled={!ok} onPress={save} /></>}>
       {hasTables && (
         <View style={{ gap: 10 }}>
-          <Label>Table</Label>
+          <Label>{t("Table")}</Label>
           {groups.map((g) => (
             <View key={g.key} style={{ gap: 6 }}>
               {!!g.name && <Text style={{ color: c.ink2, fontSize: 13, fontWeight: "600" }}>{g.name}</Text>}
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {g.list.map((t) => {
-                  const taken = busy(t.id);
-                  const on = tableId === t.id;
+                {g.list.map((tb) => {
+                  const taken = busy(tb.id);
+                  const on = tableId === tb.id;
                   return (
-                    <Pressable key={t.id} disabled={taken} onPress={() => { setTableId(on ? null : t.id); setError(null); }}
+                    <Pressable key={tb.id} disabled={taken} onPress={() => { setTableId(on ? null : tb.id); setError(null); }}
                       accessibilityRole="radio" accessibilityState={{ selected: on, disabled: taken }}
-                      accessibilityLabel={`Table ${t.name}${taken ? ", in use" : ""}`}
+                      accessibilityLabel={`Table ${tb.name}${taken ? t(", in use") : ""}`}
                       style={[st.tableBtn, on && st.tableOn, taken && { opacity: 0.35 }]}>
-                      <Text style={[st.tableText, on && { color: c.accentInk }]}>{t.name}</Text>
-                      {taken && <Text style={{ fontSize: 10, color: c.ink2 }}>in use</Text>}
+                      <Text style={[st.tableText, on && { color: c.accentInk }]}>{tb.name}</Text>
+                      {taken && <Text style={{ fontSize: 10, color: c.ink2 }}>{t("in use")}</Text>}
                     </Pressable>
                   );
                 })}
@@ -67,7 +68,7 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
           ))}
           <Pressable onPress={() => setTableId(null)} accessibilityRole="radio" accessibilityState={{ selected: !tableId }}
             style={[st.tableBtn, { alignSelf: "flex-start", paddingHorizontal: 16 }, !tableId && st.tableOn]}>
-            <Text style={[st.tableText, { fontSize: 15 }, !tableId && { color: c.accentInk }]}>No table (takeaway, bar…)</Text>
+            <Text style={[st.tableText, { fontSize: 15 }, !tableId && { color: c.accentInk }]}>{t("No table (takeaway, bar…)")}</Text>
           </Pressable>
         </View>
       )}
@@ -75,19 +76,19 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
       {table ? (
         <>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Label>Guests</Label>
+            <Label>{t("Guests")}</Label>
             <Stepper value={guests} min={1} onChange={setGuests} />
           </View>
-          <Field label="Customer name (optional)" value={customer} onChangeText={setCustomer} placeholder="e.g. Pak Budi" maxLength={40} />
+          <Field label={t("Customer name (optional)")} value={customer} onChangeText={setCustomer} placeholder={t("e.g. Pak Budi")} maxLength={40} />
         </>
       ) : (
-        <Field label={hasTables ? "Bill name" : "Table or customer name"} value={name} onChangeText={setName} autoFocus={!hasTables}
-          placeholder={hasTables ? "e.g. Pak Budi, Ojol 3" : "e.g. 12, Sofa, Pak Budi"} maxLength={40} />
+        <Field label={hasTables ? t("Bill name") : t("Table or customer name")} value={name} onChangeText={setName} autoFocus={!hasTables}
+          placeholder={hasTables ? t("e.g. Pak Budi, Ojol 3") : "e.g. 12, Sofa, Pak Budi"} maxLength={40} />
       )}
 
       {trackServer && (
         <View style={{ gap: 10 }}>
-          <Label>Served by</Label>
+          <Label>{t("Served by")}</Label>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {employees.map((e) => <Chip key={e.id} label={e.name} active={server === e.id} onPress={() => setServer(e.id)} />)}
           </View>
@@ -112,17 +113,17 @@ export function BillDiscountSheet({ onClose }: { onClose: () => void }) {
   const current = order?.discounts ?? [];
   const [ids, setIds] = useState(current.map((d) => d.discount_id).filter(Boolean) as string[]);
   return (
-    <Sheet visible onClose={onClose} title="Discount on whole bill" width={560}
-      footer={<><Btn kind="secondary" title="Cancel" onPress={onClose} /><Btn style={{ flex: 1 }} title="Apply"
+    <Sheet visible onClose={onClose} title={t("Discount on whole bill")} width={560}
+      footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} /><Btn style={{ flex: 1 }} title={t("Apply")}
         onPress={() => { setBillDiscounts(ids.map((id) => discounts.find((d) => d.id === id)!).map((d): AppliedDiscount => ({ id: d.id, name: d.name, kind: d.kind, value: d.value }))); onClose(); }} /></>}>
-      {discounts.length === 0 && <Muted>No bill discounts set up for this location.</Muted>}
+      {discounts.length === 0 && <Muted>{t("No bill discounts set up for this location.")}</Muted>}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {discounts.map((d) => (
           <Chip key={d.id} label={d.kind === "percent" ? `${d.name} ${d.value / 100}%` : `${d.name} ${money(d.value)}`} active={ids.includes(d.id)}
             onPress={() => setIds((x) => (x.includes(d.id) ? x.filter((y) => y !== d.id) : [...x, d.id]))} />
         ))}
       </View>
-      <Muted>Applied in the order selected, after item discounts.</Muted>
+      <Muted>{t("Applied in the order selected, after item discounts.")}</Muted>
     </Sheet>
   );
 }
@@ -131,11 +132,11 @@ export function CancelBillSheet({ onClose }: { onClose: () => void }) {
   const order = useStore((s) => s.order)!;
   const [reason, setReason] = useState("");
   return (
-    <Sheet visible onClose={onClose} title={`Cancel bill ${order.bill_name ?? order.number}`} width={520}
-      footer={<><Btn kind="secondary" title="Keep bill" onPress={onClose} /><Btn kind="danger" style={{ flex: 1 }} title="Cancel bill"
+    <Sheet visible onClose={onClose} title={t("Cancel bill {v0}", { v0: order.bill_name ?? order.number })} width={520}
+      footer={<><Btn kind="secondary" title={t("Keep bill")} onPress={onClose} /><Btn kind="danger" style={{ flex: 1 }} title={t("Cancel bill")}
         disabled={!reason.trim()} onPress={() => { cancelBill(reason.trim()); onClose(); }} /></>}>
-      <Text style={{ color: c.ink }}>The bill is closed without payment. Its items and this reason are kept in the report.</Text>
-      <Field label="Reason" value={reason} onChangeText={setReason} autoFocus placeholder="e.g. Customer left" maxLength={120} />
+      <Text style={{ color: c.ink }}>{t("The bill is closed without payment. Its items and this reason are kept in the report.")}</Text>
+      <Field label={t("Reason")} value={reason} onChangeText={setReason} autoFocus placeholder={t("e.g. Customer left")} maxLength={120} />
     </Sheet>
   );
 }

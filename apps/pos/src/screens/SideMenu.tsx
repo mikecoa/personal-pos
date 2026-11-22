@@ -2,7 +2,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { type ComponentProps } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { billsAt, can, go, guard, lock, useStore, type Page } from "../lib/store";
+import { Tap } from "../ui/motion";
 import { c } from "../ui/theme";
+import { t } from "../lib/i18n";
 
 type Icon = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -47,16 +49,16 @@ export function SideMenu() {
         {items.filter((i) => i.show).map((i) => {
           const active = page === i.page;
           return (
-            <Pressable key={i.page} onPress={() => (i.page === "activity" ? guard("activity_view", "View sales history", () => go("activity")) : go(i.page))} accessibilityRole="tab" accessibilityState={{ selected: active }}
-              accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? ", no shift open" : ""}`}
-              style={({ pressed }) => [st.item, active ? st.itemActive : pressed && { backgroundColor: hover }]}>
+            <Tap key={i.page} scaleTo={0.94} onPress={() => (i.page === "activity" ? guard("activity_view", "View sales history", () => go("activity")) : go(i.page))} accessibilityRole="tab" accessibilityState={{ selected: active }}
+              accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? t(", no shift open") : ""}`}
+              style={[st.item, active && st.itemActive]}>
               <View>
                 <MaterialCommunityIcons name={i.icon} size={26} color={active ? c.accentInk : ink} />
                 {i.dot && <View style={st.dot} />}
                 {i.badge && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
               </View>
-              <Text style={[st.label, active && { color: c.accentInk }]} numberOfLines={1}>{i.label}</Text>
-            </Pressable>
+              <Text style={[st.label, active && { color: c.accentInk }]} numberOfLines={1}>{t(i.label)}</Text>
+            </Tap>
           );
         })}
       </View>
@@ -68,7 +70,7 @@ export function SideMenu() {
         <Pressable onPress={lock} hitSlop={8} accessibilityRole="button" accessibilityLabel="Lock (switch employee)"
           style={({ pressed }) => [st.lockBtn, pressed && { backgroundColor: hover }]}>
           <MaterialCommunityIcons name="lock-outline" size={24} color={ink} />
-          <Text style={st.label}>Lock</Text>
+          <Text style={st.label}>{t("Lock")}</Text>
         </Pressable>
       </View>
     </View>

@@ -8,6 +8,7 @@ import type { Item, ModifierSet, OrderLine, Variant } from "../lib/types";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { NoteSheet } from "./NoteSheet";
+import { t } from "../lib/i18n";
 
 type Combo = { key: string; variant: Variant; modifiers: ModifierChoice[]; label: string; price: number };
 const MAX_COMBOS = 16;
@@ -48,7 +49,7 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
   const stockLeft = item.track_stock ? item.stock : null;
   const limit = catalog.settings.stock_limit_enabled && stockLeft !== null;
   const canAdd = (n: number) => {
-    if (limit && inOrder + n > stockLeft!) { notify(`Only ${stockLeft} ${item.name} in stock`); return false; }
+    if (limit && inOrder + n > stockLeft!) { notify(t("Only {stockLeft} {name} in stock", { stockLeft, name: item.name })); return false; }
     return true;
   };
   const addCombo = (cb: Combo) => { if (canAdd(1)) addItem(item, cb.variant, { modifiers: cb.modifiers, qty: 1, note: null, discount: null }); };
@@ -57,13 +58,13 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
   return (
     <Sheet visible onClose={onClose} title={item.name} width={720}
       footer={<>
-        {quickOk && <Btn kind="ghost" title={mode === "quick" ? "More options (note, discount…)" : "Back to quick add"} onPress={() => setMode(mode === "quick" ? "form" : "quick")} />}
+        {quickOk && <Btn kind="ghost" title={mode === "quick" ? t("More options (note, discount…)") : t("Back to quick add")} onPress={() => setMode(mode === "quick" ? "form" : "quick")} />}
         <View style={{ flex: 1 }} />
-        <Btn big style={{ minWidth: 200 }} title={inOrder ? `Done · ${inOrder} on order` : "Close"} onPress={onClose} />
+        <Btn big style={{ minWidth: 200 }} title={inOrder ? t("Done · {inOrder} on order", { inOrder }) : t("Close")} onPress={onClose} />
       </>}>
       {mode === "quick" ? (
         <View style={{ gap: 10 }}>
-          <Label>Tap once for each one ordered</Label>
+          <Label>{t("Tap once for each one ordered")}</Label>
           <View style={st.grid}>
             {combos.map((cb) => {
               const l = plain(cb);
@@ -90,12 +91,12 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
           </View>
         </View>
       ) : (
-        <ItemForm item={item} sets={sets} salesType={salesType} onAdded={(qty) => notify(`Added ${qty} ${item.name}`)} canAdd={canAdd} />
+        <ItemForm item={item} sets={sets} salesType={salesType} onAdded={(qty) => notify(t("Added {qty} {name}", { qty, name: item.name }))} canAdd={canAdd} />
       )}
 
       {lines.length > 0 && (
         <View style={{ gap: 8 }}>
-          <Label>{`On this order (${inOrder})`}</Label>
+          <Label>{t("On this order ({inOrder})", { inOrder })}</Label>
           <View style={st.list}>
             {lines.map((l, i) => (
               <View key={l.id} style={[st.lineRow, i > 0 && { borderTopWidth: 1, borderColor: c.line }]}>
@@ -106,10 +107,10 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
                   {(l.note || l.discount) && <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={1}>{[l.note && `“${l.note}”`, l.discount?.name].filter(Boolean).join(" · ")}</Text>}
                 </View>
                 <Pressable onPress={() => setNoteFor(l.id)} accessibilityRole="button" hitSlop={4}
-                  accessibilityLabel={l.note ? `Note: ${l.note}. Change` : `Add a note to ${lineLabel(l)}`}
+                  accessibilityLabel={l.note ? t("Note: {note}. Change", { note: l.note }) : t("Add a note to {v0}", { v0: lineLabel(l) })}
                   style={({ pressed }) => [st.noteBtn, pressed && { backgroundColor: c.surface2 }]}>
                   <MaterialCommunityIcons name="note-plus-outline" size={18} color={c.accent} />
-                  <Text style={{ color: c.accent, fontWeight: "700" }}>Note</Text>
+                  <Text style={{ color: c.accent, fontWeight: "700" }}>{t("Note")}</Text>
                 </Pressable>
                 <Pressable onPress={() => less(l)} disabled={l.qty <= (l.saved_qty ?? 0)} accessibilityRole="button" accessibilityLabel={`One less ${lineLabel(l)}`} hitSlop={4}
                   style={({ pressed }) => [st.small, pressed && { backgroundColor: c.surface2 }, l.qty <= (l.saved_qty ?? 0) && { opacity: 0.35 }]}>
@@ -123,7 +124,7 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
               </View>
             ))}
           </View>
-          {lines.some((l) => (l.saved_qty ?? 0) > 0) && <Muted style={{ fontSize: 13 }}>Items already saved on the bill are reduced from the cart (a void needs a reason).</Muted>}
+          {lines.some((l) => (l.saved_qty ?? 0) > 0) && <Muted style={{ fontSize: 13 }}>{t("Items already saved on the bill are reduced from the cart (a void needs a reason).")}</Muted>}
         </View>
       )}
       {stockLeft !== null && <Muted>{stockLeft} in stock</Muted>}
@@ -161,7 +162,7 @@ function ItemForm({ item, sets, salesType, onAdded, canAdd }: {
   const d = discounts.find((x) => x.id === discountId);
   const discount: AppliedDiscount | null = d ? { id: d.id, name: d.name, kind: d.kind, value: d.value } : null;
   const rule = (min: number, max: number | null) =>
-    min > 0 && max === 1 ? "Choose 1" : min > 0 ? `Choose at least ${min}${max ? `, up to ${max}` : ""}` : max ? `Optional, up to ${max}` : "Optional";
+    min > 0 && max === 1 ? t("Choose 1") : min > 0 ? (max ? t("Choose at least {min}, up to {max}", { min, max }) : t("Choose at least {min}", { min })) : max ? t("Optional, up to {max}", { max }) : t("Optional");
 
   const add = () => {
     if (!canAdd(qty)) return;
@@ -175,7 +176,7 @@ function ItemForm({ item, sets, salesType, onAdded, canAdd }: {
     <View style={{ gap: 16 }}>
       {item.variants.length > 1 && (
         <View style={{ gap: 10 }}>
-          <Label>Variant</Label>
+          <Label>{t("Variant")}</Label>
           <View style={st.wrap}>
             {item.variants.map((v) => <Chip key={v.id} label={`${v.name} · ${money(variantPrice(v, salesType))}`} active={v.id === variantId} onPress={() => setVariantId(v.id)} />)}
           </View>
@@ -195,21 +196,21 @@ function ItemForm({ item, sets, salesType, onAdded, canAdd }: {
         </View>
       ))}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Label>Quantity</Label>
+        <Label>{t("Quantity")}</Label>
         <Stepper value={qty} min={1} onChange={setQtyN} />
       </View>
-      <Field label="Note for kitchen" value={note} onChangeText={setNote} placeholder="e.g. no ice, less sugar" maxLength={120} />
+      <Field label={t("Note for kitchen")} value={note} onChangeText={setNote} placeholder={t("e.g. no ice, less sugar")} maxLength={120} />
       {discounts.length > 0 && (
         <View style={{ gap: 10 }}>
-          <Label>Discount on this item</Label>
+          <Label>{t("Discount on this item")}</Label>
           <View style={st.wrap}>
-            <Chip label="None" active={!discountId} onPress={() => setDiscountId(null)} />
+            <Chip label={t("None")} active={!discountId} onPress={() => setDiscountId(null)} />
             {discounts.map((x) => <Chip key={x.id} label={x.kind === "percent" ? `${x.name} ${x.value / 100}%` : `${x.name} ${money(x.value)}`} active={discountId === x.id} onPress={() => guard("discounts_apply", "Apply a discount", () => setDiscountId(x.id))} />)}
           </View>
         </View>
       )}
       <Btn big disabled={missing.length > 0}
-        title={missing.length ? `Choose ${missing[0]!.name}` : `Add ${qty} · ${money(unit * qty)}  (then choose the next)`} onPress={add} />
+        title={missing.length ? t("Choose {v0}", { v0: missing[0]!.name }) : t("Add {qty} · {v1}  (then choose the next)", { qty, v1: money(unit * qty) })} onPress={add} />
     </View>
   );
 }

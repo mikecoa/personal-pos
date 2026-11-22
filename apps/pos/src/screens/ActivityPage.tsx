@@ -8,19 +8,20 @@ import { c, r, tileColor } from "../ui/theme";
 import { toReceipt } from "./receipt";
 import { ReceiptView } from "./ReceiptView";
 import { RefundSheet } from "./RefundSheet";
+import { dateLocale, t } from "../lib/i18n";
 
 type Icon = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 const dayKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA");
 const dayLabel = (key: string) => {
-  if (key === new Date().toLocaleDateString("en-CA")) return "TODAY";
-  if (key === new Date(Date.now() - 86_400_000).toLocaleDateString("en-CA")) return "YESTERDAY";
-  return new Date(`${key}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }).toUpperCase();
+  if (key === new Date().toLocaleDateString("en-CA")) return t("TODAY");
+  if (key === new Date(Date.now() - 86_400_000).toLocaleDateString("en-CA")) return t("YESTERDAY");
+  return new Date(`${key}T12:00:00`).toLocaleDateString(dateLocale(), { weekday: "long", day: "numeric", month: "long" }).toUpperCase();
 };
-const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) => new Date(iso).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" });
 const fullTime = (iso: string) => {
   const d = new Date(iso);
-  return `${d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} at ${time(iso)}`;
+  return `${d.toLocaleDateString(dateLocale(), { day: "numeric", month: "long", year: "numeric" })} ${t("at")} ${time(iso)}`;
 };
 const payIcon = (p?: OrderPayment): Icon => (!p ? "cash" : p.kind === "cash" ? "cash" : p.kind === "qr" ? "qrcode" : p.kind === "card" ? "credit-card-outline" : "receipt-text-outline");
 const itemsText = (o: OrderDoc) => o.lines.map((l) => `${l.item_name}${l.qty > 1 ? ` x ${l.qty}` : ""}`).join(", ");
@@ -52,17 +53,17 @@ export function ActivityPage() {
 
   return (
     <View style={{ flex: 1 }}>
-      <PageTop title="Activity" subtitle="Completed sales on this tablet" />
+      <PageTop title={t("Activity")} subtitle={t("Completed sales on this tablet")} />
       <View style={{ flex: 1, flexDirection: "row" }}>
         {/* list */}
         <View style={st.list}>
           <View style={st.search}>
             <MaterialCommunityIcons name="magnify" size={24} color={c.ink2} />
-            <TextInput value={q} onChangeText={setQ} placeholder="Receipt number" placeholderTextColor="#a3968a" accessibilityLabel="Search by receipt number"
+            <TextInput value={q} onChangeText={setQ} placeholder={t("Receipt number")} placeholderTextColor="#a3968a" accessibilityLabel="Search by receipt number"
               autoCapitalize="characters" style={{ flex: 1, fontSize: 17, color: c.ink, height: 52 }} />
           </View>
           <FlatList data={rows} keyExtractor={(row) => (row.kind === "day" ? `d${row.key}` : row.sale.id)}
-            ListEmptyComponent={<Muted style={{ padding: 20 }}>{sales.length ? "No sale with that receipt number." : "No sales yet."}</Muted>}
+            ListEmptyComponent={<Muted style={{ padding: 20 }}>{sales.length ? t("No sale with that receipt number.") : t("No sales yet.")}</Muted>}
             renderItem={({ item: row }) => row.kind === "day"
               ? <Text style={st.day}>{dayLabel(row.key)}</Text>
               : <SaleRow sale={row.sale} active={row.sale.id === id} onPress={() => setId(row.sale.id)} />} />
@@ -72,12 +73,12 @@ export function ActivityPage() {
         {sel ? (
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, gap: 8 }}>
             <View style={{ flexDirection: "row", gap: 16, marginBottom: 12 }}>
-              <Btn kind="secondary" style={{ flex: 1 }} title="Receipt" onPress={() => guard("receipts_resend", "Reprint the receipt", () => setReceipt(true))} />
-              <Btn kind="secondary" style={{ flex: 1 }} title="Issue refund" onPress={() => guard("refunds_issue", "Issue a refund", () => setRefunding(true))} />
+              <Btn kind="secondary" style={{ flex: 1 }} title={t("Receipt")} onPress={() => guard("receipts_resend", t("Reprint the receipt"), () => setReceipt(true))} />
+              <Btn kind="secondary" style={{ flex: 1 }} title={t("Issue refund")} onPress={() => guard("refunds_issue", t("Issue a refund"), () => setRefunding(true))} />
             </View>
             <Details sale={sel} />
           </ScrollView>
-        ) : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Muted>Pick a sale to see its details.</Muted></View>}
+        ) : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Muted>{t("Pick a sale to see its details.")}</Muted></View>}
       </View>
       {refunding && sel && <RefundSheet order={sel} onClose={() => setRefunding(false)} />}
       {receipt && sel && <ReceiptSheet sale={sel} onClose={() => setReceipt(false)} />}
@@ -136,15 +137,15 @@ function Details({ sale }: { sale: OrderDoc }) {
   );
   return (
     <>
-      <Section title="DETAILS">
-        <DetailRow icon={payIcon(sale.payments[0])} label="Payment method" value={methods} />
-        <DetailRow icon="file-document-outline" label="Receipt number" value={sale.number} />
-        <DetailRow icon="clock-outline" label="Time of purchase" value={fullTime(sale.completed_at!)} />
-        {sale.table_name ? <DetailRow icon="table-chair" label="Table" value={`${sale.table_name}${sale.guests ? ` · ${sale.guests} pax` : ""}`} /> : null}
-        {sale.closed_by_name ? <DetailRow icon="account-outline" label="Cashier" value={sale.closed_by_name} /> : null}
+      <Section title={t("DETAILS")}>
+        <DetailRow icon={payIcon(sale.payments[0])} label={t("Payment method")} value={methods} />
+        <DetailRow icon="file-document-outline" label={t("Receipt number")} value={sale.number} />
+        <DetailRow icon="clock-outline" label={t("Time of purchase")} value={fullTime(sale.completed_at!)} />
+        {sale.table_name ? <DetailRow icon="table-chair" label={t("Table")} value={`${sale.table_name}${sale.guests ? ` · ${t("{n} pax", { n: sale.guests })}` : ""}`} /> : null}
+        {sale.closed_by_name ? <DetailRow icon="account-outline" label={t("Cashier")} value={sale.closed_by_name} /> : null}
       </Section>
 
-      <Section title="ITEMS">
+      <Section title={t("ITEMS")}>
         {sale.sales_type_name && <Text style={st.salesType}>{sale.sales_type_name}</Text>}
         {sale.lines.map((l) => (
           <View key={l.id}>
@@ -155,7 +156,7 @@ function Details({ sale }: { sale: OrderDoc }) {
                   {l.item_name}{l.variant_name && l.variant_name !== "Regular" ? ` (${l.variant_name})` : ""}{l.qty > 1 ? ` x ${l.qty}` : ""}
                 </Text>
                 {l.note ? <Text style={{ color: c.ink2, fontStyle: "italic" }} numberOfLines={2}>“{l.note}”</Text> : null}
-                {l.discount_amount > 0 ? <Text style={{ color: c.accent, fontSize: 13 }}>{l.discount?.name ?? "Discount"} −{money(l.discount_amount)}</Text> : null}
+                {l.discount_amount > 0 ? <Text style={{ color: c.accent, fontSize: 13 }}>{l.discount?.name ?? t("Discount")} −{money(l.discount_amount)}</Text> : null}
               </View>
               <Text style={{ fontSize: 17, color: c.ink }}>{money(l.line_total)}</Text>
             </View>
@@ -168,15 +169,15 @@ function Details({ sale }: { sale: OrderDoc }) {
           </View>
         ))}
         <View style={{ paddingVertical: 8 }}>
-          {(sale.discount_total > 0 || sale.tax_total > 0 || sale.gratuity_total > 0 || sale.rounding !== 0) && <Sum l="Subtotal" v={money(sale.gross)} />}
+          {(sale.discount_total > 0 || sale.tax_total > 0 || sale.gratuity_total > 0 || sale.rounding !== 0) && <Sum l={t("Subtotal")} v={money(sale.gross)} />}
           {sale.discounts.map((d) => <Sum key={d.id} l={d.name} v={`−${money(d.amount)}`} tone={c.accent} />)}
-          {sale.gratuity_total > 0 && <Sum l={sale.gratuity_name ?? "Service"} v={money(sale.gratuity_total)} />}
-          {sale.tax_total > 0 && <Sum l={`${sale.tax_name ?? "Tax"}${sale.prices_include_tax ? " (incl.)" : ""}`} v={money(sale.tax_total)} />}
-          {sale.rounding !== 0 && <Sum l="Rounding" v={money(sale.rounding)} />}
-          <Sum l="Total" v={money(sale.total)} bold />
+          {sale.gratuity_total > 0 && <Sum l={sale.gratuity_name ?? t("Service")} v={money(sale.gratuity_total)} />}
+          {sale.tax_total > 0 && <Sum l={`${sale.tax_name ?? t("Tax")}${sale.prices_include_tax ? " (incl.)" : ""}`} v={money(sale.tax_total)} />}
+          {sale.rounding !== 0 && <Sum l={t("Rounding")} v={money(sale.rounding)} />}
+          <Sum l={t("Total")} v={money(sale.total)} bold />
           {sale.payments.map((p) => <Sum key={p.id} l={p.method_name} v={money(p.amount)} />)}
-          {sale.change_due > 0 && <Sum l="Change" v={money(sale.change_due)} />}
-          {refunded > 0 && <Sum l="Refunded" v={`−${money(refunded)}`} tone={c.danger} />}
+          {sale.change_due > 0 && <Sum l={t("Change")} v={money(sale.change_due)} />}
+          {refunded > 0 && <Sum l={t("Refunded")} v={`−${money(refunded)}`} tone={c.danger} />}
         </View>
       </Section>
     </>
@@ -186,9 +187,9 @@ function Details({ sale }: { sale: OrderDoc }) {
 function ReceiptSheet({ sale, onClose }: { sale: OrderDoc; onClose: () => void }) {
   const catalog = useStore((s) => s.catalog)!;
   return (
-    <Sheet visible onClose={onClose} title={`Receipt ${sale.number}`} width={460}>
+    <Sheet visible onClose={onClose} title={t("Receipt {number}", { number: sale.number })} width={460}>
       <ReceiptView lines={toReceipt(sale, catalog, "COPY")} />
-      <Muted style={{ fontSize: 13, textAlign: "center" }}>Printing and sending receipts come once the printer is set up.</Muted>
+      <Muted style={{ fontSize: 13, textAlign: "center" }}>{t("Printing and sending receipts come once the printer is set up.")}</Muted>
     </Sheet>
   );
 }

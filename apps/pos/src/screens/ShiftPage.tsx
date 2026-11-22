@@ -7,14 +7,15 @@ import { Btn, Keypad, money, Muted, PageTop } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { CashMoveForm, CloseForm, keyInto } from "./ShiftSheets";
 import { ShiftReport } from "./ShiftReport";
+import { dateLocale, t } from "../lib/i18n";
 
 type Section = "option" | "current" | "history";
 
 const when = (iso: string) => {
   const d = new Date(iso);
-  return `${d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} at ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${d.toLocaleDateString(dateLocale(), { day: "numeric", month: "long", year: "numeric" })} ${t("at")} ${d.toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" })}`;
 };
-const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const hhmm = (iso: string) => new Date(iso).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" });
 
 /** Shift: options (automatic start, default cash), the current shift, and closed shifts on this tablet. */
 export function ShiftPage() {
@@ -24,20 +25,20 @@ export function ShiftPage() {
 
   return (
     <View style={{ flex: 1 }}>
-      <PageTop title="Shift" subtitle={shift ? `Open since ${hhmm(shift.opened_at)} · ${shift.opened_by_name}` : "No shift open"} />
+      <PageTop title={t("Shift")} subtitle={shift ? t("Open since {v0} · {opened_by_name}", { v0: hhmm(shift.opened_at), opened_by_name: shift.opened_by_name }) : t("No shift open")} />
       <View style={{ flex: 1, flexDirection: "row" }}>
         <View style={st.nav}>
           <View style={st.status}>
             <MaterialCommunityIcons name="treasure-chest-outline" size={36} color={shift ? c.accent : c.ink2} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: "800", color: c.ink }}>{shift ? "Shift open" : "No shift open"}</Text>
-              <Muted style={{ fontSize: 13 }}>{shift ? `Starting cash ${money(shift.starting_cash)}` : "Start one to begin selling"}</Muted>
+              <Text style={{ fontWeight: "800", color: c.ink }}>{shift ? t("Shift open") : t("No shift open")}</Text>
+              <Muted style={{ fontSize: 13 }}>{shift ? t("Starting cash {v0}", { v0: money(shift.starting_cash) }) : t("Start one to begin selling")}</Muted>
             </View>
           </View>
-          <Text style={st.navHead}>SHIFT MANAGEMENT</Text>
-          <NavItem label="Shift option" right={auto ? "On" : "Off"} active={section === "option"} onPress={() => setSection("option")} />
-          <NavItem label="Current shift" active={section === "current"} onPress={() => setSection("current")} />
-          <NavItem label="Shift history" active={section === "history"} onPress={() => guard("shift_history_view", "View past shifts", () => setSection("history"))} />
+          <Text style={st.navHead}>{t("SHIFT MANAGEMENT")}</Text>
+          <NavItem label={t("Shift option")} right={auto ? t("On") : t("Off")} active={section === "option"} onPress={() => setSection("option")} />
+          <NavItem label={t("Current shift")} active={section === "current"} onPress={() => setSection("current")} />
+          <NavItem label={t("Shift history")} active={section === "history"} onPress={() => guard("shift_history_view", "View past shifts", () => setSection("history"))} />
         </View>
         <View style={{ flex: 1 }}>
           {section === "option" && <ShiftOption />}
@@ -95,20 +96,20 @@ function ShiftOption() {
   };
 
   return (
-    <Pane title="Shift option">
-      <Line label="Start shift automatically">
+    <Pane title={t("Shift option")}>
+      <Line label={t("Start shift automatically")}>
         <Switch value={settings.auto_shift_enabled} disabled={!allowed || busy} onValueChange={(v) => save({ auto_shift_enabled: v })}
           trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface} accessibilityLabel="Start shift automatically" />
       </Line>
-      <Line label="Default starting cash in drawer" active={editingCash} onPress={allowed ? () => setEditingCash(!editingCash) : undefined}>
+      <Line label={t("Default starting cash in drawer")} active={editingCash} onPress={allowed ? () => setEditingCash(!editingCash) : undefined}>
         <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }}>{money(editingCash ? Number(digits || 0) : settings.default_starting_cash)}</Text>
       </Line>
       {editingCash && (
         <View style={{ flexDirection: "row", gap: 20, alignItems: "flex-start" }}>
           <Keypad compact onKey={keyInto(setDigits)} />
           <View style={{ gap: 10, flex: 1 }}>
-            <Btn title="Save" loading={busy} onPress={() => save({ default_starting_cash: Number(digits || 0) })} />
-            <Btn kind="secondary" title="Cancel" onPress={() => { setEditingCash(false); setDigits(String(settings.default_starting_cash || "")); }} />
+            <Btn title={t("Save")} loading={busy} onPress={() => save({ default_starting_cash: Number(digits || 0) })} />
+            <Btn kind="secondary" title={t("Cancel")} onPress={() => { setEditingCash(false); setDigits(String(settings.default_starting_cash || "")); }} />
           </View>
         </View>
       )}
@@ -116,8 +117,8 @@ function ShiftOption() {
         A shift tracks the cash, card and other payments going in and out of the drawer. With automatic start, the first person to unlock the tablet
         starts a shift with the default starting cash. These options apply to every tablet at this location.
       </Muted>
-      {!allowed && <Text style={{ color: c.warn, fontWeight: "600" }}>Your role can't change these. A manager can, here or in the backoffice (Checkout settings).</Text>}
-      {saved && <Text style={{ color: c.accent, fontWeight: "600" }}>Saved</Text>}
+      {!allowed && <Text style={{ color: c.warn, fontWeight: "600" }}>{t("Your role can't change these. A manager can, here or in the backoffice (Checkout settings).")}</Text>}
+      {saved && <Text style={{ color: c.accent, fontWeight: "600" }}>{t("Saved")}</Text>}
       {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Pane>
   );
@@ -132,31 +133,31 @@ function CurrentShift() {
   const [view, setView] = useState<"summary" | "move" | "close">("summary");
   const [closed, setClosed] = useState<ShiftDoc | null>(null);
 
-  if (closed) return <Pane title="Shift closed"><ClosedShift shift={closed} onDone={() => { setClosed(null); setView("summary"); }} /></Pane>;
+  if (closed) return <Pane title={t("Shift closed")}><ClosedShift shift={closed} onDone={() => { setClosed(null); setView("summary"); }} /></Pane>;
 
   if (!shift) return (
-    <Pane title="Current shift">
-      <Line label="Starting cash in drawer" active>
+    <Pane title={t("Current shift")}>
+      <Line label={t("Starting cash in drawer")} active>
         <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }} testID="starting-cash">{money(Number(digits || 0))}</Text>
       </Line>
       <View style={{ flexDirection: "row", gap: 20, alignItems: "flex-start" }}>
         <Keypad compact onKey={keyInto(setDigits)} />
         <View style={{ flex: 1, gap: 10 }}>
-          <Muted>Count the cash in the drawer before the first sale.</Muted>
-          <Btn big title="Start shift" onPress={() => startShift(Number(digits || 0))} />
+          <Muted>{t("Count the cash in the drawer before the first sale.")}</Muted>
+          <Btn big title={t("Start shift")} onPress={() => startShift(Number(digits || 0))} />
         </View>
       </View>
     </Pane>
   );
 
-  if (view === "move") return <Pane title="Cash in / out"><CashMoveForm onDone={() => setView("summary")} /><Btn kind="secondary" title="Back" onPress={() => setView("summary")} /></Pane>;
-  if (view === "close") return <Pane title="Close shift"><CloseForm shift={shift} onClosed={setClosed} /><Btn kind="secondary" title="Back" onPress={() => setView("summary")} /></Pane>;
+  if (view === "move") return <Pane title={t("Cash in / out")}><CashMoveForm onDone={() => setView("summary")} /><Btn kind="secondary" title={t("Back")} onPress={() => setView("summary")} /></Pane>;
+  if (view === "close") return <Pane title={t("Close shift")}><CloseForm shift={shift} onClosed={setClosed} /><Btn kind="secondary" title={t("Back")} onPress={() => setView("summary")} /></Pane>;
 
   return (
-    <Pane title="Current shift">
+    <Pane title={t("Current shift")}>
       <View style={{ flexDirection: "row", gap: 12 }}>
-        <Btn kind="secondary" style={{ flex: 1 }} title="Cash in / out" onPress={() => guard("cash_in_out", "Record cash in / out", () => setView("move"))} />
-        <Btn kind="danger" style={{ flex: 1 }} title="Close shift" onPress={() => setView("close")} />
+        <Btn kind="secondary" style={{ flex: 1 }} title={t("Cash in / out")} onPress={() => guard("cash_in_out", "Record cash in / out", () => setView("move"))} />
+        <Btn kind="danger" style={{ flex: 1 }} title={t("Close shift")} onPress={() => setView("close")} />
       </View>
       <ShiftReport shift={shift} showExpected={can("shift_view_details")} />
     </Pane>
@@ -172,11 +173,11 @@ function ClosedShift({ shift, onDone }: { shift: ShiftDoc; onDone?: () => void }
           <MaterialCommunityIcons name={diff === 0 ? "check-circle" : "alert-circle"} size={30} color={diff === 0 ? c.accent : c.danger} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }} testID="cash-difference">
-              {diff === 0 ? "Shift closed. The drawer matches." : `Shift closed. Cash ${diff > 0 ? "over" : "short"} by ${money(Math.abs(diff))}.`}
+              {diff === 0 ? t("Shift closed. The drawer matches.") : (diff > 0 ? t("Shift closed. Cash over by {amount}.", { amount: money(Math.abs(diff)) }) : t("Shift closed. Cash short by {amount}.", { amount: money(Math.abs(diff)) }))}
             </Text>
-            <Muted style={{ fontSize: 14 }}>The report is saved and uploads automatically.</Muted>
+            <Muted style={{ fontSize: 14 }}>{t("The report is saved and uploads automatically.")}</Muted>
           </View>
-          <Btn title="Done" onPress={onDone} />
+          <Btn title={t("Done")} onPress={onDone} />
         </View>
       )}
       <ShiftReport shift={shift} />
@@ -190,17 +191,17 @@ function ShiftHistory() {
   const list = shiftHistory();
   const [sel, setSel] = useState<ShiftDoc | null>(null);
   if (sel) return (
-    <Pane title="Shift history">
+    <Pane title={t("Shift history")}>
       <Pressable onPress={() => setSel(null)} accessibilityRole="button" accessibilityLabel="Back to all shifts" style={st.back}>
         <MaterialCommunityIcons name="arrow-left" size={22} color={c.accent} />
-        <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>All shifts</Text>
+        <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>{t("All shifts")}</Text>
       </Pressable>
       <ClosedShift shift={sel} />
     </Pane>
   );
   return (
-    <Pane title="Closed shifts">
-      {!list.length ? <Muted>No closed shifts on this tablet yet.</Muted> : (
+    <Pane title={t("Closed shifts")}>
+      {!list.length ? <Muted>{t("No closed shifts on this tablet yet.")}</Muted> : (
         <View style={{ borderTopWidth: 1, borderColor: c.line }}>
           {list.map((s) => {
             const diff = (s.actual_cash ?? 0) - (s.expected_cash ?? 0);
@@ -211,7 +212,7 @@ function ShiftHistory() {
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 16, color: c.ink }}>{when(s.opened_at)} – {when(s.closed_at!)}</Text>
                   <Text style={{ color: diff === 0 ? c.ink2 : c.danger, fontSize: 13 }}>
-                    {s.opened_by_name} · {diff === 0 ? "cash exact" : `cash ${diff > 0 ? "+" : "−"}${money(Math.abs(diff))}`}
+                    {s.opened_by_name} · {diff === 0 ? t("cash exact") : t("cash {v0}{v1}", { v0: diff > 0 ? "+" : "−", v1: money(Math.abs(diff)) })}
                   </Text>
                 </View>
                 <MaterialCommunityIcons name="chevron-right" size={26} color={c.accent} />

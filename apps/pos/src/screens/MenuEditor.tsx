@@ -5,6 +5,7 @@ import { saveCategory, saveMenuItem, useStore } from "../lib/store";
 import type { Item } from "../lib/types";
 import { Btn, Chip, Field, Label, money, Muted, Sheet } from "../ui/kit";
 import { c, r } from "../ui/theme";
+import { t } from "../lib/i18n";
 
 const digits = (s: string) => s.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 10);
 const fmt = (n: string) => (n ? Number(n).toLocaleString("id-ID") : "");
@@ -43,35 +44,35 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
   const remove = () => (confirmRemove ? run(() => saveMenuItem({ id: item!.id, op: "remove" })) : setConfirmRemove(true));
 
   return (
-    <Sheet visible onClose={onClose} title={item ? `Edit ${item.name}` : "New item"} width={680}
+    <Sheet visible onClose={onClose} title={item ? t("Edit {name}", { name: item.name }) : t("New item")} width={680}
       footer={<>
-        {item && <Btn kind="danger" title={confirmRemove ? "Tap to confirm" : "Remove from menu"} disabled={busy} onPress={remove} />}
+        {item && <Btn kind="danger" title={confirmRemove ? t("Tap to confirm") : t("Remove from menu")} disabled={busy} onPress={remove} />}
         <View style={{ flex: 1 }} />
-        <Btn kind="secondary" title="Cancel" onPress={onClose} />
-        <Btn title={item ? "Save" : "Add item"} loading={busy} disabled={!valid} onPress={save} />
+        <Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
+        <Btn title={item ? t("Save") : t("Add item")} loading={busy} disabled={!valid} onPress={save} />
       </>}>
-      <Field label="Name" value={name} onChangeText={setName} placeholder="e.g. Kopi Susu Gula Aren" maxLength={80} autoFocus={!item} />
+      <Field label={t("Name")} value={name} onChangeText={setName} placeholder={t("e.g. Kopi Susu Gula Aren")} maxLength={80} autoFocus={!item} />
 
       <View style={{ gap: 8 }}>
-        <Label>Category</Label>
+        <Label>{t("Category")}</Label>
         <View style={st.wrap}>
-          <Chip label="No category" active={!category} onPress={() => setCategory(null)} />
+          <Chip label={t("No category")} active={!category} onPress={() => setCategory(null)} />
           {catalog.categories.map((k) => <Chip key={k.id} label={k.name} active={category === k.id} onPress={() => setCategory(k.id)} />)}
         </View>
       </View>
 
       <View style={{ gap: 8 }}>
-        <Label>{multi ? "Sizes / variants and prices" : "Price"}</Label>
+        <Label>{multi ? t("Sizes / variants and prices") : t("Price")}</Label>
         {rows.map((x) => (
           <View key={x.key} style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
             {multi && (
-              <TextInput value={x.name} onChangeText={(v) => patchRow(x.key, { name: v })} placeholder="e.g. Panas, Large" placeholderTextColor="#a3968a"
+              <TextInput value={x.name} onChangeText={(v) => patchRow(x.key, { name: v })} placeholder={t("e.g. Panas, Large")} placeholderTextColor="#a3968a"
                 accessibilityLabel="Variant name" maxLength={40} style={[st.input, { flex: 1, flexBasis: 0 }]} />
             )}
             <View style={[st.input, st.money, multi ? { flex: 1, flexBasis: 0 } : { width: 240 }]}>
-              <Text style={{ color: c.ink2, fontSize: 17 }}>Rp</Text>
+              <Text style={{ color: c.ink2, fontSize: 17 }}>{t("Rp")}</Text>
               <TextInput value={fmt(x.price)} onChangeText={(v) => patchRow(x.key, { price: digits(v) })} keyboardType="number-pad" placeholder="0"
-                placeholderTextColor="#a3968a" accessibilityLabel={multi ? `Price for ${x.name || "variant"}` : "Price"} style={{ flex: 1, fontSize: 17, color: c.ink }} />
+                placeholderTextColor="#a3968a" accessibilityLabel={multi ? t("Price for {v0}", { v0: x.name || "variant" }) : t("Price")} style={{ flex: 1, fontSize: 17, color: c.ink }} />
             </View>
             {multi && (
               <Pressable onPress={() => setRows((rs) => rs.filter((y) => y.key !== x.key))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Remove variant">
@@ -82,16 +83,16 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
         ))}
         <Pressable onPress={() => setRows((rs) => [...rs.map((y, i) => (i === 0 && !y.name.trim() ? { ...y, name: "Regular" } : y)), { key: String(keySeq++), name: "", price: "", sku: null, prices: {} }])}
           accessibilityRole="button" style={{ alignSelf: "flex-start", paddingVertical: 4 }}>
-          <Text style={{ color: c.accent, fontWeight: "700" }}>+ Add size / variant</Text>
+          <Text style={{ color: c.accent, fontWeight: "700" }}>{t("+ Add size / variant")}</Text>
         </Pressable>
         {rows.some((x) => Object.keys(x.prices).length > 0) && (
-          <Muted style={{ fontSize: 13 }}>Different prices per sales type (e.g. GoFood) are kept; change them in the backoffice.</Muted>
+          <Muted style={{ fontSize: 13 }}>{t("Different prices per sales type (e.g. GoFood) are kept; change them in the backoffice.")}</Muted>
         )}
       </View>
 
       {catalog.modifier_sets.length > 0 && (
         <View style={{ gap: 8 }}>
-          <Label>Choices (modifiers)</Label>
+          <Label>{t("Choices (modifiers)")}</Label>
           <View style={st.wrap}>
             {catalog.modifier_sets.map((m) => (
               <Chip key={m.id} label={m.name} active={sets.includes(m.id)} onPress={() => setSets((s) => (s.includes(m.id) ? s.filter((x) => x !== m.id) : [...s, m.id]))} />
@@ -102,14 +103,14 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
 
       <View style={st.toggle}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>Track stock</Text>
-          <Muted style={{ fontSize: 13 }}>{item?.track_stock ? `${item.stock} in stock now. Stock counts are adjusted in the backoffice.` : "Count how many are left after each sale."}</Muted>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{t("Track stock")}</Text>
+          <Muted style={{ fontSize: 13 }}>{item?.track_stock ? t("{stock} in stock now. Stock counts are adjusted in the backoffice.", { stock: item.stock }) : t("Count how many are left after each sale.")}</Muted>
         </View>
         <Switch value={track} onValueChange={setTrack} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface} accessibilityLabel="Track stock" />
       </View>
-      {track && !item && <Field label="Starting stock" value={stock} onChangeText={(v) => setStock(digits(v))} keyboardType="number-pad" placeholder="0" />}
+      {track && !item && <Field label={t("Starting stock")} value={stock} onChangeText={(v) => setStock(digits(v))} keyboardType="number-pad" placeholder="0" />}
 
-      {confirmRemove && <Muted style={{ fontSize: 13 }}>It disappears from the menu on every tablet. Past sales keep it, and it can be brought back in the backoffice.</Muted>}
+      {confirmRemove && <Muted style={{ fontSize: 13 }}>{t("It disappears from the menu on every tablet. Past sales keep it, and it can be brought back in the backoffice.")}</Muted>}
       {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
@@ -128,16 +129,16 @@ export function CategoryEditor({ category, onClose, onSaved }: { category: { id:
     try { await fn(); onSaved?.(deleted); onClose(); } catch (e) { setError((e as Error).message); setBusy(false); }
   };
   return (
-    <Sheet visible onClose={onClose} title={category ? `Category ${category.name}` : "New category"} width={500}
+    <Sheet visible onClose={onClose} title={category ? t("Category {name}", { name: category.name }) : t("New category")} width={500}
       footer={<>
-        {category && <Btn kind="danger" title={confirmDelete ? "Tap to confirm" : "Delete"} disabled={busy}
+        {category && <Btn kind="danger" title={confirmDelete ? t("Tap to confirm") : t("Delete")} disabled={busy}
           onPress={() => (confirmDelete ? run(() => saveCategory({ id: category.id, op: "delete" }), true) : setConfirmDelete(true))} />}
         <View style={{ flex: 1 }} />
-        <Btn kind="secondary" title="Cancel" onPress={onClose} />
-        <Btn title={category ? "Save" : "Add category"} loading={busy} disabled={!name.trim()} onPress={() => run(() => saveCategory({ id: category?.id, name: name.trim() }), false)} />
+        <Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
+        <Btn title={category ? t("Save") : t("Add category")} loading={busy} disabled={!name.trim()} onPress={() => run(() => saveCategory({ id: category?.id, name: name.trim() }), false)} />
       </>}>
-      <Field label="Name" value={name} onChangeText={(v) => { setName(v); setConfirmDelete(false); }} placeholder="e.g. Minuman, Makanan, Snack" maxLength={40} autoFocus />
-      {category && <Muted style={{ fontSize: 14 }}>{count} item{count === 1 ? "" : "s"}{confirmDelete && count ? " will stay on the menu without a category." : "."}</Muted>}
+      <Field label={t("Name")} value={name} onChangeText={(v) => { setName(v); setConfirmDelete(false); }} placeholder={t("e.g. Minuman, Makanan, Snack")} maxLength={40} autoFocus />
+      {category && <Muted style={{ fontSize: 14 }}>{count === 1 ? t("1 item") : t("{n} items", { n: count })}{confirmDelete && count ? ` ${t("will stay on the menu without a category.")}` : "."}</Muted>}
       {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
@@ -154,8 +155,8 @@ export function CategoryPicker({ current, editing, onPick, onEdit, onClose }: {
   const catalog = useStore((s) => s.catalog)!;
   const [q, setQ] = useState("");
   const count = (id: string | null) => catalog.items.filter((i) => !id || i.category_id === id).length;
-  const t = q.trim().toLowerCase();
-  const list = catalog.categories.filter((k) => !t || k.name.toLowerCase().includes(t));
+  const query = q.trim().toLowerCase();
+  const list = catalog.categories.filter((k) => !query || k.name.toLowerCase().includes(query));
   const Row = ({ id, name }: { id: string | null; name: string }) => {
     const on = current === id;
     return (
@@ -175,19 +176,19 @@ export function CategoryPicker({ current, editing, onPick, onEdit, onClose }: {
     );
   };
   return (
-    <Sheet visible onClose={onClose} title="Categories" width={540}
-      footer={editing ? <><View style={{ flex: 1 }} /><Btn title="+ New category" onPress={() => onEdit(null)} /></> : undefined}>
+    <Sheet visible onClose={onClose} title={t("Categories")} width={540}
+      footer={editing ? <><View style={{ flex: 1 }} /><Btn title={t("+ New category")} onPress={() => onEdit(null)} /></> : undefined}>
       {catalog.categories.length > 8 && (
         <View style={pk.search}>
           <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
-          <TextInput value={q} onChangeText={setQ} placeholder="Find a category" placeholderTextColor="#a3968a" accessibilityLabel="Find a category"
+          <TextInput value={q} onChangeText={setQ} placeholder={t("Find a category")} placeholderTextColor="#a3968a" accessibilityLabel="Find a category"
             style={{ flex: 1, fontSize: 17, color: c.ink, height: 46 }} />
         </View>
       )}
       <View style={pk.list}>
-        {!t && <Row id={null} name="All items" />}
+        {!query && <Row id={null} name="All items" />}
         {list.map((k) => <Row key={k.id} id={k.id} name={k.name} />)}
-        {t && !list.length && <Muted style={{ padding: 14 }}>No category matches.</Muted>}
+        {query && !list.length && <Muted style={{ padding: 14 }}>{t("No category matches.")}</Muted>}
       </View>
     </Sheet>
   );

@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle } from "react-native";
 import { formatRupiah, rp } from "@pos/core";
 import { c, r } from "./theme";
+import { FadeIn, Tap } from "./motion";
 
 export const money = (n: number) => formatRupiah(rp(n));
 
@@ -13,19 +14,19 @@ export function Btn({ title, onPress, kind = "primary", disabled, big, style, lo
   const fg = { primary: c.accentInk, secondary: c.ink, danger: c.danger, ghost: c.ink2 }[kind];
   const border = kind === "secondary" ? c.line : kind === "danger" ? c.danger : "transparent";
   return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={title} disabled={disabled || loading} onPress={onPress}
-      style={({ pressed }) => [s.btn, big && s.btnBig, { backgroundColor: bg, borderColor: border, opacity: disabled ? 0.45 : pressed ? 0.8 : 1 }, style]}>
+    <Tap testID={testID} accessibilityRole="button" accessibilityLabel={title} disabled={disabled || loading} onPress={onPress} scaleTo={big ? 0.98 : 0.96}
+      style={[s.btn, big && s.btnBig, { backgroundColor: bg, borderColor: border, opacity: disabled ? 0.45 : 1 }, style]}>
       {loading ? <ActivityIndicator color={fg} /> : <Text style={[s.btnText, big && { fontSize: 20 }, { color: fg }]}>{title}</Text>}
-    </Pressable>
+    </Tap>
   );
 }
 
 export function Chip({ label, active, onPress }: { label: string; active?: boolean; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!active }} onPress={onPress}
+    <Tap accessibilityRole="button" accessibilityState={{ selected: !!active }} onPress={onPress}
       style={[s.chip, active && { backgroundColor: c.accent, borderColor: c.accent }]}>
       <Text style={[s.chipText, active && { color: c.accentInk }]}>{label}</Text>
-    </Pressable>
+    </Tap>
   );
 }
 
@@ -63,7 +64,7 @@ export function Sheet({ visible, onClose, title, children, footer, width = 560, 
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} supportedOrientations={["landscape", "portrait"]}>
       <View style={[s.overlay, side && { alignItems: "flex-end", justifyContent: "flex-start", padding: 0 }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-        <View style={[s.sheet, { width }, side && { height: "100%", borderRadius: 0, maxHeight: "100%" }]}>
+        <FadeIn from={side ? 0 : 14} scale={side ? 1 : 0.97} duration={180} style={[s.sheet, { width }, side && { height: "100%", borderRadius: 0, maxHeight: "100%" }]}>
           <View style={s.sheetHead}>
             <H size={20}>{title}</H>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}
@@ -71,7 +72,7 @@ export function Sheet({ visible, onClose, title, children, footer, width = 560, 
           </View>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }} keyboardShouldPersistTaps="handled">{children}</ScrollView>
           {footer && <View style={s.sheetFoot}>{footer}</View>}
-        </View>
+        </FadeIn>
       </View>
     </Modal>
   );
@@ -94,10 +95,10 @@ export function Keypad({ onKey, extra = "00", compact }: { onKey: (k: string) =>
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", width: 3 * w + 2 * gap, gap }}>
       {keys.map((k) => (
-        <Pressable key={k} accessibilityRole="button" accessibilityLabel={k === "⌫" ? "Delete" : k} disabled={!k} onPress={() => onKey(k)}
-          style={({ pressed }) => [s.key, { width: w, height: h }, !k && { opacity: 0 }, pressed && { backgroundColor: c.surface2 }]}>
+        <Tap key={k} accessibilityRole="button" accessibilityLabel={k === "⌫" ? "Delete" : k} disabled={!k} onPress={() => onKey(k)} scaleTo={0.92}
+          style={[s.key, { width: w, height: h }, !k && { opacity: 0 }]}>
           <Text style={{ fontSize: compact ? 22 : 26, fontWeight: "600", color: c.ink }}>{k}</Text>
-        </Pressable>
+        </Tap>
       ))}
     </View>
   );

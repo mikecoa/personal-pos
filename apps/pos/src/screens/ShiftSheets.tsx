@@ -5,6 +5,7 @@ import { can, cashMove, closeShift, shiftSummary, startShift, useStore } from ".
 import type { ShiftDoc } from "../lib/types";
 import { Btn, Chip, Field, H, Keypad, Label, money, Muted } from "../ui/kit";
 import { c, r } from "../ui/theme";
+import { t } from "../lib/i18n";
 
 export const keyInto = (set: (f: (d: string) => string) => void) => (k: string) =>
   set((d) => (k === "⌫" ? d.slice(0, -1) : (d + k).replace(/^0+/, "").slice(0, 11)));
@@ -20,11 +21,11 @@ export function StartShiftPanel() {
         <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" }}>
           <MaterialCommunityIcons name="cash-register" size={32} color={c.accent} />
         </View>
-        <H>Start a shift</H>
-        <Muted style={{ textAlign: "center", fontSize: 16 }}>{`${name ? `Hi ${name}. ` : ""}Count the cash in the drawer and enter the total to open the menu.`}</Muted>
+        <H>{t("Start a shift")}</H>
+        <Muted style={{ textAlign: "center", fontSize: 16 }}>{name ? t("Hi {name}. Count the cash in the drawer and enter the total to open the menu.", { name }) : t("Count the cash in the drawer and enter the total to open the menu.")}</Muted>
         <Text style={{ fontSize: 36, fontWeight: "800", color: c.ink }} testID="starting-cash" accessibilityLabel={`Starting cash ${money(Number(digits || 0))}`}>{money(Number(digits || 0))}</Text>
         <Keypad onKey={keyInto(setDigits)} />
-        <Btn big style={{ alignSelf: "stretch" }} title="Start shift" onPress={() => startShift(Number(digits || 0))} />
+        <Btn big style={{ alignSelf: "stretch" }} title={t("Start shift")} onPress={() => startShift(Number(digits || 0))} />
       </View>
     </View>
   );
@@ -38,12 +39,12 @@ export function CashMoveForm({ onDone }: { onDone: () => void }) {
     <View style={{ flexDirection: "row", gap: 24 }}>
       <View style={{ flex: 1, gap: 14 }}>
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <Chip label="Cash out (expense)" active={kind === "out"} onPress={() => setKind("out")} />
-          <Chip label="Cash in" active={kind === "in"} onPress={() => setKind("in")} />
+          <Chip label={t("Cash out (expense)")} active={kind === "out"} onPress={() => setKind("out")} />
+          <Chip label={t("Cash in")} active={kind === "in"} onPress={() => setKind("in")} />
         </View>
         <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink }}>{money(Number(digits || 0))}</Text>
-        <Field label="What for?" value={desc} onChangeText={setDesc} placeholder={kind === "out" ? "e.g. Beli es batu" : "e.g. Tambah uang kecil"} maxLength={120} />
-        <Btn big title={`Record cash ${kind}`} disabled={!Number(digits) || !desc.trim()}
+        <Field label={t("What for?")} value={desc} onChangeText={setDesc} placeholder={kind === "out" ? t("e.g. Beli es batu") : t("e.g. Tambah uang kecil")} maxLength={120} />
+        <Btn big title={t("Record cash {kind}", { kind })} disabled={!Number(digits) || !desc.trim()}
           onPress={() => { cashMove(kind, Number(digits), desc.trim()); onDone(); }} />
       </View>
       <Keypad compact onKey={keyInto(setDigits)} />
@@ -60,14 +61,14 @@ export function CloseForm({ shift, onClosed }: { shift: ShiftDoc; onClosed: (s: 
   return (
     <View style={{ flexDirection: "row", gap: 24 }}>
       <View style={{ flex: 1, gap: 14 }}>
-        <Text style={{ color: c.ink }}>Count all the cash in the drawer and enter the total.</Text>
+        <Text style={{ color: c.ink }}>{t("Count all the cash in the drawer and enter the total.")}</Text>
         {pending > 0 && <Text style={{ color: c.warn, fontWeight: "600" }}>{pending} open bill(s) are still unpaid. They stay open for the next shift.</Text>}
-        <Label>Counted cash</Label>
+        <Label>{t("Counted cash")}</Label>
         <Text style={{ fontSize: 34, fontWeight: "800", color: c.ink }}>{money(counted)}</Text>
         {showExpected && digits !== "" && (
           <Muted>Expected {money(expected)} · difference {counted - expected >= 0 ? "+" : "−"}{money(Math.abs(counted - expected))}</Muted>
         )}
-        <Btn big kind="danger" title="Close shift" disabled={digits === ""} onPress={() => onClosed(closeShift(counted))} />
+        <Btn big kind="danger" title={t("Close shift")} disabled={digits === ""} onPress={() => onClosed(closeShift(counted))} />
       </View>
       <Keypad compact onKey={keyInto(setDigits)} />
     </View>
