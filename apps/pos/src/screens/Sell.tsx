@@ -96,6 +96,9 @@ export function Sell() {
     setQty(lineId, next);
   };
 
+  // No shift yet: count the cash first. The menu stays hidden until then.
+  if (!shift) return <StartShiftPanel />;
+
   return (
     <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.bg }}>
       {/* ── catalog ── */}
@@ -197,7 +200,6 @@ export function Sell() {
 
       {/* ── cart ── */}
       <View style={{ width: 400, backgroundColor: c.surface, borderLeftWidth: 1, borderColor: c.line }}>
-        {!shift ? <StartShiftPanel /> : <>
         <View style={{ padding: 16, gap: 10, borderBottomWidth: 1, borderColor: c.line }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
             <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
@@ -287,7 +289,6 @@ export function Sell() {
           </View>
           <Btn big testID="charge" title={hasLines ? `Charge ${money(order!.total)}` : "Charge"} disabled={!hasLines || !can("charge")} onPress={() => setModal({ kind: "charge" })} />
         </View>
-        </>}
       </View>
 
       {notice && (

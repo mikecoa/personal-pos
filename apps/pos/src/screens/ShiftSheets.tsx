@@ -1,24 +1,31 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { can, cashMove, closeShift, shiftSummary, startShift, useStore } from "../lib/store";
 import type { ShiftDoc } from "../lib/types";
 import { Btn, Chip, Field, H, Keypad, Label, money, Muted } from "../ui/kit";
-import { c } from "../ui/theme";
+import { c, r } from "../ui/theme";
 
 export const keyInto = (set: (f: (d: string) => string) => void) => (k: string) =>
   set((d) => (k === "⌫" ? d.slice(0, -1) : (d + k).replace(/^0+/, "").slice(0, 11)));
 
-/** Shown in the cart panel while no shift is open. */
+/** Fills the POS page while no shift is open: the cash in the drawer is counted before the menu shows. */
 export function StartShiftPanel() {
   const def = useStore((s) => s.catalog!.settings.default_starting_cash ?? 0);
+  const name = useStore((s) => s.employee?.name ?? "");
   const [digits, setDigits] = useState(def ? String(def) : "");
   return (
-    <View style={{ flex: 1, padding: 20, gap: 14, alignItems: "center", justifyContent: "center" }}>
-      <H>Start a shift</H>
-      <Muted style={{ textAlign: "center" }}>Count the cash in the drawer before the first sale.</Muted>
-      <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink }} testID="starting-cash">{money(Number(digits || 0))}</Text>
-      <Keypad compact onKey={keyInto(setDigits)} />
-      <Btn big style={{ alignSelf: "stretch" }} title="Start shift" onPress={() => startShift(Number(digits || 0))} />
+    <View style={{ flex: 1, backgroundColor: c.bg, alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <View style={{ width: 420, maxWidth: "100%", padding: 28, gap: 16, alignItems: "center", borderRadius: r.lg, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface }}>
+        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" }}>
+          <MaterialCommunityIcons name="cash-register" size={32} color={c.accent} />
+        </View>
+        <H>Start a shift</H>
+        <Muted style={{ textAlign: "center", fontSize: 16 }}>{`${name ? `Hi ${name}. ` : ""}Count the cash in the drawer and enter the total to open the menu.`}</Muted>
+        <Text style={{ fontSize: 36, fontWeight: "800", color: c.ink }} testID="starting-cash" accessibilityLabel={`Starting cash ${money(Number(digits || 0))}`}>{money(Number(digits || 0))}</Text>
+        <Keypad onKey={keyInto(setDigits)} />
+        <Btn big style={{ alignSelf: "stretch" }} title="Start shift" onPress={() => startShift(Number(digits || 0))} />
+      </View>
     </View>
   );
 }
