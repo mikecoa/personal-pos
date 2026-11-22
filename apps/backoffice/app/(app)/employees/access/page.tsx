@@ -8,7 +8,7 @@ import { BackofficeTree } from "./backoffice-tree";
 
 const BASE = "/employees/access";
 
-export default async function EmployeeAccessPage({ searchParams }: { searchParams: Promise<{ edit?: string; new?: string }> }) {
+export default async function EmployeeAccessPage({ searchParams }: { searchParams: Promise<{ edit?: string; new?: string; copy?: string }> }) {
   const { supabase, membership } = await requireOwner();
   const sp = await searchParams;
   const [{ data: roles }, { data: emps }] = await Promise.all([
@@ -17,12 +17,21 @@ export default async function EmployeeAccessPage({ searchParams }: { searchParam
   ]);
   const staff = (id: string) => emps?.filter((e) => e.role_id === id) ?? [];
   const editing = sp.edit ? roles?.find((r) => r.id === sp.edit) : undefined;
+  // Duplicate: the create form starts from another role's permissions and pages.
+  const source = !editing && sp.copy ? roles?.find((r) => r.id === sp.copy) : undefined;
+  const base = editing ?? source;
+  const copyName = (name: string) => {
+    const taken = new Set(roles?.map((r) => r.name.toLowerCase()));
+    let n = `${name} (copy)`;
+    for (let i = 2; taken.has(n.toLowerCase()); i++) n = `${name} (copy ${i})`;
+    return n.slice(0, 40);
+  };
 
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title="Employee access" description="Roles: what each kind of employee may do on the POS tablet and, optionally, in the backoffice. Applies to every location."
         actions={<ButtonLink href={`${BASE}?new=1`}>Create role</ButtonLink>} />
-      <Table head={["Role", "Employees assigned", "Access", "Privileges"]}>
+      <Table head={["Role", "Employees assigned", "Access", "Privileges", ""]}>
         {roles?.map((r) => {
           const people = staff(r.id);
           const bo = r.backoffice_pages.length > 0;
@@ -37,20 +46,27 @@ export default async function EmployeeAccessPage({ searchParams }: { searchParam
               <td className="px-4 py-3 text-ink-2 tabular-nums">
                 {r.permissions.length}/{ALL_PERMISSIONS.length} POS{bo ? ` · ${r.backoffice_pages.length}/${ALL_BACKOFFICE_PAGES.length} pages` : ""}
               </td>
+              <td className="px-4 py-3 text-right">
+                <Link href={`${BASE}?copy=${r.id}`} scroll={false} className="text-sm font-medium text-accent hover:underline" aria-label={`Duplicate ${r.name}`}>Duplicate</Link>
+              </td>
             </tr>
           );
         })}
       </Table>
 
-      {(sp.new || editing) && (
-        <Panel title={editing ? `Role: ${editing.name}` : "Create role"} closeHref={BASE}>
-          <EditorForm action={saveRole} deleteAction={editing && !editing.is_system ? deleteRole : undefined} closeHref={BASE} hidden={{ id: editing?.id }}
+      {(sp.new || editing || source) && (
+        <Panel title={editing ? `Role: ${editing.name}` : source ? `Duplicate ${source.name}` : "Create role"} closeHref={BASE}>
+          <EditorForm key={editing ? `edit:${editing.id}` : source ? `copy:${source.id}` : "new"} action={saveRole} deleteAction={editing && !editing.is_system ? deleteRole : undefined} closeHref={BASE} hidden={{ id: editing?.id }}
             confirmDelete="Delete this role? Move its employees to another role first.">
-            <Field label="Role name" name="name" defaultValue={editing?.name} required autoFocus maxLength={40} />
+            <Field label="Role name" name="name" defaultValue={editing?.name ?? (source && copyName(source.name))} required autoFocus maxLength={40} />
+            {source && <p className="-mt-2 text-sm text-ink-2">Starts with the same permissions and pages as {source.name}. Change what you need, then save.</p>}
             {editing && (
-              <div>
-                <p className="mb-1 text-sm font-medium text-ink-2">Employees assigned</p>
-                <p className="text-sm">{staff(editing.id).map((p) => p.name).join(", ") || "Nobody yet. Assign roles in Employee slots."}</p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="mb-1 text-sm font-medium text-ink-2">Employees assigned</p>
+                  <p className="text-sm">{staff(editing.id).map((p) => p.name).join(", ") || "Nobody yet. Assign roles in Employee slots."}</p>
+                </div>
+                <ButtonLink href={`${BASE}?copy=${editing.id}`} variant="secondary">Duplicate</ButtonLink>
               </div>
             )}
             <fieldset className="rounded-xl border border-line p-4">
@@ -61,14 +77,14 @@ export default async function EmployeeAccessPage({ searchParams }: { searchParam
                   <p className="text-sm font-medium">{g.label}</p>
                   {g.items.map((p) => (
                     <label key={p.key} className="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-1.5 hover:bg-surface-2">
-                      <input type="checkbox" name="perm" value={p.key} defaultChecked={editing?.permissions.includes(p.key)} className="mt-1 accent-[var(--accent)]" />
+                      <input type="checkbox" name="perm" value={p.key} defaultChecked={base?.permissions.includes(p.key)} className="mt-1 accent-[var(--accent)]" />
                       <span>{p.label}{"hint" in p && <span className="block text-xs text-ink-2">{p.hint}</span>}</span>
                     </label>
                   ))}
                 </div>
               ))}
             </fieldset>
-            <BackofficeTree initial={editing?.backoffice_pages ?? []} />
+            <BackofficeTree initial={base?.backoffice_pages ?? []} />
           </EditorForm>
         </Panel>
       )}
