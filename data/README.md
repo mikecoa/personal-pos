@@ -10,4 +10,4 @@
 ## djoeragan-kopitiam-logo.jpg
 
 The outlet logo. Upload it in the backoffice under **Business → Locations → (location) → Logo**; it is
-trimmed, resized and shown on the POS tablets (side menu and PIN screen).
+its white background is made see-through, it is trimmed, resized and shown on the POS tablets (side menu and PIN screen).

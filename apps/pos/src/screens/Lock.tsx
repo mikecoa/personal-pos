@@ -41,9 +41,7 @@ export function Lock() {
           <H size={34}>{location}</H>
         </View>
         {logo ? (
-          <View style={{ alignSelf: "center", padding: 24, borderRadius: 28, backgroundColor: "#ffffff", borderWidth: 1, borderColor: c.line }}>
-            <Image source={{ uri: logo }} resizeMode="contain" accessibilityLabel={`${location} logo`} style={{ width: 260, height: 260 }} />
-          </View>
+          <Image source={{ uri: logo }} resizeMode="contain" accessibilityLabel={`${location} logo`} style={{ alignSelf: "center", width: 300, height: 300 }} />
         ) : null}
         <View style={{ gap: 12 }}>
           <SyncBadge />
