@@ -194,12 +194,13 @@ export function setLanguage(lang: Lang) { setLangValue(lang); set({ lang }); }
 /** Receipt printer preferences, kept on this tablet only. */
 export type PrinterSettings = {
   connection: "none" | "bluetooth" | "network" | "usb";
-  address: string;            // IP for network printers, device name/MAC for Bluetooth
+  address: string;            // IP for network printers, MAC for Bluetooth, device path for USB (found by "Find printers")
+  name: string;               // shown in settings
   paper: 58 | 80;             // mm
   autoPrint: boolean;         // print a receipt after every sale
   copies: number;
 };
-export const defaultPrinter: PrinterSettings = { connection: "none", address: "", paper: 58, autoPrint: false, copies: 1 };
+export const defaultPrinter: PrinterSettings = { connection: "none", address: "", name: "", paper: 58, autoPrint: false, copies: 1 };
 export const printerSettings = (): PrinterSettings => ({ ...defaultPrinter, ...(db.kvGet<PrinterSettings>("printer") ?? {}) });
 export function savePrinterSettings(p: PrinterSettings) { db.kvSet("printer", p); }
 

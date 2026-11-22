@@ -1,12 +1,13 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { type ComponentProps, useState } from "react";
+import { type ComponentProps, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { cashSuggestions, settle } from "@pos/core";
 import { completeSale, useStore } from "../lib/store";
 import type { OrderDoc, OrderPayment, PaymentMethod } from "../lib/types";
 import { Btn, Field, H, Keypad, Label, money, Muted, Sheet } from "../ui/kit";
 import { c, r } from "../ui/theme";
-import { toReceipt } from "./receipt";
+import { printReceipt, toReceipt } from "./receipt";
+import { printerSettings } from "../lib/store";
 import { ReceiptView } from "./ReceiptView";
 import { FadeIn, Tap } from "../ui/motion";
 import { t } from "../lib/i18n";
@@ -26,6 +27,17 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
   const [entry, setEntry] = useState("");          // typed amount (digits)
   const [reference, setReference] = useState("");
   const [done, setDone] = useState<OrderDoc | null>(null);
+  const [printMsg, setPrintMsg] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
+  const hasPrinter = printerSettings().connection !== "none";
+  const print = async (o: OrderDoc) => {
+    setPrinting(true); setPrintMsg(null);
+    try { await printReceipt(o, catalog); setPrintMsg(t("Receipt printed.")); }
+    catch (e) { setPrintMsg((e as Error).message); }
+    setPrinting(false);
+  };
+  // Print automatically after the sale when the tablet is set to.
+  useEffect(() => { if (done && hasPrinter && printerSettings().autoPrint) void print(done); }, [done]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const total = done?.total ?? order?.total ?? 0;
   const st = settle(total, tenders.map((t) => ({ kind: t.kind, amount: t.amount, tendered: t.tendered })));
@@ -35,8 +47,8 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
     return (
       <Sheet visible onClose={onClose} title={t("Payment complete")} width={760}
         footer={<>
-          <Btn kind="secondary" title={t("Print receipt")} disabled />
-          <Muted style={{ flex: 1, alignSelf: "center" }}>{t("No printer connected yet")}</Muted>
+          <Btn kind="secondary" title={t("Print receipt")} disabled={!hasPrinter} loading={printing} onPress={() => void print(done)} />
+          <Muted style={{ flex: 1, alignSelf: "center" }}>{printMsg ?? (hasPrinter ? "" : t("No printer set up (Settings → Printer)"))}</Muted>
           <Btn big style={{ minWidth: 220 }} title={t("New sale")} onPress={onClose} />
         </>}>
         <View style={{ flexDirection: "row", gap: 28 }}>

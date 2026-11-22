@@ -3,11 +3,11 @@ import Constants from "expo-constants";
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { lock, printerSettings, resetDevice, savePrinterSettings, setLanguage, signedInEmail, unsentCount, useStore, type PrinterSettings } from "../lib/store";
-import { Btn, Chip, Field, Label, Muted, PageTop, Stepper } from "../ui/kit";
+import { Btn, Chip, Label, Muted, PageTop, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
-import { ReceiptView } from "./ReceiptView";
 import { SyncBadge } from "./SyncBadge";
 import { dateLocale, LANGS, t } from "../lib/i18n";
+import { allowUsb, findPrinters, lineWidth, openBluetoothSettings, printingAvailable, printLines, type FoundPrinter } from "../lib/printer";
 import { FadeIn, Tap } from "../ui/motion";
 
 type Section = "account" | "language" | "printer" | "logout";
@@ -131,71 +131,111 @@ function Account() {
 }
 
 // ───────────────────────────────────────────── Printer
-const CONNECTIONS: { key: PrinterSettings["connection"]; label: string }[] = [
-  { key: "none", label: "No printer" }, { key: "bluetooth", label: "Bluetooth" }, { key: "network", label: "Network (LAN/Wi-Fi)" }, { key: "usb", label: "USB" },
-];
+const KIND_ICON: Record<FoundPrinter["kind"], Icon> = { network: "wifi", bluetooth: "bluetooth", usb: "usb-port" };
+const KIND_NAME: Record<FoundPrinter["kind"], string> = { network: "Wi-Fi", bluetooth: "Bluetooth", usb: "USB" };
 
+/**
+ * Receipt printer for this tablet. "Find printers" looks on the same Wi-Fi network, at Bluetooth
+ * printers paired in Android settings, and at USB; tap one to use it. Changes save immediately.
+ */
 function Printer() {
   const location = useStore((s) => s.catalog!.location.name);
   const [p, setP] = useState<PrinterSettings>(printerSettings);
-  const [saved, setSaved] = useState(false);
-  const [preview, setPreview] = useState(false);
-  const change = (patch: Partial<PrinterSettings>) => { setP({ ...p, ...patch }); setSaved(false); };
-  const width = p.paper === 80 ? 48 : 32;
-  const center = (t: string) => " ".repeat(Math.max(0, Math.floor((width - t.length) / 2))) + t;
-  const test = [center(location), center("TEST PRINT"), "-".repeat(width),
-    t("Paper {paper} mm, {width} characters", { paper: p.paper, width }), t("Connection: {v0}", { v0: CONNECTIONS.find((x) => x.key === p.connection)!.label }),
-    p.address ? t("Printer: {address}", { address: p.address }) : "", "-".repeat(width), center(t("If you can read this,")), center(t("the printer works."))].filter((l) => l !== "");
+  const [searching, setSearching] = useState(false);
+  const [found, setFound] = useState<FoundPrinter[] | null>(null);
+  const [notes, setNotes] = useState<string[]>([]);
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [testing, setTesting] = useState(false);
+  const change = (patch: Partial<PrinterSettings>) => { const next = { ...p, ...patch }; setP(next); savePrinterSettings(next); };
+  const width = lineWidth(p.paper);
+  const center = (x: string) => " ".repeat(Math.max(0, Math.floor((width - x.length) / 2))) + x;
+  const testLines = [center(location), center("TEST PRINT"), "-".repeat(width), t("Paper {paper} mm, {width} characters", { paper: p.paper, width }),
+    `${p.name}`, "-".repeat(width), center(t("If you can read this,")), center(t("the printer works."))];
+
+  const search = async () => {
+    setSearching(true); setMsg(null); setFound(null);
+    const r = await findPrinters();
+    setFound(r.found); setNotes(r.notes); setSearching(false);
+  };
+  const pick = async (f: FoundPrinter) => {
+    if (!(await allowUsb(f))) return setMsg({ text: t("USB access was not allowed."), ok: false });
+    change({ connection: f.kind, address: f.address, name: f.name });
+    setFound(null); setMsg({ text: t("{name} is now this tablet's printer.", { name: f.name }), ok: true });
+  };
+  const test = async () => {
+    setTesting(true); setMsg(null);
+    try { await printLines(p, testLines); setMsg({ text: t("Test page sent to the printer."), ok: true }); }
+    catch (e) { setMsg({ text: (e as Error).message, ok: false }); }
+    setTesting(false);
+  };
 
   return (
     <Pane title={t("Printer")}>
-      <View style={{ gap: 10 }}>
-        <Label>{t("Connection")}</Label>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {CONNECTIONS.map((x) => <Chip key={x.key} label={t(x.label)} active={p.connection === x.key} onPress={() => change({ connection: x.key })} />)}
+      {!printingAvailable() && <Muted style={{ fontSize: 14, color: c.warn }}>{t("Printing needs the POS app (not Expo Go).")}</Muted>}
+
+      {p.connection !== "none" && p.address ? (
+        <View style={st.printerCard}>
+          <View style={st.printerIcon}><MaterialCommunityIcons name={KIND_ICON[p.connection]} size={26} color={c.accent} /></View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }} numberOfLines={1}>{p.name || t("Printer")}</Text>
+            <Muted style={{ fontSize: 14 }}>{`${KIND_NAME[p.connection]} · ${p.connection === "usb" ? "USB" : p.address}`}</Muted>
+          </View>
+          <Btn kind="secondary" title={t("Test print")} loading={testing} onPress={() => void test()} />
+          <Btn kind="ghost" title={t("Remove")} onPress={() => { change({ connection: "none", address: "", name: "" }); setMsg(null); }} />
         </View>
-      </View>
-      {p.connection === "network" && (
-        <Field label={t("Printer IP address")} value={p.address} onChangeText={(v) => change({ address: v.trim() })} placeholder={t("e.g. 192.168.1.50")} keyboardType="numbers-and-punctuation" maxLength={40} />
+      ) : (
+        <Muted>{t("No printer yet. Turn the printer on, then tap Find printers.")}</Muted>
       )}
-      {p.connection === "bluetooth" && (
-        <Field label={t("Printer name")} value={p.address} onChangeText={(v) => change({ address: v })} placeholder={t("e.g. RPP02N")} maxLength={40} />
-      )}
-      {p.connection !== "none" && (
-        <>
-          <View style={{ gap: 10 }}>
-            <Label>{t("Paper width")}</Label>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Chip label={t("58 mm")} active={p.paper === 58} onPress={() => change({ paper: 58 })} />
-              <Chip label={t("80 mm")} active={p.paper === 80} onPress={() => change({ paper: 80 })} />
-            </View>
-          </View>
-          <View style={st.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Print receipt after every sale")}</Text>
-              <Muted style={{ fontSize: 13 }}>{t("Otherwise staff print from the payment screen when a customer asks.")}</Muted>
-            </View>
-            <Switch value={p.autoPrint} onValueChange={(v) => change({ autoPrint: v })} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface}
-              accessibilityLabel="Print receipt after every sale" />
-          </View>
-          <View style={st.toggleRow}>
-            <Text style={{ flex: 1, fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Copies")}</Text>
-            <Stepper value={p.copies} min={1} onChange={(n) => change({ copies: Math.min(3, n) })} />
-          </View>
-        </>
-      )}
-      <View style={{ flexDirection: "row", gap: 12 }}>
-        <Btn title={t("Save")} onPress={() => { savePrinterSettings(p); setSaved(true); }} />
-        {p.connection !== "none" && <Btn kind="secondary" title={preview ? t("Hide test print") : t("Test print")} onPress={() => setPreview(!preview)} />}
-        {saved && <Text style={{ alignSelf: "center", color: c.accent, fontWeight: "600" }}>{t("Saved on this tablet")}</Text>}
-      </View>
-      {preview && (
+      {msg && <Text style={{ color: msg.ok ? c.accent : c.danger, fontWeight: "600" }}>{msg.text}</Text>}
+
+      <Btn big title={searching ? t("Searching Wi-Fi, Bluetooth and USB…") : p.address ? t("Find another printer") : t("Find printers")}
+        loading={searching} disabled={!printingAvailable()} onPress={() => void search()} />
+
+      {found && (
         <View style={{ gap: 8 }}>
-          <ReceiptView lines={test} />
-          <Muted style={{ fontSize: 13, textAlign: "center" }}>{t("Preview only: sending to the printer is added once we know the printer model.")}</Muted>
+          {found.length === 0 ? (
+            <View style={[st.card, { padding: 16, gap: 6 }]}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink }}>{t("No printers found")}</Text>
+              <Muted style={{ fontSize: 14 }}>{t("Wi-Fi: the printer must be on the same network as this tablet.")}</Muted>
+              <Muted style={{ fontSize: 14 }}>{t("Bluetooth: pair the printer once in the tablet's Bluetooth settings.")}</Muted>
+              <Muted style={{ fontSize: 14 }}>{t("USB: plug the printer into the tablet.")}</Muted>
+            </View>
+          ) : found.map((f) => (
+            <Tap key={`${f.kind}-${f.address}`} onPress={() => void pick(f)} accessibilityRole="button" accessibilityLabel={`${f.name}, ${KIND_NAME[f.kind]}`}
+              scaleTo={0.98} style={st.foundRow}>
+              <MaterialCommunityIcons name={KIND_ICON[f.kind]} size={24} color={c.ink2} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }} numberOfLines={1}>{f.name}</Text>
+                <Muted style={{ fontSize: 13 }}>{`${KIND_NAME[f.kind]} · ${f.detail}${f.isPrinter ? "" : ` · ${t("may not be a printer")}`}`}</Muted>
+              </View>
+              <Text style={{ color: c.accent, fontWeight: "800" }}>{t("Use")}</Text>
+            </Tap>
+          ))}
+          {notes.map((n) => <Muted key={n} style={{ fontSize: 14, color: c.warn }}>{n}</Muted>)}
+          <Btn kind="ghost" title={t("Open Bluetooth settings to pair a printer")} onPress={() => void openBluetoothSettings()} />
         </View>
       )}
-      <Muted style={{ fontSize: 14 }}>{t("Printer settings belong to this tablet only.")}</Muted>
+
+      <View style={{ gap: 10 }}>
+        <Label>{t("Paper width")}</Label>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Chip label={t("58 mm")} active={p.paper === 58} onPress={() => change({ paper: 58 })} />
+          <Chip label={t("80 mm")} active={p.paper === 80} onPress={() => change({ paper: 80 })} />
+        </View>
+      </View>
+      <View style={st.toggleRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Print receipt after every sale")}</Text>
+          <Muted style={{ fontSize: 13 }}>{t("Otherwise staff print from the payment screen when a customer asks.")}</Muted>
+        </View>
+        <Switch value={p.autoPrint} onValueChange={(v) => change({ autoPrint: v })} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface}
+          accessibilityLabel="Print receipt after every sale" />
+      </View>
+      <View style={st.toggleRow}>
+        <Text style={{ flex: 1, fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Copies")}</Text>
+        <Stepper value={p.copies} min={1} onChange={(n) => change({ copies: Math.min(3, n) })} />
+      </View>
+      <Muted style={{ fontSize: 14 }}>{t("Printer settings belong to this tablet only and save automatically.")}</Muted>
     </Pane>
   );
 }
@@ -238,6 +278,9 @@ function LogOut() {
 }
 
 const st = StyleSheet.create({
+  printerCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: r.md, borderWidth: 2, borderColor: c.accent, backgroundColor: c.surface },
+  printerIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" },
+  foundRow: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   langRow: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 76, paddingHorizontal: 18, borderRadius: r.md, borderWidth: 2, borderColor: c.line, backgroundColor: c.surface },
   nav: { width: 260, borderRightWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingTop: 8 },
   navItem: { flexDirection: "row", alignItems: "center", gap: 12, height: 56, paddingHorizontal: 20 },

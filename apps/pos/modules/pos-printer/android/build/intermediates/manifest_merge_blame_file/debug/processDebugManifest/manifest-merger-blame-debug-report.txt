@@ -1,0 +1,48 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="expo.modules.posprinter" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+5-->INJECTED
+5-->INJECTED
+6
+7    <uses-permission android:name="android.permission.INTERNET" />
+7-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:2:3-65
+7-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:2:20-62
+8    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+8-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:3:3-77
+8-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:3:20-74
+9    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+9-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:4:3-74
+9-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:4:20-71
+10    <!-- Bluetooth: paired printers. Android 12+ asks the user for "Nearby devices" (BLUETOOTH_CONNECT). -->
+11    <uses-permission
+11-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:6:3-93
+12        android:name="android.permission.BLUETOOTH"
+12-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:6:20-63
+13        android:maxSdkVersion="30" />
+13-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:6:64-90
+14    <uses-permission
+14-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:7:3-99
+15        android:name="android.permission.BLUETOOTH_ADMIN"
+15-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:7:20-69
+16        android:maxSdkVersion="30" />
+16-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:7:70-96
+17    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+17-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:8:3-74
+17-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:8:20-71
+18
+19    <uses-feature
+19-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:9:3-86
+20        android:name="android.hardware.bluetooth"
+20-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:9:17-58
+21        android:required="false" />
+21-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:9:59-83
+22    <uses-feature
+22-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:10:3-85
+23        android:name="android.hardware.usb.host"
+23-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:10:17-57
+24        android:required="false" />
+24-->/Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:10:58-82
+25
+26</manifest>

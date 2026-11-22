@@ -5,7 +5,8 @@ import { guard, recentSales, refundedSoFar, useStore } from "../lib/store";
 import type { OrderDoc, OrderPayment } from "../lib/types";
 import { Btn, Muted, money, PageTop, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
-import { toReceipt } from "./receipt";
+import { printReceipt, toReceipt } from "./receipt";
+import { printerSettings } from "../lib/store";
 import { ReceiptView } from "./ReceiptView";
 import { RefundSheet } from "./RefundSheet";
 import { dateLocale, t } from "../lib/i18n";
@@ -188,10 +189,19 @@ function Details({ sale }: { sale: OrderDoc }) {
 
 function ReceiptSheet({ sale, onClose }: { sale: OrderDoc; onClose: () => void }) {
   const catalog = useStore((s) => s.catalog)!;
+  const hasPrinter = printerSettings().connection !== "none";
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const print = async () => {
+    setBusy(true); setMsg(null);
+    try { await printReceipt(sale, catalog, "COPY"); setMsg(t("Receipt printed.")); } catch (e) { setMsg((e as Error).message); }
+    setBusy(false);
+  };
   return (
-    <Sheet visible onClose={onClose} title={t("Receipt {number}", { number: sale.number })} width={460}>
+    <Sheet visible onClose={onClose} title={t("Receipt {number}", { number: sale.number })} width={460}
+      footer={<><Muted style={{ flex: 1, alignSelf: "center" }}>{msg ?? (hasPrinter ? "" : t("No printer set up (Settings → Printer)"))}</Muted>
+        <Btn title={t("Print copy")} disabled={!hasPrinter} loading={busy} onPress={() => void print()} /></>}>
       <ReceiptView lines={toReceipt(sale, catalog, "COPY")} />
-      <Muted style={{ fontSize: 13, textAlign: "center" }}>{t("Printing and sending receipts come once the printer is set up.")}</Muted>
     </Sheet>
   );
 }

@@ -1,8 +1,10 @@
 import { receiptLines, type ReceiptOrder } from "@pos/core";
 import { lineLabel, lineSalesType, mixedSalesTypes } from "../lib/order";
 import type { Catalog, OrderDoc } from "../lib/types";
+import { lineWidth, printLines } from "../lib/printer";
+import { printerSettings } from "../lib/store";
 
-export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string): string[] {
+export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string, width = 32): string[] {
   // Mixed bill (e.g. Dine In + Take Away): items grouped by type, each showing its type.
   const mixed = mixedSalesTypes(o);
   const order = [...new Set(o.lines.map((l) => lineSalesType(l, o) ?? ""))];
@@ -22,5 +24,11 @@ export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string): string[
     rounding: o.rounding, total: o.total, payments: o.payments.map((p) => ({ name: p.method_name, amount: p.amount })), change: o.change_due,
     copy: copy ?? (o.status === "open" ? "BILL" : null),
   };
-  return receiptLines(catalog.receipt, r, 32);
+  return receiptLines(catalog.receipt, r, width);
+}
+
+/** Prints an order's receipt on this tablet's printer (paper width and copies from its settings). */
+export async function printReceipt(o: OrderDoc, catalog: Catalog, copy?: string) {
+  const p = printerSettings();
+  await printLines(p, toReceipt(o, catalog, copy, lineWidth(p.paper)));
 }

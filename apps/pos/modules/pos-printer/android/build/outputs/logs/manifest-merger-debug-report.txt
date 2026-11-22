@@ -1,0 +1,56 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:1:1-11:12
+INJECTED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:1:1-11:12
+	package
+		INJECTED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:1:11-69
+uses-permission#android.permission.INTERNET
+ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:2:3-65
+	android:name
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:2:20-62
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:3:3-77
+	android:name
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:3:20-74
+uses-permission#android.permission.ACCESS_WIFI_STATE
+ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:4:3-74
+	android:name
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:4:20-71
+uses-permission#android.permission.BLUETOOTH
+ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:6:3-93
+	android:maxSdkVersion
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:6:64-90
+	android:name
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:6:20-63
+uses-permission#android.permission.BLUETOOTH_ADMIN
+ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:7:3-99
+	android:maxSdkVersion
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:7:70-96
+	android:name
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:7:20-69
+uses-permission#android.permission.BLUETOOTH_CONNECT
+ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:8:3-74
+	android:name
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:8:20-71
+uses-feature#android.hardware.bluetooth
+ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:9:3-86
+	android:required
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:9:59-83
+	android:name
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:9:17-58
+uses-feature#android.hardware.usb.host
+ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:10:3-85
+	android:required
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:10:58-82
+	android:name
+		ADDED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml:10:17-57
+uses-sdk
+INJECTED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml
+INJECTED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/michaelcoa/Library/Application Support/Claude/scratch-workspaces/233dc697-5c1d-4262-8eb1-b35da57cf941/d002c7f2-cfa9-40f2-b0cc-7c14fbf04ca7/scratch-2026-11-20-0f3f6f/apps/pos/modules/pos-printer/android/src/main/AndroidManifest.xml
