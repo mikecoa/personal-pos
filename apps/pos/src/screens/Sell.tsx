@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
-import { FlatList, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { type ComponentProps, useMemo, useState } from "react";
+import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { can, clearOrder, guard, notify, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
@@ -206,39 +206,44 @@ export function Sell() {
 
       {/* ── cart ── */}
       <View style={{ width: 400, backgroundColor: c.surface, borderLeftWidth: 1, borderColor: c.line }}>
-        <View style={{ padding: 16, gap: 10, borderBottomWidth: 1, borderColor: c.line }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
+        <View style={{ padding: 16, gap: 12, borderBottomWidth: 1, borderColor: c.line }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+            <Text style={{ fontSize: 22, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
               {order?.table_id ? t("Table {v0}", { v0: tableLabel(order) }) : order?.bill_name ?? t("New order")}
             </Text>
-            <Text style={{ color: c.ink2 }}>{order?.number ?? ""}</Text>
+            <Text style={{ color: c.ink2, fontSize: 14 }}>{order?.number ?? ""}</Text>
           </View>
-          {order?.table_id ? (
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Pressable onPress={() => setModal({ kind: "seating" })} accessibilityRole="button" accessibilityLabel="Edit guests and customer"
-                style={({ pressed }) => [pill, { flex: 1 }, pressed && { backgroundColor: c.surface2 }]}>
-                <Text style={{ color: c.ink, fontWeight: "600", flexShrink: 1 }} numberOfLines={1}>
-                  {order.guests ? t("{guests} guests", { guests: order.guests }) : t("Add guests")}
-                </Text>
-                <Text style={{ color: c.ink2 }}>✎</Text>
-              </Pressable>
-              {(
-                <Pressable onPress={() => guard("open_bills_manage", "Move the bill to another table", () => setModal({ kind: "move" }))} accessibilityRole="button" accessibilityLabel="Move table"
-                  style={({ pressed }) => [pill, pressed && { backgroundColor: c.surface2 }]}>
-                  <Text style={{ color: c.accent, fontWeight: "700" }}>{t("Move table")}</Text>
-                </Pressable>
-              )}
+          {/* One row of equal tiles: table details and the customer. */}
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {order?.table_id ? (
+              <>
+                <InfoTile icon="account-group-outline" text={order.guests ? t("{guests} guests", { guests: order.guests }) : t("Add guests")}
+                  dashed={!order.guests} onPress={() => setModal({ kind: "seating" })} a11y="Edit guests and customer" />
+                <InfoTile icon="swap-horizontal" text={t("Move")} accent
+                  onPress={() => guard("open_bills_manage", "Move the bill to another table", () => setModal({ kind: "move" }))} a11y="Move table" />
+              </>
+            ) : hasTables && (!order || order.version === 0) ? (
+              <InfoTile icon="table-chair" text={t("Pick table")} dashed onPress={() => setModal({ kind: "tables" })} a11y="Pick a table" />
+            ) : null}
+            <CustomerTile onPress={() => setModal({ kind: "customers" })} />
+          </View>
+          {catalog.sales_types.length <= 3 ? (
+            <View style={seg.wrap} accessibilityRole="radiogroup">
+              {catalog.sales_types.map((s) => {
+                const on = salesTypeId === s.id;
+                return (
+                  <Tap key={s.id} onPress={() => setSalesType(s.id)} accessibilityRole="radio" accessibilityState={{ selected: on }} scaleTo={0.97}
+                    style={[seg.item, on && seg.on]}>
+                    <Text style={[seg.text, on && { color: c.accentInk }]} numberOfLines={1}>{s.name}</Text>
+                  </Tap>
+                );
+              })}
             </View>
-          ) : hasTables && (!order || order.version === 0) ? (
-            <Pressable onPress={() => setModal({ kind: "tables" })} accessibilityRole="button" accessibilityLabel="Pick a table"
-              style={({ pressed }) => [pill, { borderStyle: "dashed", alignSelf: "flex-start" }, pressed && { backgroundColor: c.surface2 }]}>
-              <Text style={{ color: c.accent, fontWeight: "700" }}>{t("+ Pick a table")}</Text>
-            </Pressable>
-          ) : null}
-          <CustomerPill onPress={() => setModal({ kind: "customers" })} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {catalog.sales_types.map((s) => <Chip key={s.id} label={s.name} active={salesTypeId === s.id} onPress={() => setSalesType(s.id)} />)}
-          </ScrollView>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {catalog.sales_types.map((s) => <Chip key={s.id} label={s.name} active={salesTypeId === s.id} onPress={() => setSalesType(s.id)} />)}
+            </ScrollView>
+          )}
         </View>
 
         <FlatList
@@ -286,12 +291,17 @@ export function Sell() {
           </View>
         )}
 
-        <View style={{ padding: 16, gap: 10 }}>
+        <View style={{ padding: 16, paddingTop: 12, gap: 10, borderTopWidth: 1, borderColor: c.line }}>
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <Btn kind="secondary" style={{ flex: 1 }} title={t("Discount")} disabled={!hasLines} onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
-            {catalog.settings.save_bill_enabled && <Btn kind="secondary" style={{ flex: 1 }} title={order?.version ? t("Update bill") : t("Save bill")} disabled={!hasLines} onPress={() => guard("open_bills_manage", order?.version ? t("Update the bill") : t("Save the bill"), () => setModal({ kind: "save" }))} />}
-            {order?.version ? <Btn kind="danger" title={t("Cancel bill")} onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
-              : <Btn kind="secondary" title={t("Clear")} disabled={!hasLines} onPress={() => clearOrder()} />}
+            <ToolButton icon="tag-outline" label={t("Discount")} disabled={!hasLines}
+              onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
+            {catalog.settings.save_bill_enabled && (
+              <ToolButton icon="content-save-outline" label={order?.version ? t("Update bill") : t("Save bill")} disabled={!hasLines}
+                onPress={() => guard("open_bills_manage", order?.version ? t("Update the bill") : t("Save the bill"), () => setModal({ kind: "save" }))} />
+            )}
+            {order?.version
+              ? <ToolButton icon="close-octagon-outline" label={t("Cancel bill")} danger onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
+              : <ToolButton icon="backspace-outline" label={t("Clear")} disabled={!hasLines} onPress={() => clearOrder()} />}
           </View>
           <Btn big testID="charge" title={hasLines ? t("Charge {v0}", { v0: money(order!.total) }) : t("Charge")} disabled={!hasLines || !can("charge")} onPress={() => setModal({ kind: "charge" })} />
         </View>
@@ -349,7 +359,6 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
   );
 }
 
-const pill = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 48, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
 
 const noteBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, alignSelf: "flex-start" as const, minHeight: 40, marginTop: 4,
   paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderStyle: "dashed" as const, borderColor: c.line };
@@ -362,19 +371,53 @@ const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, g
 const ADD_TILE = { id: "__add__" } as Item;
 
 /** Customer on the bill: tap to pick or change. Shows their saved discount. */
-function CustomerPill({ onPress }: { onPress: () => void }) {
+type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
+
+/** Equal-width tile in the order header (guests, move, table, customer). Dashed = nothing set yet. */
+function InfoTile({ icon, text, onPress, a11y, dashed, accent }: {
+  icon: IconName; text: string; onPress: () => void; a11y: string; dashed?: boolean; accent?: boolean;
+}) {
+  const tone = dashed || accent ? c.accent : c.ink;
+  return (
+    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} scaleTo={0.97}
+      style={[tile.box, dashed && { borderStyle: "dashed" }]}>
+      <MaterialCommunityIcons name={icon} size={22} color={tone} />
+      <Text style={[tile.text, { color: tone }]} numberOfLines={1}>{text}</Text>
+    </Tap>
+  );
+}
+
+function CustomerTile({ onPress }: { onPress: () => void }) {
   const order = useStore((s) => s.order);
   const catalog = useStore((s) => s.catalog)!;
   const cu = (catalog.customers ?? []).find((x) => x.id === order?.customer_id);
   const name = cu?.name ?? order?.customer_name ?? null;          // a typed-in name (e.g. when seating) shows too
   const d = cu?.discount_id ? catalog.discounts.find((x) => x.id === cu.discount_id) : undefined;
+  return name
+    ? <InfoTile icon={d ? "account-star" : "account"} text={name} onPress={onPress} a11y={t("Customer {name}. Change", { name })} />
+    : <InfoTile icon="account-plus-outline" text={t("Customer")} dashed onPress={onPress} a11y={t("Add customer")} />;
+}
+
+/** Equal-width action under the order: icon above a short label, so labels never wrap. */
+function ToolButton({ icon, label, onPress, disabled, danger }: { icon: IconName; label: string; onPress: () => void; disabled?: boolean; danger?: boolean }) {
+  const tone = danger ? c.danger : c.ink;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={name ? t("Customer {name}. Change", { name }) : t("Add customer")}
-      style={({ pressed }) => [pill, { alignSelf: name ? "stretch" : "flex-start", borderStyle: name ? "solid" : "dashed" }, pressed && { backgroundColor: c.surface2 }]}>
-      <MaterialCommunityIcons name={name ? "account" : "account-plus-outline"} size={20} color={name ? c.ink : c.accent} />
-      {name ? (
-        <Text style={{ flex: 1, color: c.ink, fontWeight: "600" }} numberOfLines={1}>{name}{d ? <Text style={{ color: c.accent }}>{`  · ${d.name}`}</Text> : null}</Text>
-      ) : <Text style={{ color: c.accent, fontWeight: "700" }}>{t("Add customer")}</Text>}
-    </Pressable>
+    <Tap onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} scaleTo={0.95}
+      style={[tile.tool, danger && { borderColor: c.danger }, disabled && { opacity: 0.4 }]}>
+      <MaterialCommunityIcons name={icon} size={22} color={tone} />
+      <Text style={{ fontSize: 14, fontWeight: "700", color: tone }} numberOfLines={1}>{label}</Text>
+    </Tap>
   );
 }
+
+const tile = StyleSheet.create({
+  box: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", gap: 3, height: 60, paddingHorizontal: 8, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  text: { fontSize: 14, fontWeight: "700" },
+  tool: { flex: 1, minWidth: 0, height: 64, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+});
+const seg = StyleSheet.create({
+  wrap: { flexDirection: "row", padding: 4, gap: 4, borderRadius: r.md, backgroundColor: c.surface2 },
+  item: { flex: 1, minWidth: 0, height: 44, borderRadius: r.md - 3, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
+  on: { backgroundColor: c.accent },
+  text: { fontSize: 16, fontWeight: "700", color: c.ink },
+});

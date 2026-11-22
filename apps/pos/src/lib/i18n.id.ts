@@ -527,4 +527,7 @@ export const ID: Record<string, string> = {
   "optional": "opsional",
   "1 void": "1 void",
   "{n} voids": "{n} void",
+  "Move": "Pindah",
+  "Pick table": "Pilih meja",
+  "Customer": "Pelanggan",
 };
