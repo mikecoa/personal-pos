@@ -142,5 +142,5 @@ const st = StyleSheet.create({
   avatarText: { fontWeight: "800", color: c.ink2 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: c.accentSoft },
   badgeText: { color: c.accent, fontWeight: "700", fontSize: 13 },
-  edit: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  edit: { width: 52, height: 52, alignItems: "center", justifyContent: "center" },
 });

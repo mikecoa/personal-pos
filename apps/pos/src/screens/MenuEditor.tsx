@@ -197,7 +197,7 @@ const pk = StyleSheet.create({
   search: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   list: { borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, borderBottomWidth: 1, borderColor: c.line },
-  edit: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginLeft: 4 },
+  edit: { width: 52, height: 52, alignItems: "center", justifyContent: "center", marginLeft: 4 },
 });
 
 export const priceSummary = (i: Item) => {

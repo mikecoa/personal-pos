@@ -126,8 +126,10 @@ export function Sell() {
             <MaterialCommunityIcons name="chevron-down" size={22} color={c.ink2} />
           </Pressable>
           {cat && (
-            <Pressable onPress={() => setCat(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Show all items">
-              <Text style={{ color: c.accent, fontWeight: "700" }}>Show all</Text>
+            <Pressable onPress={() => setCat(null)} accessibilityRole="button" accessibilityLabel="Show all items"
+              style={({ pressed }) => [catBtn, pressed && { backgroundColor: c.surface2 }]}>
+              <MaterialCommunityIcons name="close" size={20} color={c.accent} />
+              <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>Show all</Text>
             </Pressable>
           )}
           <View style={{ flex: 1 }} />
@@ -248,11 +250,11 @@ export function Sell() {
                 {l.modifiers.length > 0 && <Text style={{ color: c.ink2 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
                 {l.discount_amount > 0 && <Text style={{ color: c.accent }}>{l.discount!.name} −{money(l.discount_amount)}</Text>}
                 <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }}>{money(l.line_total)}</Text>
-                <Pressable onPress={() => setModal({ kind: "note", id: l.id })} accessibilityRole="button" hitSlop={8}
+                <Pressable onPress={() => setModal({ kind: "note", id: l.id })} accessibilityRole="button" hitSlop={6}
                   accessibilityLabel={l.note ? `Note: ${l.note}. Change` : `Add a note to ${lineLabel(l)}`}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", paddingVertical: 2 }}>
-                  <MaterialCommunityIcons name={l.note ? "note-text-outline" : "note-plus-outline"} size={16} color={l.note ? c.warn : c.accent} />
-                  <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : "Note"}</Text>
+                  style={({ pressed }) => [noteBtn, l.note && { borderColor: c.warn, borderStyle: "solid" }, pressed && { backgroundColor: c.surface2 }]}>
+                  <MaterialCommunityIcons name={l.note ? "note-text-outline" : "note-plus-outline"} size={18} color={l.note ? c.warn : c.accent} />
+                  <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", fontSize: 15, flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : "Add note"}</Text>
                 </Pressable>
               </Pressable>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
@@ -260,7 +262,7 @@ export function Sell() {
                   style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
                   <MaterialCommunityIcons name={l.qty === 1 && !(l.saved_qty ?? 0) ? "trash-can-outline" : "minus"} size={22} color={c.ink} />
                 </Pressable>
-                <Text style={{ minWidth: 30, textAlign: "center", fontSize: 18, fontWeight: "800", color: c.ink }}>{l.qty}</Text>
+                <Text style={{ minWidth: 32, textAlign: "center", fontSize: 20, fontWeight: "800", color: c.ink }}>{l.qty}</Text>
                 <Pressable onPress={() => step(l.id, 1)} accessibilityRole="button" accessibilityLabel={`One more ${lineLabel(l)}`} hitSlop={4}
                   style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
                   <MaterialCommunityIcons name="plus" size={22} color={c.ink} />
@@ -285,7 +287,7 @@ export function Sell() {
             <Btn kind="secondary" style={{ flex: 1 }} title="Discount" disabled={!hasLines} onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
             {catalog.settings.save_bill_enabled && <Btn kind="secondary" style={{ flex: 1 }} title={order?.version ? "Update bill" : "Save bill"} disabled={!hasLines} onPress={() => guard("open_bills_manage", order?.version ? "Update the bill" : "Save the bill", () => setModal({ kind: "save" }))} />}
             {order?.version ? <Btn kind="danger" title="Cancel bill" onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
-              : <Btn kind="ghost" title="Clear" disabled={!hasLines} onPress={() => clearOrder()} />}
+              : <Btn kind="secondary" title="Clear" disabled={!hasLines} onPress={() => clearOrder()} />}
           </View>
           <Btn big testID="charge" title={hasLines ? `Charge ${money(order!.total)}` : "Charge"} disabled={!hasLines || !can("charge")} onPress={() => setModal({ kind: "charge" })} />
         </View>
@@ -343,11 +345,13 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
   );
 }
 
-const pill = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
+const pill = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 48, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
 
-const qtyBtn = { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: c.surface };
+const noteBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, alignSelf: "flex-start" as const, minHeight: 40, marginTop: 4,
+  paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderStyle: "dashed" as const, borderColor: c.line };
+const qtyBtn = { width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: c.line, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: c.surface };
 type GridRow = { kind: "header"; key: string; name: string; count: number } | { kind: "row"; key: string; items: Item[] };
-const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 44, paddingHorizontal: 14, borderRadius: 22,
+const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 52, paddingHorizontal: 16, borderRadius: 26,
   borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
 
 /** Placeholder first tile while editing the menu. */

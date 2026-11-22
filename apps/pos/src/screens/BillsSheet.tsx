@@ -127,7 +127,7 @@ function Voids({ list }: { list: ReturnType<typeof voidLog> }) {
 
 const st = StyleSheet.create({
   tabs: { flexDirection: "row", gap: 4, borderBottomWidth: 1, borderColor: c.line, marginTop: -6 },
-  tab: { flexDirection: "row", alignItems: "center", gap: 8, height: 46, paddingHorizontal: 14, borderBottomWidth: 3, borderColor: "transparent" },
+  tab: { flexDirection: "row", alignItems: "center", gap: 8, height: 54, paddingHorizontal: 18, borderBottomWidth: 3, borderColor: "transparent" },
   tabOn: { borderColor: c.accent },
   tabText: { fontSize: 16, fontWeight: "700", color: c.ink2 },
   count: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" },

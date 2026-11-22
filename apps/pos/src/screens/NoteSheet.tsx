@@ -139,7 +139,7 @@ function QuickNotesEditor({ onClose }: { onClose: () => void }) {
 }
 
 const st = StyleSheet.create({
-  icon: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
+  icon: { width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   chip: { paddingHorizontal: 18, height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface, justifyContent: "center" },
   chipOn: { backgroundColor: c.accent, borderColor: c.accent },

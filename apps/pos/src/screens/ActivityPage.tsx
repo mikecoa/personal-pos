@@ -3,7 +3,7 @@ import { useMemo, useState, type ComponentProps, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { guard, recentSales, refundedSoFar, useStore } from "../lib/store";
 import type { OrderDoc, OrderPayment } from "../lib/types";
-import { Btn, Muted, money, Sheet } from "../ui/kit";
+import { Btn, Muted, money, PageTop, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
 import { toReceipt } from "./receipt";
 import { ReceiptView } from "./ReceiptView";
@@ -52,7 +52,7 @@ export function ActivityPage() {
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={st.top}><Text style={st.title}>Activity</Text></View>
+      <PageTop title="Activity" subtitle="Completed sales on this tablet" />
       <View style={{ flex: 1, flexDirection: "row" }}>
         {/* list */}
         <View style={st.list}>

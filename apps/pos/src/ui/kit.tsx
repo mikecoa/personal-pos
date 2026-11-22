@@ -66,7 +66,8 @@ export function Sheet({ visible, onClose, title, children, footer, width = 560, 
         <View style={[s.sheet, { width }, side && { height: "100%", borderRadius: 0, maxHeight: "100%" }]}>
           <View style={s.sheetHead}>
             <H size={20}>{title}</H>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}><Text style={{ fontSize: 22, color: c.ink2 }}>✕</Text></Pressable>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}
+              style={({ pressed }) => [s.close, pressed && { backgroundColor: c.surface2 }]}><Text style={{ fontSize: 22, color: c.ink2 }}>✕</Text></Pressable>
           </View>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }} keyboardShouldPersistTaps="handled">{children}</ScrollView>
           {footer && <View style={s.sheetFoot}>{footer}</View>}
@@ -89,7 +90,7 @@ export function Stepper({ value, onChange, min = 0 }: { value: number; onChange:
 /** Numeric keypad for PINs and cash amounts. */
 export function Keypad({ onKey, extra = "00", compact }: { onKey: (k: string) => void; extra?: string; compact?: boolean }) {
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", extra, "0", "⌫"];
-  const w = compact ? 84 : 96, h = compact ? 52 : 72, gap = compact ? 8 : 12;
+  const w = compact ? 88 : 96, h = compact ? 60 : 72, gap = compact ? 10 : 12;
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", width: 3 * w + 2 * gap, gap }}>
       {keys.map((k) => (
@@ -103,18 +104,19 @@ export function Keypad({ onKey, extra = "00", compact }: { onKey: (k: string) =>
 }
 
 const s = StyleSheet.create({
-  btn: { minHeight: 48, paddingHorizontal: 18, borderRadius: r.md, alignItems: "center", justifyContent: "center", borderWidth: 1 },
-  btnBig: { minHeight: 64 },
-  btnText: { fontSize: 16, fontWeight: "700" },
-  chip: { paddingHorizontal: 16, height: 40, borderRadius: 20, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, justifyContent: "center" },
-  chipText: { fontSize: 15, fontWeight: "600", color: c.ink },
-  label: { fontSize: 14, fontWeight: "600", color: c.ink2 },
-  input: { height: 48, borderWidth: 1, borderColor: c.line, borderRadius: r.md, paddingHorizontal: 14, fontSize: 17, backgroundColor: c.surface, color: c.ink },
+  btn: { minHeight: 54, paddingHorizontal: 20, borderRadius: r.md, alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  btnBig: { minHeight: 68 },
+  btnText: { fontSize: 17, fontWeight: "700" },
+  chip: { paddingHorizontal: 18, minHeight: 48, borderRadius: 24, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, justifyContent: "center" },
+  chipText: { fontSize: 16, fontWeight: "600", color: c.ink },
+  label: { fontSize: 15, fontWeight: "600", color: c.ink2 },
+  input: { height: 54, borderWidth: 1, borderColor: c.line, borderRadius: r.md, paddingHorizontal: 14, fontSize: 17, backgroundColor: c.surface, color: c.ink },
   overlay: { flex: 1, backgroundColor: "rgba(42,33,27,0.35)", alignItems: "center", justifyContent: "center", padding: 24 },
   sheet: { backgroundColor: c.bg, borderRadius: r.lg, maxHeight: "92%", overflow: "hidden" },
-  sheetHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderColor: c.line },
+  close: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", marginRight: -8 },
+  sheetHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderColor: c.line },
   sheetFoot: { padding: 16, borderTopWidth: 1, borderColor: c.line, flexDirection: "row", gap: 12 },
-  step: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
+  step: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   stepText: { fontSize: 24, color: c.ink, fontWeight: "600" },
   key: { width: 96, height: 72, borderRadius: r.md, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" },
 });
