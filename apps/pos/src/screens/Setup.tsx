@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Pressable, Text, View } from "react-native";
 import { manageableLocations, registerDevice, signIn } from "../lib/store";
 import { Btn, Field, H, Muted } from "../ui/kit";
 import { c, r } from "../ui/theme";
+import { t } from "../lib/i18n";
 
 export function Setup() {
   const [step, setStep] = useState<"login" | "location">("login");
@@ -14,7 +15,7 @@ export function Setup() {
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true); setError(null);
-    try { await fn(); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong. Check the internet connection."); }
+    try { await fn(); } catch (e) { setError(e instanceof Error ? e.message : t("Something went wrong. Check the internet connection.")); }
     finally { setBusy(false); }
   };
 
@@ -25,17 +26,16 @@ export function Setup() {
         <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ color: c.accentInk, fontSize: 24, fontWeight: "800" }}>K</Text>
         </View>
-        <H size={28}>{step === "login" ? "Set up this tablet" : "Which location is this tablet at?"}</H>
+        <H size={28}>{step === "login" ? t("Set up this tablet") : t("Which location is this tablet at?")}</H>
         <Muted>{step === "login"
-          ? "Sign in once with the owner or an admin account. Staff then unlock the tablet with their own PIN."
-          : "The tablet only gets this location's menu, staff and bills. You can't change it later without resetting."}</Muted>
+          ? t("Sign in once with the owner or an admin account. Staff then unlock the tablet with their own PIN.") : t("The tablet only gets this location's menu, staff and bills. You can't change it later without resetting.")}</Muted>
 
         {step === "login" ? (
           <>
-            <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
-            <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" />
+            <Field label={t("Email")} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
+            <Field label={t("Password")} value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" />
             {error && <Text style={{ color: c.danger }}>{error}</Text>}
-            <Btn big title="Continue" loading={busy} disabled={!email || !password}
+            <Btn big title={t("Continue")} loading={busy} disabled={!email || !password}
               onPress={() => run(async () => { await signIn(email.trim(), password); setLocations(await manageableLocations()); setStep("location"); })} />
           </>
         ) : (
@@ -48,9 +48,9 @@ export function Setup() {
                 </Pressable>
               ))}
             </View>
-            <Field label="Tablet name" value={name} onChangeText={setName} maxLength={60} />
+            <Field label={t("Tablet name")} value={name} onChangeText={setName} maxLength={60} />
             {error && <Text style={{ color: c.danger }}>{error}</Text>}
-            <Btn big title="Finish setup" loading={busy} disabled={!chosen}
+            <Btn big title={t("Finish setup")} loading={busy} disabled={!chosen}
               onPress={() => run(() => registerDevice(locations.find((l) => l.id === chosen)!, name))} />
           </>
         )}

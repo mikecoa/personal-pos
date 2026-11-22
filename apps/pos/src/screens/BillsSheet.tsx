@@ -4,20 +4,21 @@ import { cancelledBills, openBill, tableLabel, useStore, voidLog } from "../lib/
 import type { OrderDoc } from "../lib/types";
 import { money, Muted, Sheet } from "../ui/kit";
 import { c, r } from "../ui/theme";
+import { dateLocale, t } from "../lib/i18n";
 
 type Tab = "open" | "cancelled" | "voids";
 
 const age = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
+  return m < 60 ? t("{m} min", { m }) : t("{v0} h {v1} min", { v0: Math.floor(m / 60), v1: m % 60 });
 };
 const when = (iso: string) => {
   const d = new Date(iso);
   const today = d.toDateString() === new Date().toDateString();
-  const t = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  return today ? t : `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${t}`;
+  const hm = d.toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" });
+  return today ? hm : `${d.toLocaleDateString(dateLocale(), { day: "numeric", month: "short" })} ${hm}`;
 };
-const billTitle = (b: OrderDoc) => (b.table_id ? `Table ${tableLabel(b)}${b.customer_name ? ` · ${b.customer_name}` : ""}` : b.bill_name ?? b.number);
+const billTitle = (b: OrderDoc) => (b.table_id ? `${t("Table {name}", { name: tableLabel(b) })}${b.customer_name ? ` · ${b.customer_name}` : ""}` : b.bill_name ?? b.number);
 
 /** Billing list: open bills (all tablets), cancelled bills and item voids. */
 export function BillsSheet({ onClose }: { onClose: () => void }) {
@@ -32,14 +33,14 @@ export function BillsSheet({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <Sheet visible onClose={onClose} title="Billing list" width={900}>
+    <Sheet visible onClose={onClose} title={t("Billing list")} width={900}>
       <View style={st.tabs}>
-        {tabs.map((t) => (
-          <Pressable key={t.key} onPress={() => setTab(t.key)} accessibilityRole="tab" accessibilityState={{ selected: tab === t.key }}
-            accessibilityLabel={`${t.label}, ${t.count}`} style={[st.tab, tab === t.key && st.tabOn]}>
-            <Text style={[st.tabText, tab === t.key && { color: c.ink }]}>{t.label}</Text>
-            <View style={[st.count, tab === t.key && { backgroundColor: c.accent }]}>
-              <Text style={[st.countText, tab === t.key && { color: c.accentInk }]}>{t.count}</Text>
+        {tabs.map((tb) => (
+          <Pressable key={tb.key} onPress={() => setTab(tb.key)} accessibilityRole="tab" accessibilityState={{ selected: tab === tb.key }}
+            accessibilityLabel={`${t(tb.label)}, ${tb.count}`} style={[st.tab, tab === tb.key && st.tabOn]}>
+            <Text style={[st.tabText, tab === tb.key && { color: c.ink }]}>{t(tb.label)}</Text>
+            <View style={[st.count, tab === tb.key && { backgroundColor: c.accent }]}>
+              <Text style={[st.countText, tab === tb.key && { color: c.accentInk }]}>{tb.count}</Text>
             </View>
           </Pressable>
         ))}
@@ -59,8 +60,8 @@ function OpenBills({ bills, onClose }: { bills: OrderDoc[]; onClose: () => void 
   const blocked = !!current && current.version === 0 && current.lines.length > 0;
   return (
     <View style={{ gap: 12 }}>
-      {blocked && <Muted>Save or clear the current order before opening another bill.</Muted>}
-      {bills.length === 0 && <Muted>No open bills. Use “Save bill” on an order to keep it open for a table.</Muted>}
+      {blocked && <Muted>{t("Save or clear the current order before opening another bill.")}</Muted>}
+      {bills.length === 0 && <Muted>{t("No open bills. Use “Save bill” on an order to keep it open for a table.")}</Muted>}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
         {bills.map((b) => (
           <Pressable key={b.id} disabled={blocked} onPress={() => { openBill(b.id); onClose(); }}
@@ -69,7 +70,7 @@ function OpenBills({ bills, onClose }: { bills: OrderDoc[]; onClose: () => void 
             <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }} numberOfLines={1}>{billTitle(b)}</Text>
             <Text style={{ color: c.ink, fontWeight: "700", fontSize: 16 }}>{money(b.total)}</Text>
             <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={1}>
-              {(() => { const n = b.lines.reduce((s, l) => s + l.qty, 0); return `${n} ${n === 1 ? "item" : "items"}`; })()} · {age(b.opened_at)}{b.guests ? ` · ${b.guests} pax` : ""}{b.sales_type_name ? ` · ${b.sales_type_name}` : ""}
+              {(() => { const n = b.lines.reduce((s, l) => s + l.qty, 0); return n === 1 ? t("1 item") : t("{n} items", { n }); })()} · {age(b.opened_at)}{b.guests ? t(" · {guests} pax", { guests: b.guests }) : ""}{b.sales_type_name ? ` · ${b.sales_type_name}` : ""}
             </Text>
             <Text style={{ color: c.ink2, fontSize: 12 }}>{b.number} · {b.opened_by_name ?? ""}</Text>
           </Pressable>
@@ -80,7 +81,7 @@ function OpenBills({ bills, onClose }: { bills: OrderDoc[]; onClose: () => void 
 }
 
 function Cancelled({ list }: { list: OrderDoc[] }) {
-  if (!list.length) return <Muted>No cancelled bills on this tablet.</Muted>;
+  if (!list.length) return <Muted>{t("No cancelled bills on this tablet.")}</Muted>;
   return (
     <View style={st.table}>
       {list.map((b, i) => (
@@ -88,9 +89,9 @@ function Cancelled({ list }: { list: OrderDoc[] }) {
           <Text style={st.time}>{when(b.cancelled_at ?? b.opened_at)}</Text>
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <Text style={{ fontWeight: "700", color: c.ink }} numberOfLines={1}>{b.number} · {billTitle(b)}</Text>
-            <Text style={{ color: c.ink2 }} numberOfLines={1}>{b.lines.map((l) => `${l.qty}× ${l.item_name}`).join(", ") || "No items"}</Text>
+            <Text style={{ color: c.ink2 }} numberOfLines={1}>{b.lines.map((l) => `${l.qty}× ${l.item_name}`).join(", ") || t("No items")}</Text>
             <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={2}>
-              Reason: <Text style={{ color: c.ink }}>{b.cancel_reason || "—"}</Text>{b.closed_by_name ? ` · by ${b.closed_by_name}` : ""}
+              {t("Reason")}: <Text style={{ color: c.ink }}>{b.cancel_reason ? t(b.cancel_reason) : "—"}</Text>{b.closed_by_name ? ` · ${t("by {name}", { name: b.closed_by_name })}` : ""}
             </Text>
           </View>
           <Text style={st.amount}>{money(b.total)}</Text>
@@ -101,20 +102,20 @@ function Cancelled({ list }: { list: OrderDoc[] }) {
 }
 
 function Voids({ list }: { list: ReturnType<typeof voidLog> }) {
-  if (!list.length) return <Muted>No voided items. Removing an item from a saved bill records a void with a reason.</Muted>;
+  if (!list.length) return <Muted>{t("No voided items. Removing an item from a saved bill records a void with a reason.")}</Muted>;
   const total = list.reduce((s, v) => s + v.amount, 0);
   return (
     <View style={{ gap: 10 }}>
-      <Muted style={{ fontSize: 14 }}>{list.length} void{list.length === 1 ? "" : "s"} · {money(total)}</Muted>
+      <Muted style={{ fontSize: 14 }}>{list.length === 1 ? t("1 void") : t("{n} voids", { n: list.length })} · {money(total)}</Muted>
       <View style={st.table}>
         {list.map((v, i) => (
           <View key={v.id} style={[st.row, i > 0 && st.rowLine]}>
             <Text style={st.time}>{when(v.voided_at)}</Text>
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
               <Text style={{ fontWeight: "700", color: c.ink }} numberOfLines={1}>{v.qty}× {v.item_name}</Text>
-              <Text style={{ color: c.ink2 }} numberOfLines={1}>{v.order.number} · {billTitle(v.order)} · {v.order.status === "open" ? "bill open" : v.order.status === "completed" ? "paid" : "cancelled"}</Text>
+              <Text style={{ color: c.ink2 }} numberOfLines={1}>{v.order.number} · {billTitle(v.order)} · {v.order.status === "open" ? t("bill open") : v.order.status === "completed" ? t("paid") : t("cancelled")}</Text>
               <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={2}>
-                Reason: <Text style={{ color: c.ink }}>{v.reason}</Text>{v.employee_name ? ` · by ${v.employee_name}` : ""}
+                {t("Reason")}: <Text style={{ color: c.ink }}>{t(v.reason)}</Text>{v.employee_name ? ` · ${t("by {name}", { name: v.employee_name })}` : ""}
               </Text>
             </View>
             <Text style={[st.amount, { color: c.danger }]}>−{money(v.amount)}</Text>
@@ -127,7 +128,7 @@ function Voids({ list }: { list: ReturnType<typeof voidLog> }) {
 
 const st = StyleSheet.create({
   tabs: { flexDirection: "row", gap: 4, borderBottomWidth: 1, borderColor: c.line, marginTop: -6 },
-  tab: { flexDirection: "row", alignItems: "center", gap: 8, height: 46, paddingHorizontal: 14, borderBottomWidth: 3, borderColor: "transparent" },
+  tab: { flexDirection: "row", alignItems: "center", gap: 8, height: 54, paddingHorizontal: 18, borderBottomWidth: 3, borderColor: "transparent" },
   tabOn: { borderColor: c.accent },
   tabText: { fontSize: 16, fontWeight: "700", color: c.ink2 },
   count: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" },

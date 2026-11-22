@@ -9,9 +9,10 @@ import { c } from "./src/ui/theme";
 
 export default function App() {
   const phase = useStore((s) => s.phase);
+  const lang = useStore((s) => s.lang);         // changing the language redraws everything
   useEffect(() => { void boot(); }, []);
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
+    <View key={lang} style={{ flex: 1, backgroundColor: c.bg }}>
       <StatusBar style="dark" hidden />
       {phase === "loading" && <ActivityIndicator style={{ flex: 1 }} color={c.accent} />}
       {phase === "setup" && <Setup />}

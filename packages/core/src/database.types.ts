@@ -327,14 +327,14 @@ isOneToOne: false
                   ]
                 },"locations": {
                   Row: {
-                    "account_id": string,"address": string | null,"created_at": string,"currency": string,"id": string,"is_active": boolean,"name": string,"phone": string | null,"timezone": string
+                    "account_id": string,"address": string | null,"created_at": string,"currency": string,"id": string,"is_active": boolean,"logo": string | null,"name": string,"phone": string | null,"timezone": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"address"?: string | null,"created_at"?: string,"currency"?: string,"id"?: string,"is_active"?: boolean,"name": string,"phone"?: string | null,"timezone"?: string
+                    "account_id": string,"address"?: string | null,"created_at"?: string,"currency"?: string,"id"?: string,"is_active"?: boolean,"logo"?: string | null,"name": string,"phone"?: string | null,"timezone"?: string
                   }
                   Update: {
-                    "account_id"?: string,"address"?: string | null,"created_at"?: string,"currency"?: string,"id"?: string,"is_active"?: boolean,"name"?: string,"phone"?: string | null,"timezone"?: string
+                    "account_id"?: string,"address"?: string | null,"created_at"?: string,"currency"?: string,"id"?: string,"is_active"?: boolean,"logo"?: string | null,"name"?: string,"phone"?: string | null,"timezone"?: string
                   }
                   Relationships: [
                     {
@@ -459,14 +459,14 @@ isOneToOne: false
                   ]
                 },"order_lines": {
                   Row: {
-                    "account_id": string,"category_name": string | null,"discount": Json | null,"discount_amount": number,"id": string,"item_id": string | null,"item_name": string,"line_total": number,"location_id": string,"modifiers": NonNullable<Json>,"modifiers_price": number,"note": string | null,"order_id": string,"qty": number,"sort_order": number,"unit_price": number,"variant_id": string | null,"variant_name": string
+                    "account_id": string,"category_name": string | null,"discount": Json | null,"discount_amount": number,"id": string,"item_id": string | null,"item_name": string,"line_total": number,"location_id": string,"modifiers": NonNullable<Json>,"modifiers_price": number,"note": string | null,"order_id": string,"qty": number,"sales_type_id": string | null,"sales_type_name": string | null,"sort_order": number,"unit_price": number,"variant_id": string | null,"variant_name": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"category_name"?: string | null,"discount"?: Json | null,"discount_amount"?: number,"id": string,"item_id"?: string | null,"item_name": string,"line_total": number,"location_id": string,"modifiers"?: NonNullable<Json>,"modifiers_price"?: number,"note"?: string | null,"order_id": string,"qty": number,"sort_order": number,"unit_price": number,"variant_id"?: string | null,"variant_name"?: string
+                    "account_id": string,"category_name"?: string | null,"discount"?: Json | null,"discount_amount"?: number,"id": string,"item_id"?: string | null,"item_name": string,"line_total": number,"location_id": string,"modifiers"?: NonNullable<Json>,"modifiers_price"?: number,"note"?: string | null,"order_id": string,"qty": number,"sales_type_id"?: string | null,"sales_type_name"?: string | null,"sort_order": number,"unit_price": number,"variant_id"?: string | null,"variant_name"?: string
                   }
                   Update: {
-                    "account_id"?: string,"category_name"?: string | null,"discount"?: Json | null,"discount_amount"?: number,"id"?: string,"item_id"?: string | null,"item_name"?: string,"line_total"?: number,"location_id"?: string,"modifiers"?: NonNullable<Json>,"modifiers_price"?: number,"note"?: string | null,"order_id"?: string,"qty"?: number,"sort_order"?: number,"unit_price"?: number,"variant_id"?: string | null,"variant_name"?: string
+                    "account_id"?: string,"category_name"?: string | null,"discount"?: Json | null,"discount_amount"?: number,"id"?: string,"item_id"?: string | null,"item_name"?: string,"line_total"?: number,"location_id"?: string,"modifiers"?: NonNullable<Json>,"modifiers_price"?: number,"note"?: string | null,"order_id"?: string,"qty"?: number,"sales_type_id"?: string | null,"sales_type_name"?: string | null,"sort_order"?: number,"unit_price"?: number,"variant_id"?: string | null,"variant_name"?: string
                   }
                   Relationships: [
                     {

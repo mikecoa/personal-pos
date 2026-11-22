@@ -1,5 +1,6 @@
 import { View } from "react-native";
 import { go, useStore } from "../lib/store";
+import { FadeIn } from "../ui/motion";
 import { c } from "../ui/theme";
 import { ActivityPage } from "./ActivityPage";
 import { ApprovalSheet } from "./ApprovalSheet";
@@ -15,13 +16,13 @@ export function Main() {
   return (
     <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.bg }}>
       <SideMenu />
-      <View style={{ flex: 1 }}>
+      <FadeIn key={page} from={6} duration={160} style={{ flex: 1 }}>
         {page === "pos" && <Sell />}
         {page === "tables" && <TablesSheet page mode="seat" onClose={() => go("pos")} />}
         {page === "activity" && <ActivityPage />}
         {page === "shift" && <ShiftPage />}
         {page === "settings" && <SettingsPage />}
-      </View>
+      </FadeIn>
       <ApprovalSheet />
     </View>
   );

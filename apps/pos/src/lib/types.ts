@@ -27,7 +27,7 @@ export type Settings = {
 
 export type Catalog = {
   synced_at: string;
-  location: { id: string; account_id?: string; name: string; address: string | null; phone: string | null };
+  location: { id: string; account_id?: string; name: string; address: string | null; phone: string | null; logo?: string | null };
   settings: Settings;
   receipt: { header_name: string; address: string | null; phone: string | null; social: string | null; footer: string | null; show_server: boolean; show_cashier: boolean };
   categories: { id: string; name: string }[];
@@ -57,6 +57,8 @@ export type OrderLine = {
   discount: AppliedDiscount | null; discount_amount: number; line_total: number;
   /** qty already saved in a bill; reducing below this needs a void with a reason. */
   saved_qty?: number;
+  /** This item's sales type (a bill can mix Dine In and Take Away). Missing on older lines: use the order's. */
+  sales_type_id?: string | null; sales_type_name?: string | null;
 };
 export type OrderVoid = { id: string; line_id: string | null; item_name: string; qty: number; amount: number; reason: string; employee_id: string | null; employee_name: string | null; voided_at: string };
 export type OrderPayment = { id: string; method_id: string | null; method_name: string; kind: PaymentMethod["kind"]; amount: number; tendered: number | null; change_due: number; reference: string | null; paid_at: string };

@@ -5,6 +5,7 @@ import { guard, saveCustomer, setOrderCustomer, useStore } from "../lib/store";
 import type { Customer, Discount } from "../lib/types";
 import { Btn, Chip, Field, Label, money, Muted, Sheet } from "../ui/kit";
 import { c, r } from "../ui/theme";
+import { t } from "../lib/i18n";
 
 export const discountLabel = (d: Discount) => (d.kind === "percent" ? `${d.name} (${d.value / 100}%)` : `${d.name} (${money(d.value)})`);
 
@@ -34,26 +35,26 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
 
   const pick = (cu: Customer) => { setOrderCustomer(cu); onClose(); };
   return (
-    <Sheet visible onClose={onClose} title="Customers" width={760}
+    <Sheet visible onClose={onClose} title={t("Customers")} width={760}
       footer={<>
-        {order?.customer_id && <Btn kind="secondary" title="Remove from bill" onPress={() => { setOrderCustomer(null); onClose(); }} />}
+        {order?.customer_id && <Btn kind="secondary" title={t("Remove from bill")} onPress={() => { setOrderCustomer(null); onClose(); }} />}
         <View style={{ flex: 1 }} />
-        {canEdit && <Btn title="+ New customer" onPress={() => guard("customers_edit", "Add a customer", () => setEditing("new"))} />}
+        {canEdit && <Btn title={t("+ New customer")} onPress={() => guard("customers_edit", "Add a customer", () => setEditing("new"))} />}
       </>}>
       <View style={st.search}>
         <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
-        <TextInput value={q} onChangeText={setQ} placeholder="Search name or phone" placeholderTextColor="#a3968a" accessibilityLabel="Search customers"
+        <TextInput value={q} onChangeText={setQ} placeholder={t("Search name or phone")} placeholderTextColor="#a3968a" accessibilityLabel="Search customers"
           autoFocus style={{ flex: 1, fontSize: 17, color: c.ink, height: 48 }} />
       </View>
       {customers.length === 0 ? (
         <View style={{ padding: 24, alignItems: "center", gap: 6 }}>
-          <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }}>No customers yet</Text>
-          <Muted style={{ textAlign: "center" }}>Save owners and regulars with their phone number and a discount, then add them to a bill in one tap.</Muted>
+          <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }}>{t("No customers yet")}</Text>
+          <Muted style={{ textAlign: "center" }}>{t("Save owners and regulars with their phone number and a discount, then add them to a bill in one tap.")}</Muted>
         </View>
       ) : (
         <View style={st.list}>
           <FlatList data={shown} keyExtractor={(cu) => cu.id} scrollEnabled={false}
-            ListEmptyComponent={<Muted style={{ padding: 16 }}>{`No customer matches “${q}”.`}</Muted>}
+            ListEmptyComponent={<Muted style={{ padding: 16 }}>{t("No customer matches “{q}”.", { q })}</Muted>}
             renderItem={({ item: cu, index }) => {
               const d = catalog.discounts.find((x) => x.id === cu.discount_id);
               const current = order?.customer_id === cu.id;
@@ -70,7 +71,7 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
                     {current && <MaterialCommunityIcons name="check-circle" size={24} color={c.accent} />}
                   </Pressable>
                   {canEdit && (
-                    <Pressable onPress={() => guard("customers_edit", `Edit ${cu.name}`, () => setEditing(cu))} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Edit ${cu.name}`} style={st.edit}>
+                    <Pressable onPress={() => guard("customers_edit", t("Edit {name}", { name: cu.name }), () => setEditing(cu))} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Edit ${cu.name}`} style={st.edit}>
                       <MaterialCommunityIcons name="pencil-outline" size={22} color={c.ink2} />
                     </Pressable>
                   )}
@@ -107,28 +108,28 @@ function CustomerForm({ customer, initialName, onBack, onSaved }: {
   const remove = () => (confirmDelete ? run(() => saveCustomer({ id: customer!.id, op: "delete" }), false) : setConfirmDelete(true));
 
   return (
-    <Sheet visible onClose={onBack} title={customer ? `Edit ${customer.name}` : "New customer"} width={620}
+    <Sheet visible onClose={onBack} title={customer ? t("Edit {name}", { name: customer.name }) : t("New customer")} width={620}
       footer={<>
-        {customer && <Btn kind="danger" title={confirmDelete ? "Tap to confirm" : "Delete"} disabled={busy} onPress={remove} />}
+        {customer && <Btn kind="danger" title={confirmDelete ? t("Tap to confirm") : t("Delete")} disabled={busy} onPress={remove} />}
         <View style={{ flex: 1 }} />
-        <Btn kind="secondary" title="Back" onPress={onBack} />
-        <Btn title={customer ? "Save" : "Save & add to bill"} loading={busy} disabled={!name.trim()} onPress={save} />
+        <Btn kind="secondary" title={t("Back")} onPress={onBack} />
+        <Btn title={customer ? t("Save") : t("Save & add to bill")} loading={busy} disabled={!name.trim()} onPress={save} />
       </>}>
-      <Field label="Name" value={name} onChangeText={setName} placeholder="e.g. Pak Budi" maxLength={60} autoFocus={!name} />
+      <Field label={t("Name")} value={name} onChangeText={setName} placeholder={t("e.g. Pak Budi")} maxLength={60} autoFocus={!name} />
       <View style={{ flexDirection: "row", gap: 12 }}>
-        <View style={{ flex: 1 }}><Field label="Phone (optional)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="08…" maxLength={30} /></View>
-        <View style={{ flex: 1 }}><Field label="Email (optional)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" maxLength={120} /></View>
+        <View style={{ flex: 1 }}><Field label={t("Phone (optional)")} value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="08…" maxLength={30} /></View>
+        <View style={{ flex: 1 }}><Field label={t("Email (optional)")} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" maxLength={120} /></View>
       </View>
-      <Field label="Note (optional)" value={note} onChangeText={setNote} placeholder="e.g. Owner, less sugar, usual table 5" maxLength={300} />
+      <Field label={t("Note (optional)")} value={note} onChangeText={setNote} placeholder={t("e.g. Owner, less sugar, usual table 5")} maxLength={300} />
       <View style={{ gap: 8 }}>
-        <Label>Discount applied automatically</Label>
+        <Label>{t("Discount applied automatically")}</Label>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          <Chip label="None" active={!discount} onPress={() => setDiscount(null)} />
+          <Chip label={t("None")} active={!discount} onPress={() => setDiscount(null)} />
           {billDiscounts.map((d) => <Chip key={d.id} label={discountLabel(d)} active={discount === d.id} onPress={() => setDiscount(d.id)} />)}
         </View>
-        <Muted style={{ fontSize: 13 }}>Added to the bill when this customer is picked. Discounts are set up in the backoffice.</Muted>
+        <Muted style={{ fontSize: 13 }}>{t("Added to the bill when this customer is picked. Discounts are set up in the backoffice.")}</Muted>
       </View>
-      {confirmDelete && <Muted style={{ fontSize: 13 }}>Past bills keep the customer's name.</Muted>}
+      {confirmDelete && <Muted style={{ fontSize: 13 }}>{t("Past bills keep the customer's name.")}</Muted>}
       {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
@@ -142,5 +143,5 @@ const st = StyleSheet.create({
   avatarText: { fontWeight: "800", color: c.ink2 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: c.accentSoft },
   badgeText: { color: c.accent, fontWeight: "700", fontSize: 13 },
-  edit: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  edit: { width: 52, height: 52, alignItems: "center", justifyContent: "center" },
 });

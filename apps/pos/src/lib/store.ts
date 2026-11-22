@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { backoffMs, classifySyncError, formatOrderNumber, MAX_SKIPS, refundAllocator, summarizeShift, type AppliedDiscount, type ModifierChoice, type SyncDecision } from "@pos/core";
 import { CryptoDigestAlgorithm, digestStringAsync, randomUUID } from "expo-crypto";
 import * as db from "./db";
+import { currentLang, setLangValue, t, type Lang } from "./i18n";
 import Constants from "expo-constants";
 import { supabase } from "./supabase";
 import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice } from "./order";
@@ -26,15 +27,15 @@ export type State = {
   };
   notice: string | null;
   page: Page;
-  menuCollapsed: boolean;
   /** An action waiting for a manager's PIN. */
   approval: { perm: string; label: string } | null;
+  lang: Lang;
 };
 
 let state: State = {
   phase: "loading", device: null, catalog: null, employee: null, order: null, openOrders: [], shift: null,
   sync: { online: false, pending: 0, rejected: 0, lastSync: null, error: null, problem: null }, notice: null,
-  page: "pos", menuCollapsed: false, approval: null,
+  page: "pos", approval: null, lang: currentLang(),
 };
 const listeners = new Set<() => void>();
 function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
@@ -61,21 +62,21 @@ export function notify(notice: string | null) {
 export async function boot() {
   const device = db.kvGet<Device>("device");
   const catalog = db.kvGet<Catalog>("catalog");
-  set({ device, catalog, shift: db.openShift(), phase: device && catalog ? "locked" : "setup", menuCollapsed: db.kvGet<boolean>("menu_collapsed") ?? false });
+  set({ device, catalog, shift: db.openShift(), phase: device && catalog ? "locked" : "setup" });
   refreshLocal();
   if (device) startSync();
 }
 
 export async function signIn(email: string, password: string) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw new Error("Email or password is incorrect.");
+  if (error) throw new Error(t("Email or password is incorrect."));
 }
 
 /** Locations this signed-in user can set up a tablet for (owner/admin). */
 export async function manageableLocations() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: m } = await supabase.from("members").select("role").eq("user_id", user!.id).single();
-  if (!m || m.role === "staff") throw new Error("Sign in with an owner or admin account to set up this tablet.");
+  if (!m || m.role === "staff") throw new Error(t("Sign in with an owner or admin account to set up this tablet."));
   const { data, error } = await supabase.from("locations").select("id, name").eq("is_active", true).order("name");
   if (error) throw error;
   return data;
@@ -178,7 +179,7 @@ export async function approveWithPin(pin: string): Promise<"ok" | "wrong" | "not
   const label = state.approval?.label;
   pendingApproval = null;
   set({ approval: null });
-  notify(`${label ?? "Approved"}: approved by ${who.name}`);
+  notify(t("{action}: approved by {name}", { action: label ? t(label) : t("Approved"), name: who.name }));
   run?.();
   return "ok";
 }
@@ -186,32 +187,30 @@ export function lock() { set({ employee: null, phase: "locked" }); }
 
 // ───────────────────────────────────────────── navigation
 export function go(page: Page) { set({ page }); }
-export function toggleMenu() {
-  const menuCollapsed = !state.menuCollapsed;
-  db.kvSet("menu_collapsed", menuCollapsed);
-  set({ menuCollapsed });
-}
+/** Switch the tablet's language; the whole app redraws in it. */
+export function setLanguage(lang: Lang) { setLangValue(lang); set({ lang }); }
 
 // ───────────────────────────────────────────── tablet settings
 /** Receipt printer preferences, kept on this tablet only. */
 export type PrinterSettings = {
   connection: "none" | "bluetooth" | "network" | "usb";
-  address: string;            // IP for network printers, device name/MAC for Bluetooth
+  address: string;            // IP for network printers, MAC for Bluetooth, device path for USB (found by "Find printers")
+  name: string;               // shown in settings
   paper: 58 | 80;             // mm
   autoPrint: boolean;         // print a receipt after every sale
   copies: number;
 };
-export const defaultPrinter: PrinterSettings = { connection: "none", address: "", paper: 58, autoPrint: false, copies: 1 };
+export const defaultPrinter: PrinterSettings = { connection: "none", address: "", name: "", paper: 58, autoPrint: false, copies: 1 };
 export const printerSettings = (): PrinterSettings => ({ ...defaultPrinter, ...(db.kvGet<PrinterSettings>("printer") ?? {}) });
 export function savePrinterSettings(p: PrinterSettings) { db.kvSet("printer", p); }
 
 /** Shift options are location settings (every tablet at the location); needs a connection. */
 export async function saveShiftSettings(p: { auto_shift_enabled?: boolean; default_starting_cash?: number }) {
-  if (!can("shift_settings_manage")) throw new Error("Your role can't change shift options.");
+  if (!can("shift_settings_manage")) throw new Error(t("Your role can't change shift options."));
   const { data, error } = await supabase.rpc("pos_shift_settings", { p_device: state.device!.id, p: p as never });
   if (error) {
-    if (!error.code) throw new Error("No connection. Shift options need internet; try again in a moment.");
-    if (classifySyncError(error) === "auth") throw new Error("This tablet needs to sign in again (sync badge) first.");
+    if (!error.code) throw new Error(t("No connection. Shift options need internet; try again in a moment."));
+    if (classifySyncError(error) === "auth") throw new Error(t("This tablet needs to sign in again (sync badge) first."));
     throw new Error(error.message);
   }
   const settings = { ...state.catalog!.settings, ...(data as object) } as Catalog["settings"];
@@ -287,7 +286,7 @@ export function quickNotes(categoryId?: string | null): string[] {
 }
 /** Replace the location's quick notes (order as given). Existing notes keep their categories. */
 export async function saveQuickNotes(list: { id?: string; text: string }[]) {
-  if (!can("items_manage")) throw new Error("Your role can't edit quick notes.");
+  if (!can("items_manage")) throw new Error(t("Your role can't edit quick notes."));
   const notes = (await callTablet("pos_save_quick_notes", list)) as QuickNote[];
   const catalog = { ...state.catalog!, quick_notes: notes };
   db.kvSet("catalog", catalog);
@@ -323,12 +322,30 @@ export function setLineNote(lineId: string, note: string | null, all: boolean) {
   });
 }
 
+/**
+ * The sales type for the items added next. Items already on the order keep theirs (a bill can mix
+ * Dine In and Take Away); change one item's type from its pop-up with setLineSalesType.
+ */
 export function setSalesType(id: string) {
   const st = state.catalog!.sales_types.find((s) => s.id === id)!;
-  const variants = new Map(state.catalog!.items.flatMap((i) => i.variants.map((v) => [v.id, v] as const)));
   update((o) => ({
     ...o, sales_type_id: st.id, sales_type_name: st.name,
-    lines: o.lines.map((l) => { const v = l.variant_id ? variants.get(l.variant_id) : undefined; return v ? { ...l, unit_price: variantPrice(v, st.id) } : l; }),
+    // older lines without their own type keep the one they had
+    lines: o.lines.map((l) => (l.sales_type_name ? l : { ...l, sales_type_id: o.sales_type_id, sales_type_name: o.sales_type_name })),
+  }));
+}
+/** Change one item's sales type; its price follows (e.g. GoFood prices). */
+export function setLineSalesType(lineId: string, id: string) {
+  const st = state.catalog!.sales_types.find((s) => s.id === id);
+  if (!st) return;
+  const variants = new Map(state.catalog!.items.flatMap((i) => i.variants.map((v) => [v.id, v] as const)));
+  update((o) => ({
+    ...o,
+    lines: o.lines.map((l) => {
+      if (l.id !== lineId) return l;
+      const v = l.variant_id ? variants.get(l.variant_id) : undefined;
+      return { ...l, sales_type_id: st.id, sales_type_name: st.name, unit_price: v ? variantPrice(v, st.id) : l.unit_price };
+    }),
   }));
 }
 export function setBillDiscounts(ds: AppliedDiscount[]) {
@@ -346,7 +363,7 @@ export function setBillInfo(patch: { bill_name?: string | null; customer_name?: 
 /** Discard an order that was never saved (nothing to void or sync). */
 export function clearOrder() {
   const o = state.order;
-  if (o && o.version > 0) throw new Error("Saved bills must be cancelled with a reason.");
+  if (o && o.version > 0) throw new Error(t("Saved bills must be cancelled with a reason."));
   set({ order: null });
 }
 
@@ -365,11 +382,11 @@ export function saveBill(name: string) {
  */
 export function saveBillAt(opts: { table: DiningTable | null; guests: number | null; customer: string | null; name: string }) {
   const o = state.order!;
-  const t = opts.table;
-  if (t && billsAt(t.id).some((b) => b.id !== o.id)) throw new Error(`${t.name} already has a bill. Pick another table.`);
-  const name = t ? (opts.customer ? `${t.name} · ${opts.customer}` : t.name) : opts.name;
-  set({ order: { ...o, table_id: t?.id ?? null, table_name: t?.name ?? null, guests: t ? opts.guests : null,
-    customer_name: t ? opts.customer : o.customer_name } });
+  const tb = opts.table;
+  if (tb && billsAt(tb.id).some((b) => b.id !== o.id)) throw new Error(t("{name} already has a bill. Pick another table.", { name: tb.name }));
+  const name = tb ? (opts.customer ? `${tb.name} · ${opts.customer}` : tb.name) : opts.name;
+  set({ order: { ...o, table_id: tb?.id ?? null, table_name: tb?.name ?? null, guests: tb ? opts.guests : null,
+    customer_name: tb ? opts.customer : o.customer_name } });
   saveBill(name);
 }
 export function openBill(id: string) {
@@ -398,7 +415,7 @@ export const billsAt = (tableId: string) => state.openOrders.filter((o) => o.tab
  */
 export function seatAtTable(table: DiningTable, guests: number | null, customer: string | null) {
   const cur = state.order;
-  if (cur && cur.version > 0) throw new Error("Save or close the bill on screen first.");
+  if (cur && cur.version > 0) throw new Error(t("Save or close the bill on screen first."));
   const base = cur ?? ensureOrder();
   const seated: OrderDoc = reprice({ ...base, table_id: table.id, table_name: table.name, guests, customer_name: customer,
     bill_name: customer ? `${table.name} · ${customer}` : table.name }, state.catalog!);
@@ -426,7 +443,7 @@ export const tableLabel = (o: Pick<OrderDoc, "table_id" | "table_name">) =>
  */
 export async function editFloorPlan(change: FloorChange) {
   if (change.kind === "table" && change.op === "delete" && billsAt(change.id).length) {
-    throw new Error("This table has an open bill. Move or close it first.");
+    throw new Error(t("This table has an open bill. Move or close it first."));
   }
   await applyFloorPlan("pos_table_setup", change);
 }
@@ -439,7 +456,7 @@ export type BulkTableChange =
 export async function editTables(change: BulkTableChange) {
   if (change.op === "delete") {
     const busy = (state.catalog?.tables ?? []).filter((t) => change.ids.includes(t.id) && billsAt(t.id).length).map((t) => t.name);
-    if (busy.length) throw new Error(`Open bill on ${busy.join(", ")}. Move or close it first.`);
+    if (busy.length) throw new Error(t("Open bill on {tables}. Move or close it first.", { tables: busy.join(", ") }));
   }
   await applyFloorPlan("pos_tables_bulk", change);
 }
@@ -458,7 +475,7 @@ export async function saveLayout(cells: { id: string; x: number; y: number }[]) 
 }
 
 async function applyFloorPlan(fn: "pos_table_setup" | "pos_tables_bulk" | "pos_tables_layout", p: object) {
-  if (!can("tables_manage")) throw new Error("Your role can't edit tables.");
+  if (!can("tables_manage")) throw new Error(t("Your role can't edit tables."));
   const plan = (await callTablet(fn, p)) as Pick<Catalog, "table_areas" | "tables">;
   const catalog = { ...state.catalog!, table_areas: plan.table_areas, tables: plan.tables };
   db.kvSet("catalog", catalog);
@@ -470,8 +487,8 @@ async function callTablet(fn: string, p: object): Promise<unknown> {
   const { data, error } = await supabase.rpc(fn as never, { p_device: state.device!.id, p } as never);
   if (error) {
     // Server refusals carry a Postgres code; a network failure has none.
-    if (!error.code) throw new Error("No connection. This change needs internet; try again in a moment.");
-    if (classifySyncError(error) === "auth") throw new Error("This tablet needs to sign in again (sync badge) first.");
+    if (!error.code) throw new Error(t("No connection. This change needs internet; try again in a moment."));
+    if (classifySyncError(error) === "auth") throw new Error(t("This tablet needs to sign in again (sync badge) first."));
     throw new Error(error.message);
   }
   return data;
@@ -481,7 +498,7 @@ const useCatalog = (data: unknown) => { db.kvSet("catalog", data); lastCatalogPu
 // ───────────────────────────────────────────── menu (items & categories) from the POS
 export type CategoryChange = { id?: string; name: string } | { id: string; op: "delete" };
 export async function saveCategory(change: CategoryChange) {
-  if (!can("items_manage")) throw new Error("Your role can't edit the menu.");
+  if (!can("items_manage")) throw new Error(t("Your role can't edit the menu."));
   useCatalog(await callTablet("pos_save_category", change));
 }
 export type ItemChange = {
@@ -489,7 +506,7 @@ export type ItemChange = {
   variants: { id?: string; name: string; price: number; sku: string | null; prices: Record<string, number> }[];
 } | { id: string; op: "remove" };
 export async function saveMenuItem(change: ItemChange) {
-  if (!can("items_manage")) throw new Error("Your role can't edit the menu.");
+  if (!can("items_manage")) throw new Error(t("Your role can't edit the menu."));
   useCatalog(await callTablet("pos_save_item", change));
 }
 
@@ -718,10 +735,10 @@ async function drain<T extends { id: string }>(table: db.SyncTable, items: T[], 
     const decision = classifySyncError(err);
     const msg = err.message ?? "Unknown error";
     if (decision === "skip") {
-      if (db.bumpSkip(table, item.id, msg) >= MAX_SKIPS) { db.markRejected(table, item.id, msg); notify(`${label(item)} could not be uploaded and needs attention.`); }
+      if (db.bumpSkip(table, item.id, msg) >= MAX_SKIPS) { db.markRejected(table, item.id, msg); notify(t("{what} could not be uploaded and needs attention.", { what: label(item) })); }
       continue;
     }
-    if (decision === "reject") { db.markRejected(table, item.id, msg); notify(`${label(item)} was rejected by the server and needs attention.`); continue; }
+    if (decision === "reject") { db.markRejected(table, item.id, msg); notify(t("{what} was rejected by the server and needs attention.", { what: label(item) })); continue; }
     throw new Stop(decision, err);
   }
 }
@@ -748,7 +765,7 @@ export function syncNow(opts: { catalog?: boolean; auto?: boolean } = {}): Promi
           else {
             // Server is ahead (another tablet changed or closed this bill): take the server copy.
             db.saveOrder(res.order, false);
-            if (res.status === "stale") notify(`Bill ${o.bill_name ?? o.number} was changed on another tablet; showing the latest version.`);
+            if (res.status === "stale") notify(t("Bill {name} was changed on another tablet; showing the latest version.", { name: o.bill_name ?? o.number }));
           }
         });
       await drain("refunds", db.dirtyRefunds(), (x) => `Refund on ${db.getOrder(x.order_id)?.number ?? "a sale"}`,

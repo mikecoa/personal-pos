@@ -7,10 +7,11 @@ import type { ShiftDoc } from "../lib/types";
 import { Btn, money, Muted, Sheet } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { ReceiptView } from "./ReceiptView";
+import { dateLocale, t } from "../lib/i18n";
 
 export const longTime = (iso: string) => {
   const d = new Date(iso);
-  return `${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} at ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${d.toLocaleDateString(dateLocale(), { weekday: "long", day: "numeric", month: "long", year: "numeric" })} ${t("at")} ${d.toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" })}`;
 };
 
 /** Non-cash payment groups, in the order the report shows them. */
@@ -41,43 +42,43 @@ export function ShiftReport({ shift, showExpected = true }: { shift: ShiftDoc; s
 
   return (
     <View style={{ gap: 4 }}>
-      <Btn kind="secondary" title={closed ? "Print shift report" : "Print current shift report"} onPress={() => setPrint(true)} />
+      <Btn kind="secondary" title={closed ? t("Print shift report") : t("Print current shift report")} onPress={() => setPrint(true)} />
 
-      <Section title="SHIFT DETAILS">
-        <Row label="Name" value={shift.opened_by_name ?? "—"} />
-        {closed && shift.closed_by_name && shift.closed_by_name !== shift.opened_by_name ? <Row label="Closed by" value={shift.closed_by_name} /> : null}
-        <Row label="Outlet" value={location} />
-        <Row label="Tablet" value={device.name} />
-        <Row label="Starting shift" value={longTime(shift.opened_at)} />
-        <Row label="Ending shift" value={closed && shift.closed_at ? longTime(shift.closed_at) : "Still open"} />
+      <Section title={t("SHIFT DETAILS")}>
+        <Row label={t("Name")} value={shift.opened_by_name ?? "—"} />
+        {closed && shift.closed_by_name && shift.closed_by_name !== shift.opened_by_name ? <Row label={t("Closed by")} value={shift.closed_by_name} /> : null}
+        <Row label={t("Outlet")} value={location} />
+        <Row label={t("Tablet")} value={device.name} />
+        <Row label={t("Starting shift")} value={longTime(shift.opened_at)} />
+        <Row label={t("Ending shift")} value={closed && shift.closed_at ? longTime(shift.closed_at) : t("Still open")} />
       </Section>
 
-      <Section title="ORDER DETAILS">
-        <Row label="Transactions" value={String(s.salesCount)} />
-        <Row label="Sold items" value={String(s.itemsSold)} onPress={items.sold.length ? () => setList("sold") : undefined} />
-        <Row label="Refunded items" value={String(refundedQty)} onPress={items.refunded.length ? () => setList("refunded") : undefined} />
+      <Section title={t("ORDER DETAILS")}>
+        <Row label={t("Transactions")} value={String(s.salesCount)} />
+        <Row label={t("Sold items")} value={String(s.itemsSold)} onPress={items.sold.length ? () => setList("sold") : undefined} />
+        <Row label={t("Refunded items")} value={String(refundedQty)} onPress={items.refunded.length ? () => setList("refunded") : undefined} />
       </Section>
 
-      <Section title="CASH">
-        <Row label="Starting cash in drawer" value={money(shift.starting_cash)} />
+      <Section title={t("CASH")}>
+        <Row label={t("Starting cash in drawer")} value={money(shift.starting_cash)} />
         {showExpected && (
           <>
-            <Row label="Cash sales" value={money(s.cashSales)} />
-            <Row label="Cash refunds" value={s.cashRefunds ? `−${money(s.cashRefunds)}` : money(0)} />
-            <Row label="Cash in (income)" value={money(s.cashIn)} />
-            <Row label="Cash out (expense)" value={s.cashOut ? `−${money(s.cashOut)}` : money(0)} />
-            <Row label="Expected ending cash" value={money(closed ? shift.expected_cash ?? s.expectedCash : s.expectedCash)} strong />
+            <Row label={t("Cash sales")} value={money(s.cashSales)} />
+            <Row label={t("Cash refunds")} value={s.cashRefunds ? `−${money(s.cashRefunds)}` : money(0)} />
+            <Row label={t("Cash in (income)")} value={money(s.cashIn)} />
+            <Row label={t("Cash out (expense)")} value={s.cashOut ? `−${money(s.cashOut)}` : money(0)} />
+            <Row label={t("Expected ending cash")} value={money(closed ? shift.expected_cash ?? s.expectedCash : s.expectedCash)} strong />
           </>
         )}
         {closed && (
           <>
-            <Row label="Actual ending cash" value={money(shift.actual_cash ?? 0)} strong />
-            <Row label="Cash difference" value={diff === 0 ? money(0) : `${diff > 0 ? "+" : "−"}${money(Math.abs(diff))}`} strong
-              tone={diff === 0 ? c.accent : c.danger} note={diff === 0 ? "Drawer matched" : diff > 0 ? "More cash than expected" : "Cash short"} />
+            <Row label={t("Actual ending cash")} value={money(shift.actual_cash ?? 0)} strong />
+            <Row label={t("Cash difference")} value={diff === 0 ? money(0) : `${diff > 0 ? "+" : "−"}${money(Math.abs(diff))}`} strong
+              tone={diff === 0 ? c.accent : c.danger} note={diff === 0 ? t("Drawer matched") : diff > 0 ? t("More cash than expected") : t("Cash short")} />
           </>
         )}
         {shift.movements.length > 0 && shift.movements.map((m) => (
-          <Row key={m.id} label={`${m.kind === "in" ? "In" : "Out"}: ${m.description}`} value={`${m.kind === "in" ? "+" : "−"}${money(m.amount)}`} small note={m.employee_name ?? undefined} />
+          <Row key={m.id} label={`${m.kind === "in" ? t("In") : t("Out")}: ${m.description}`} value={`${m.kind === "in" ? "+" : "−"}${money(m.amount)}`} small note={m.employee_name ?? undefined} />
         ))}
       </Section>
 
@@ -86,23 +87,23 @@ export function ShiftReport({ shift, showExpected = true }: { shift: ShiftDoc; s
         if (!ms.length) return null;
         const refunds = ms.reduce((n, m) => n + m.refunds, 0);
         return (
-          <Section key={g.kind} title={g.title}>
+          <Section key={g.kind} title={t(g.title)}>
             {ms.map((m) => <Row key={m.method} label={m.method} value={money(m.sales)} />)}
-            <Row label={g.refunds} value={refunds ? `−${money(refunds)}` : money(0)} />
-            <Row label={g.expected} value={money(ms.reduce((n, m) => n + m.expected, 0))} strong />
+            <Row label={t(g.refunds)} value={refunds ? `−${money(refunds)}` : money(0)} />
+            <Row label={t(g.expected)} value={money(ms.reduce((n, m) => n + m.expected, 0))} strong />
           </Section>
         );
       })}
 
       {showExpected && (
-        <Section title="TOTAL">
-          <Row label="Total expected" value={money(s.totalExpected)} strong />
-          {closed && <Row label="Total actual" value={money((shift.actual_cash ?? 0) + nonCash.reduce((n, m) => n + m.expected, 0))} strong />}
+        <Section title={t("TOTAL")}>
+          <Row label={t("Total expected")} value={money(s.totalExpected)} strong />
+          {closed && <Row label={t("Total actual")} value={money((shift.actual_cash ?? 0) + nonCash.reduce((n, m) => n + m.expected, 0))} strong />}
         </Section>
       )}
 
       {list && (
-        <Sheet visible onClose={() => setList(null)} title={list === "sold" ? `Sold items (${s.itemsSold})` : `Refunded items (${refundedQty})`} width={560}>
+        <Sheet visible onClose={() => setList(null)} title={list === "sold" ? t("Sold items ({itemsSold})", { itemsSold: s.itemsSold }) : t("Refunded items ({refundedQty})", { refundedQty })} width={560}>
           <View style={st.listBox}>
             {(list === "sold" ? items.sold : items.refunded).map((x, i) => (
               <View key={x.name} style={[st.listRow, i > 0 && { borderTopWidth: 1, borderColor: c.line }]}>
@@ -112,14 +113,14 @@ export function ShiftReport({ shift, showExpected = true }: { shift: ShiftDoc; s
               </View>
             ))}
           </View>
-          <Muted style={{ fontSize: 13 }}>Items sold on this tablet in this shift.</Muted>
+          <Muted style={{ fontSize: 13 }}>{t("Items sold on this tablet in this shift.")}</Muted>
         </Sheet>
       )}
       {print && (
-        <Sheet visible onClose={() => setPrint(false)} title="Shift report" width={460}>
+        <Sheet visible onClose={() => setPrint(false)} title={t("Shift report")} width={460}>
           <ReceiptView lines={shiftReportLines({ location, device: device.name, openedBy: shift.opened_by_name ?? "", openedAt: new Date(shift.opened_at),
             closedBy: shift.closed_by_name, closedAt: shift.closed_at ? new Date(shift.closed_at) : new Date(), startingCash: shift.starting_cash, actualCash: shift.actual_cash }, s)} />
-          <Muted style={{ fontSize: 13, textAlign: "center" }}>Preview: printing starts once the receipt printer is set up.</Muted>
+          <Muted style={{ fontSize: 13, textAlign: "center" }}>{t("Preview: printing starts once the receipt printer is set up.")}</Muted>
         </Sheet>
       )}
     </View>

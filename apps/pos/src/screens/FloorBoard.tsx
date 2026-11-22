@@ -5,6 +5,7 @@ import { billsAt } from "../lib/store";
 import type { DiningTable } from "../lib/types";
 import { money } from "../ui/kit";
 import { c } from "../ui/theme";
+import { t } from "../lib/i18n";
 
 const COLS = FLOOR_COLS;
 const PAD = 12;     // board padding
@@ -13,7 +14,7 @@ const MIN_CELL = 112; // narrower than this and the board scrolls sideways inste
 
 const elapsed = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
+  return m < 60 ? t("{m} min", { m }) : t("{v0} h {v1} min", { v0: Math.floor(m / 60), v1: m % 60 });
 };
 
 type Props = {
@@ -81,7 +82,7 @@ export function FloorBoard({ tables, mode, currentTableId, isSelected, onPress, 
         <Pressable accessibilityRole="button" accessibilityLabel="Add table" onPress={onAdd}
           style={({ pressed }) => [st.add, box(addCell), addActive && { borderWidth: 2.5 }, pressed && { opacity: 0.7 }]}>
           <Text style={{ fontSize: 26 * scale, color: c.accent }}>+</Text>
-          <Text style={{ color: c.accent, fontWeight: "700", fontSize: 13 * scale }}>Add table</Text>
+          <Text style={{ color: c.accent, fontWeight: "700", fontSize: 13 * scale }}>{t("Add table")}</Text>
         </Pressable>
       )}
     </View>
@@ -128,7 +129,7 @@ function MapTile({ table, mode, scale, current, selected, onPress, onPressOut, o
   const fg = busy ? c.accentInk : c.ink;
   const sub = busy ? c.accentInk : c.ink2;
   const label = mode === "edit"
-    ? `Table ${table.name}${selected ? ", selected" : ""}`
+    ? t("Table {name}{v1}", { name: table.name, v1: selected ? t(", selected") : "" })
     : `Table ${table.name}, ${busy ? `in use, ${money(total)}, ${guests} of ${table.seats} guests` : `free, ${table.seats} seats`}`;
   const ring = mode === "edit" ? c.accent : c.ink;
 
@@ -144,7 +145,7 @@ function MapTile({ table, mode, scale, current, selected, onPress, onPressOut, o
       <Text style={{ fontSize: 24 * scale, fontWeight: "800", color: fg }} numberOfLines={1} adjustsFontSizeToFit>{table.name}</Text>
       {busy && <Text style={{ fontSize: 14 * scale, fontWeight: "700", color: fg }} numberOfLines={1}>{money(total)}</Text>}
       <Text style={{ fontSize: 12 * scale, color: sub, opacity: busy ? 0.85 : 1 }} numberOfLines={1}>
-        {`${busy ? guests : 0}/${table.seats} pax${bills.length > 1 && busy ? ` · ${bills.length} bills` : ""}`}
+        {`${t("{n}/{seats} pax", { n: busy ? guests : 0, seats: table.seats })}${bills.length > 1 && busy ? ` · ${t("{n} bills", { n: bills.length })}` : ""}`}
       </Text>
       {busy && oldest && (
         <View style={st.timeWrap} pointerEvents="none">
@@ -156,7 +157,7 @@ function MapTile({ table, mode, scale, current, selected, onPress, onPressOut, o
           {selected && <Text style={{ color: c.accentInk, fontSize: 12, fontWeight: "800" }}>✓</Text>}
         </View>
       )}
-      {current && mode !== "edit" && !busy && <Text style={{ fontSize: 11 * scale, color: c.ink2 }}>this bill</Text>}
+      {current && mode !== "edit" && !busy && <Text style={{ fontSize: 11 * scale, color: c.ink2 }}>{t("this bill")}</Text>}
     </Pressable>
   );
 }

@@ -5,6 +5,7 @@ import { can, quickNotes, saveQuickNotes, setLineNote, useStore } from "../lib/s
 import { lineLabel } from "../lib/order";
 import { Btn, Label, Muted, Sheet } from "../ui/kit";
 import { c, r } from "../ui/theme";
+import { t } from "../lib/i18n";
 
 /**
  * Note for a cart line, in as few taps as possible: tap one or more ready-made notes (recent
@@ -27,45 +28,45 @@ export function NoteSheet({ lineId, onClose }: { lineId: string; onClose: () => 
   const save = (note: string | null, toAll: boolean) => { setLineNote(line.id, note, toAll); onClose(); };
 
   return (
-    <Sheet visible onClose={onClose} title="Note" width={620}
+    <Sheet visible onClose={onClose} title={t("Note")} width={620}
       footer={<>
-        {line.note && <Btn kind="ghost" title="Remove note" onPress={() => save(null, true)} />}
+        {line.note && <Btn kind="ghost" title={t("Remove note")} onPress={() => save(null, true)} />}
         <View style={{ flex: 1 }} />
-        <Btn kind="secondary" title="Cancel" onPress={onClose} />
-        <Btn big style={{ minWidth: 180 }} title={line.qty > 1 && !all ? "Save for 1" : "Save"} disabled={!text.trim()} onPress={() => save(text.trim(), all)} />
+        <Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
+        <Btn big style={{ minWidth: 180 }} title={line.qty > 1 && !all ? t("Save for 1") : t("Save")} disabled={!text.trim()} onPress={() => save(text.trim(), all)} />
       </>}>
       <View style={{ gap: 4 }}>
         <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }} numberOfLines={2}>{what}</Text>
-        {line.note ? <Muted style={{ fontSize: 14 }}>{`Now: “${line.note}”`}</Muted> : null}
+        {line.note ? <Muted style={{ fontSize: 14 }}>{t("Now: “{note}”", { note: line.note })}</Muted> : null}
       </View>
 
       {line.qty > 1 && (
         <View style={{ gap: 8 }}>
-          <Label>{`There are ${line.qty} on this line. Note for…`}</Label>
+          <Label>{t("There are {qty} on this line. Note for…", { qty: line.qty })}</Label>
           <View style={st.seg}>
-            {[{ v: false, t: "Just 1" }, { v: true, t: `All ${line.qty}` }].map((o) => (
+            {[{ v: false, t: "Just 1" }, { v: true, t: t("All {qty}", { qty: line.qty }) }].map((o) => (
               <Pressable key={o.t} onPress={() => { setAll(o.v); if (o.v && !text) setText(line.note ?? ""); }} accessibilityRole="radio"
                 accessibilityState={{ selected: all === o.v }} style={[st.segBtn, all === o.v && st.segOn]}>
                 <Text style={[st.segText, all === o.v && { color: c.accentInk }]}>{o.t}</Text>
               </Pressable>
             ))}
           </View>
-          {!all && <Muted style={{ fontSize: 13 }}>That one moves to its own line on the order.</Muted>}
+          {!all && <Muted style={{ fontSize: 13 }}>{t("That one moves to its own line on the order.")}</Muted>}
         </View>
       )}
 
       <View style={{ gap: 8 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Label>Tap to add</Label>
+          <Label>{t("Tap to add")}</Label>
           {can("items_manage") && (
             <Pressable onPress={() => setEditing(true)} accessibilityRole="button" accessibilityLabel="Edit quick notes" hitSlop={8}
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <MaterialCommunityIcons name="pencil-outline" size={16} color={c.accent} />
-              <Text style={{ color: c.accent, fontWeight: "700" }}>Edit notes</Text>
+              <Text style={{ color: c.accent, fontWeight: "700" }}>{t("Edit notes")}</Text>
             </Pressable>
           )}
         </View>
-        {notes.length === 0 && <Muted style={{ fontSize: 14 }}>No quick notes yet.{can("items_manage") ? " Tap Edit notes to add some." : ""}</Muted>}
+        {notes.length === 0 && <Muted style={{ fontSize: 14 }}>{can("items_manage") ? t("No quick notes yet. Tap Edit notes to add some.") : t("No quick notes yet.")}</Muted>}
         <View style={st.wrap}>
           {notes.map((n) => (
             <Pressable key={n} onPress={() => toggle(n)} accessibilityRole="checkbox" accessibilityState={{ checked: has(n) }} accessibilityLabel={n}
@@ -75,7 +76,7 @@ export function NoteSheet({ lineId, onClose }: { lineId: string; onClose: () => 
           ))}
         </View>
       </View>
-      <TextInput value={text} onChangeText={setText} placeholder="Or type a note…" placeholderTextColor="#a3968a" maxLength={120}
+      <TextInput value={text} onChangeText={setText} placeholder={t("Or type a note…")} placeholderTextColor="#a3968a" maxLength={120}
         accessibilityLabel="Note" style={st.input} />
     </Sheet>
   );
@@ -103,17 +104,17 @@ function QuickNotesEditor({ onClose }: { onClose: () => void }) {
     catch (e) { setError((e as Error).message); setBusy(false); }
   };
   return (
-    <Sheet visible onClose={onClose} title="Quick notes" width={620}
-      footer={<><Btn kind="secondary" title="Back" onPress={onClose} /><View style={{ flex: 1 }} />
-        <Btn big style={{ minWidth: 160 }} title="Save" loading={busy} disabled={!valid} onPress={save} /></>}>
-      <Muted style={{ fontSize: 14 }}>The same buttons show on every tablet here. The first ones are the quickest to reach. Which categories a note shows for is set in the backoffice (Library → Quick notes).</Muted>
+    <Sheet visible onClose={onClose} title={t("Quick notes")} width={620}
+      footer={<><Btn kind="secondary" title={t("Back")} onPress={onClose} /><View style={{ flex: 1 }} />
+        <Btn big style={{ minWidth: 160 }} title={t("Save")} loading={busy} disabled={!valid} onPress={save} /></>}>
+      <Muted style={{ fontSize: 14 }}>{t("The same buttons show on every tablet here. The first ones are the quickest to reach. Which categories a note shows for is set in the backoffice (Library → Quick notes).")}</Muted>
       <View style={{ gap: 8 }}>
         {rows.map((x, i) => (
           <View key={x.key} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <View style={{ flex: 1 }}>
               <TextInput value={x.text} onChangeText={(t) => setRows((rs) => rs.map((y) => (y.key === x.key ? { ...y, text: t } : y)))}
-                placeholder="e.g. Less sugar" placeholderTextColor="#a3968a" maxLength={40} accessibilityLabel={`Quick note ${i + 1}`} style={st.input} />
-              {scope(x.id) ? <Text style={{ color: c.ink2, fontSize: 12, marginTop: 2 }}>{`Only for ${scope(x.id)}`}</Text> : null}
+                placeholder={t("e.g. Less sugar")} placeholderTextColor="#a3968a" maxLength={40} accessibilityLabel={`Quick note ${i + 1}`} style={st.input} />
+              {scope(x.id) ? <Text style={{ color: c.ink2, fontSize: 12, marginTop: 2 }}>{t("Only for {v0}", { v0: scope(x.id) })}</Text> : null}
             </View>
             {[{ d: -1, icon: "arrow-up" as const }, { d: 1, icon: "arrow-down" as const }].map((m) => (
               <Pressable key={m.icon} onPress={() => move(i, m.d)} disabled={(m.d < 0 && i === 0) || (m.d > 0 && i === rows.length - 1)} hitSlop={4}
@@ -129,17 +130,17 @@ function QuickNotesEditor({ onClose }: { onClose: () => void }) {
           </View>
         ))}
         <Pressable onPress={() => setRows((rs) => [...rs, { key: String(rowKey++), text: "" }])} accessibilityRole="button" style={{ alignSelf: "flex-start", paddingVertical: 6 }}>
-          <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>+ Add note</Text>
+          <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>{t("+ Add note")}</Text>
         </Pressable>
       </View>
-      {!valid && rows.length > 0 && <Muted style={{ fontSize: 13 }}>Each note needs text and must be different.</Muted>}
+      {!valid && rows.length > 0 && <Muted style={{ fontSize: 13 }}>{t("Each note needs text and must be different.")}</Muted>}
       {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
 }
 
 const st = StyleSheet.create({
-  icon: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
+  icon: { width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   chip: { paddingHorizontal: 18, height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface, justifyContent: "center" },
   chipOn: { backgroundColor: c.accent, borderColor: c.accent },

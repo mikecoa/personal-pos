@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Alert, Image, Pressable, Text, View } from "react-native";
 import { pinLockedFor, resetDevice, unlock, unsentCount, useStore } from "../lib/store";
 import { H, Keypad, Muted } from "../ui/kit";
 import { c } from "../ui/theme";
 import { SyncBadge } from "./SyncBadge";
+import { t } from "../lib/i18n";
 
 export function Lock() {
   const location = useStore((s) => s.catalog?.location.name);
+  const logo = useStore((s) => s.catalog?.location.logo ?? null);
   const device = useStore((s) => s.device);
   const [pin, setPin] = useState("");
   const [wrong, setWrong] = useState(false);
@@ -39,29 +41,32 @@ export function Lock() {
           <Muted>{device?.name}</Muted>
           <H size={34}>{location}</H>
         </View>
+        {logo ? (
+          <Image source={{ uri: logo }} resizeMode="contain" accessibilityLabel={`${location} logo`} style={{ alignSelf: "center", width: 300, height: 300 }} />
+        ) : null}
         <View style={{ gap: 12 }}>
           <SyncBadge />
           <Pressable onLongPress={() => {
             const unsent = unsentCount();
             const reset = () => void resetDevice();
             Alert.alert("Reset this tablet?",
-              unsent ? `${unsent} sale(s), shift(s) or refund(s) have NOT reached the server and will be lost forever. Connect to the internet and let it sync first if you can.`
-                : "Everything is uploaded. The owner or an admin must sign in again to set it up.",
-              [{ text: "Cancel", style: "cancel" }, { text: unsent ? `Delete ${unsent} and reset` : "Reset", style: "destructive",
-                onPress: () => (unsent ? Alert.alert("Are you sure?", `This permanently deletes ${unsent} unsent record(s).`,
-                  [{ text: "Keep them", style: "cancel" }, { text: "Delete and reset", style: "destructive", onPress: reset }]) : reset()) }]);
-          }}><Text style={{ color: c.ink2, fontSize: 12 }}>Hold to reset tablet</Text></Pressable>
+              unsent ? t("{unsent} sale(s), shift(s) or refund(s) have NOT reached the server and will be lost forever. Connect to the internet and let it sync first if you can.", { unsent })
+                : t("Everything is uploaded. The owner or an admin must sign in again to set it up."),
+              [{ text: "Cancel", style: "cancel" }, { text: unsent ? t("Delete {unsent} and reset", { unsent }) : t("Reset"), style: "destructive",
+                onPress: () => (unsent ? Alert.alert("Are you sure?", t("This permanently deletes {unsent} unsent record(s).", { unsent }),
+                  [{ text: t("Keep them"), style: "cancel" }, { text: t("Delete and reset"), style: "destructive", onPress: reset }]) : reset()) }]);
+          }}><Text style={{ color: c.ink2, fontSize: 12 }}>{t("Hold to reset tablet")}</Text></Pressable>
         </View>
       </View>
       <View style={{ flex: 1.2, alignItems: "center", justifyContent: "center", gap: 28 }}>
-        <H>{lockedFor > 0 ? `Too many wrong PINs. Wait ${lockedFor} s` : checking ? "Checking…" : "Enter your PIN"}</H>
+        <H>{lockedFor > 0 ? t("Too many wrong PINs. Wait {lockedFor} s", { lockedFor }) : checking ? t("Checking…") : t("Enter your PIN")}</H>
         <View style={{ flexDirection: "row", gap: 18 }} accessibilityLabel={`${pin.length} of 4 digits entered`}>
           {[0, 1, 2, 3].map((i) => (
             <View key={i} style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: wrong ? c.danger : c.ink,
               backgroundColor: i < pin.length ? c.ink : "transparent" }} />
           ))}
         </View>
-        <Text style={{ color: c.danger, height: 20 }}>{wrong && lockedFor <= 0 ? "Wrong PIN, try again" : ""}</Text>
+        <Text style={{ color: c.danger, height: 20 }}>{wrong && lockedFor <= 0 ? t("Wrong PIN, try again") : ""}</Text>
         <Keypad onKey={(k) => void press(k)} extra="" />
       </View>
     </View>
