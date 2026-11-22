@@ -321,12 +321,30 @@ export function setLineNote(lineId: string, note: string | null, all: boolean) {
   });
 }
 
+/**
+ * The sales type for the items added next. Items already on the order keep theirs (a bill can mix
+ * Dine In and Take Away); change one item's type from its pop-up with setLineSalesType.
+ */
 export function setSalesType(id: string) {
   const st = state.catalog!.sales_types.find((s) => s.id === id)!;
-  const variants = new Map(state.catalog!.items.flatMap((i) => i.variants.map((v) => [v.id, v] as const)));
   update((o) => ({
     ...o, sales_type_id: st.id, sales_type_name: st.name,
-    lines: o.lines.map((l) => { const v = l.variant_id ? variants.get(l.variant_id) : undefined; return v ? { ...l, unit_price: variantPrice(v, st.id) } : l; }),
+    // older lines without their own type keep the one they had
+    lines: o.lines.map((l) => (l.sales_type_name ? l : { ...l, sales_type_id: o.sales_type_id, sales_type_name: o.sales_type_name })),
+  }));
+}
+/** Change one item's sales type; its price follows (e.g. GoFood prices). */
+export function setLineSalesType(lineId: string, id: string) {
+  const st = state.catalog!.sales_types.find((s) => s.id === id);
+  if (!st) return;
+  const variants = new Map(state.catalog!.items.flatMap((i) => i.variants.map((v) => [v.id, v] as const)));
+  update((o) => ({
+    ...o,
+    lines: o.lines.map((l) => {
+      if (l.id !== lineId) return l;
+      const v = l.variant_id ? variants.get(l.variant_id) : undefined;
+      return { ...l, sales_type_id: st.id, sales_type_name: st.name, unit_price: v ? variantPrice(v, st.id) : l.unit_price };
+    }),
   }));
 }
 export function setBillDiscounts(ds: AppliedDiscount[]) {

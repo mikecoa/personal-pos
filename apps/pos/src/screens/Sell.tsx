@@ -2,9 +2,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { type ComponentProps, useMemo, useState } from "react";
 import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { can, clearOrder, guard, notify, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
-import { lineLabel, variantPrice } from "../lib/order";
+import { lineLabel, lineSalesType, mixedSalesTypes, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
-import { Btn, Chip, Keypad, money, Muted, Sheet } from "../ui/kit";
+import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
 import { BillDiscountSheet, CancelBillSheet, SaveBillSheet } from "./BillActions";
 import { BillsSheet } from "./BillsSheet";
@@ -22,7 +22,7 @@ import { addCustom, addItem } from "../lib/store";
 import { t } from "../lib/i18n";
 
 type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "note"; id: string }
-  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "charge" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
+  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
@@ -83,6 +83,8 @@ export function Sell() {
     return ps.length > 1 && Math.min(...ps) !== Math.max(...ps) ? t("from {v0}", { v0: money(Math.min(...ps)) }) : money(ps[0] ?? 0);
   };
   const hasLines = !!order && order.lines.length > 0;
+  const mixed = !!order && mixedSalesTypes(order);           // some Dine In, some Take Away…
+  const currentType = catalog.sales_types.find((s) => s.id === salesTypeId);
   // How many of each item are on the order, shown as a badge on the menu tile.
   const inCart = useMemo(() => {
     const m = new Map<string, number>();
@@ -234,22 +236,15 @@ export function Sell() {
             ) : null}
             <CustomerTile onPress={() => setModal({ kind: "customers" })} />
           </View>
-          {catalog.sales_types.length <= 3 ? (
-            <View style={seg.wrap} accessibilityRole="radiogroup">
-              {catalog.sales_types.map((s) => {
-                const on = salesTypeId === s.id;
-                return (
-                  <Tap key={s.id} onPress={() => setSalesType(s.id)} accessibilityRole="radio" accessibilityState={{ selected: on }} scaleTo={0.97}
-                    style={[seg.item, on && seg.on]}>
-                    <Text style={[seg.text, on && { color: c.accentInk }]} numberOfLines={1}>{s.name}</Text>
-                  </Tap>
-                );
-              })}
-            </View>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-              {catalog.sales_types.map((s) => <Chip key={s.id} label={s.name} active={salesTypeId === s.id} onPress={() => setSalesType(s.id)} />)}
-            </ScrollView>
+          {/* Sales type for the items added next: one dropdown, however many types there are. */}
+          {catalog.sales_types.length > 0 && (
+            <Tap onPress={() => setModal({ kind: "salesType" })} accessibilityRole="button" scaleTo={0.98}
+              accessibilityLabel={t("Sales type: {name}. Change", { name: currentType?.name ?? "" })} style={drop.box}>
+              <MaterialCommunityIcons name="silverware-fork-knife" size={20} color={c.ink2} />
+              <Text style={drop.label}>{t("Sales type")}</Text>
+              <Text style={drop.value} numberOfLines={1}>{currentType?.name ?? "—"}</Text>
+              <MaterialCommunityIcons name="chevron-down" size={24} color={c.ink2} />
+            </Tap>
           )}
         </View>
 
@@ -263,6 +258,9 @@ export function Sell() {
               <Pressable onPress={() => setModal({ kind: "line", id: l.id })} accessibilityRole="button" accessibilityLabel={`${l.qty} ${lineLabel(l)}, ${money(l.line_total)}. Tap to edit`}
                 style={({ pressed }) => ({ flex: 1, gap: 2, paddingVertical: 4, opacity: pressed ? 0.6 : 1 })}>
                 <Text style={{ fontWeight: "600", color: c.ink, fontSize: 16 }} numberOfLines={2}>{lineLabel(l)}</Text>
+                {mixed && (
+                  <View style={typeTag.box}><Text style={typeTag.text} numberOfLines={1}>{lineSalesType(l, order!)}</Text></View>
+                )}
                 {l.modifiers.length > 0 && <Text style={{ color: c.ink2 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
                 {l.discount_amount > 0 && <Text style={{ color: c.accent }}>{l.discount!.name} −{money(l.discount_amount)}</Text>}
                 <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }}>{money(l.line_total)}</Text>
@@ -335,6 +333,23 @@ export function Sell() {
       {modal?.kind === "editItem" && <ItemEditor item={modal.item} categoryId={cat} onClose={() => setModal(null)} />}
       {modal?.kind === "editCategory" && <CategoryEditor category={modal.category} onClose={() => setModal(null)} onSaved={(deleted) => { if (deleted) setCat(null); }} />}
       {modal?.kind === "customers" && <CustomerSheet onClose={() => setModal(null)} />}
+      {modal?.kind === "salesType" && (
+        <Sheet visible onClose={() => setModal(null)} title={t("Sales type")} width={460}>
+          <Muted style={{ fontSize: 14 }}>{hasLines ? t("For the items you add next. Items already on the order keep theirs; tap an item to change it.") : t("For the items on this order.")}</Muted>
+          <View style={{ gap: 8 }}>
+            {catalog.sales_types.map((s) => {
+              const on = s.id === salesTypeId;
+              return (
+                <Tap key={s.id} onPress={() => { setSalesType(s.id); setModal(null); }} accessibilityRole="radio" accessibilityState={{ selected: on }} scaleTo={0.98}
+                  style={[drop.row, on && { borderColor: c.accent, backgroundColor: c.accentSoft }]}>
+                  <Text style={{ flex: 1, fontSize: 18, fontWeight: "700", color: c.ink }} numberOfLines={1}>{s.name}</Text>
+                  {on && <MaterialCommunityIcons name="check-circle" size={24} color={c.accent} />}
+                </Tap>
+              );
+            })}
+          </View>
+        </Sheet>
+      )}
       {modal?.kind === "categories" && (
         <CategoryPicker current={cat} editing={editingMenu} onPick={(id) => { setCat(id); setModal(null); }}
           onEdit={(k) => setModal({ kind: "editCategory", category: k })} onClose={() => setModal(null)} />
@@ -426,9 +441,13 @@ const tile = StyleSheet.create({
   text: { fontSize: 14, fontWeight: "700" },
   tool: { flex: 1, minWidth: 0, height: 64, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
 });
-const seg = StyleSheet.create({
-  wrap: { flexDirection: "row", padding: 4, gap: 4, borderRadius: r.md, backgroundColor: c.surface2 },
-  item: { flex: 1, minWidth: 0, height: 44, borderRadius: r.md - 3, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
-  on: { backgroundColor: c.accent },
-  text: { fontSize: 16, fontWeight: "700", color: c.ink },
+const typeTag = StyleSheet.create({
+  box: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: c.accentSoft },
+  text: { color: c.accent, fontSize: 12, fontWeight: "800" },
+});
+const drop = StyleSheet.create({
+  box: { flexDirection: "row", alignItems: "center", gap: 10, height: 52, paddingHorizontal: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  label: { color: c.ink2, fontSize: 15, fontWeight: "600" },
+  value: { flex: 1, textAlign: "right", color: c.ink, fontSize: 17, fontWeight: "800" },
+  row: { flexDirection: "row", alignItems: "center", minHeight: 60, paddingHorizontal: 18, borderRadius: r.md, borderWidth: 2, borderColor: c.line, backgroundColor: c.surface },
 });

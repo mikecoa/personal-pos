@@ -52,6 +52,7 @@ export function makeLine(item: Item, variant: Variant, o: OrderDoc, catalog: Cat
     item_name: item.name, variant_name: variant.name, category_name: cat?.name ?? null,
     unit_price: variantPrice(variant, o.sales_type_id), modifiers: opts.modifiers, modifiers_price: 0,
     qty: opts.qty, note: opts.note, discount: opts.discount, discount_amount: 0, line_total: 0,
+    sales_type_id: o.sales_type_id, sales_type_name: o.sales_type_name,
   };
 }
 
@@ -59,14 +60,19 @@ export function customLine(o: OrderDoc, amount: number, name = "Custom amount"):
   return {
     id: randomUUID(), sort_order: o.lines.length + 1, item_id: null, variant_id: null, item_name: name, variant_name: "",
     category_name: null, unit_price: amount, modifiers: [], modifiers_price: 0, qty: 1, note: null, discount: null,
-    discount_amount: 0, line_total: 0,
+    discount_amount: 0, line_total: 0, sales_type_id: o.sales_type_id, sales_type_name: o.sales_type_name,
   };
 }
 
-/** Same item, variant, modifiers, note and discount → merge quantities instead of a new line. */
+/** Same item, variant, sales type, modifiers, note and discount → merge quantities instead of a new line. */
 export function sameLine(a: OrderLine, b: OrderLine) {
-  return a.variant_id !== null && a.variant_id === b.variant_id && a.note === b.note &&
+  return a.variant_id !== null && a.variant_id === b.variant_id && a.note === b.note && (a.sales_type_id ?? null) === (b.sales_type_id ?? null) &&
     JSON.stringify(a.modifiers) === JSON.stringify(b.modifiers) && JSON.stringify(a.discount) === JSON.stringify(b.discount);
 }
+
+/** A line's sales type name (older lines fall back to the order's). */
+export const lineSalesType = (l: OrderLine, o: Pick<OrderDoc, "sales_type_name">) => l.sales_type_name ?? o.sales_type_name;
+/** True when the order's items don't all share one sales type, e.g. some Dine In, some Take Away. */
+export const mixedSalesTypes = (o: OrderDoc) => new Set(o.lines.map((l) => lineSalesType(l, o) ?? "")).size > 1;
 
 export const lineLabel = (l: Pick<OrderLine, "item_name" | "variant_name">) => (l.variant_name ? `${l.item_name} (${l.variant_name})` : l.item_name);

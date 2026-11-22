@@ -530,4 +530,8 @@ export const ID: Record<string, string> = {
   "Move": "Pindah",
   "Pick table": "Pilih meja",
   "Customer": "Pelanggan",
+  "Sales type": "Tipe penjualan",
+  "Sales type: {name}. Change": "Tipe penjualan: {name}. Ubah",
+  "For the items you add next. Items already on the order keep theirs; tap an item to change it.": "Untuk item yang ditambahkan berikutnya. Item yang sudah ada tetap; ketuk item untuk mengubahnya.",
+  "For the items on this order.": "Untuk item di pesanan ini.",
 };

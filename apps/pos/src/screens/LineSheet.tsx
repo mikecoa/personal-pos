@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { guard, setLineDetails, setQty, useStore } from "../lib/store";
+import { guard, setLineDetails, setLineSalesType, setQty, useStore } from "../lib/store";
 import { lineLabel } from "../lib/order";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c } from "../ui/theme";
@@ -11,10 +11,13 @@ const REASONS = ["Customer changed mind", "Wrong order", "Out of stock", "Item p
 export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => void }) {
   const line = useStore((s) => s.order?.lines.find((l) => l.id === lineId));
   const allDiscounts = useStore((s) => s.catalog!.discounts);
+  const salesTypes = useStore((s) => s.catalog!.sales_types);
+  const orderType = useStore((s) => s.order?.sales_type_id ?? null);
   const discounts = allDiscounts.filter((d) => d.scope !== "bill");
   const [qty, setQ] = useState(line?.qty ?? 1);
   const [note, setNote] = useState(line?.note ?? "");
   const [discountId, setDiscountId] = useState<string | null>(line?.discount?.id ?? null);
+  const [typeId, setTypeId] = useState<string | null>(line?.sales_type_id ?? orderType);
   const [reason, setReason] = useState<string | null>(null);
   const [other, setOther] = useState("");
   if (!line) return null;
@@ -26,6 +29,7 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
   const apply = () => {
     const d = discounts.find((x) => x.id === discountId);
     setLineDetails(line.id, { note: note.trim() || null, discount: d ? { id: d.id, name: d.name, kind: d.kind, value: d.value } : null });
+    if (typeId && typeId !== (line.sales_type_id ?? orderType)) setLineSalesType(line.id, typeId);
     if (qty !== line.qty) setQty(line.id, qty, voidReason ?? undefined);
     onClose();
   };
@@ -55,6 +59,14 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
             </View>
           )}
           {reason === "Other" && <Field value={other} onChangeText={setOther} placeholder={t("Reason")} maxLength={120} />}
+        </View>
+      )}
+      {salesTypes.length > 1 && (
+        <View style={{ gap: 10 }}>
+          <Label>{t("Sales type")}</Label>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+            {salesTypes.map((s) => <Chip key={s.id} label={s.name} active={typeId === s.id} onPress={() => setTypeId(s.id)} />)}
+          </View>
         </View>
       )}
       <Field label={t("Note")} value={note} onChangeText={setNote} maxLength={120} />

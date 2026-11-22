@@ -9,6 +9,7 @@ import { toReceipt } from "./receipt";
 import { ReceiptView } from "./ReceiptView";
 import { RefundSheet } from "./RefundSheet";
 import { dateLocale, t } from "../lib/i18n";
+import { lineSalesType, mixedSalesTypes } from "../lib/order";
 
 type Icon = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -155,6 +156,7 @@ function Details({ sale }: { sale: OrderDoc }) {
                 <Text style={{ fontSize: 17, color: c.ink }} numberOfLines={2}>
                   {l.item_name}{l.variant_name && l.variant_name !== "Regular" ? ` (${l.variant_name})` : ""}{l.qty > 1 ? ` x ${l.qty}` : ""}
                 </Text>
+                {mixedSalesTypes(sale) ? <Text style={{ color: c.accent, fontSize: 13, fontWeight: "700" }}>{lineSalesType(l, sale)}</Text> : null}
                 {l.note ? <Text style={{ color: c.ink2, fontStyle: "italic" }} numberOfLines={2}>“{l.note}”</Text> : null}
                 {l.discount_amount > 0 ? <Text style={{ color: c.accent, fontSize: 13 }}>{l.discount?.name ?? t("Discount")} −{money(l.discount_amount)}</Text> : null}
               </View>
