@@ -2,6 +2,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { NO_TAX, priceCart, type PricingSettings } from "@pos/core";
 import { Card, Field, TextArea, Toggle } from "@/components/ui";
+import { LogoInput } from "../locations/logo-input";
 
 type Profile = { header_name: string; address: string | null; phone: string | null; instagram: string | null; website: string | null; tiktok: string | null; footer: string | null; show_server: boolean; show_cashier: boolean };
 type Settings = {
@@ -20,9 +21,10 @@ const SAMPLE = [
 const rp = (n: number) => `Rp. ${Math.abs(n).toLocaleString("id-ID")}`;
 const pct = (bp: number) => `${(bp / 100).toLocaleString("id-ID")} %`;
 
-export function ReceiptEditor({ initial, logo, settings, discount }: {
-  initial: Profile; logo: string | null; settings: Settings | null; discount: Discount | null;
+export function ReceiptEditor({ initial, logo: initialLogo, canEditLogo, settings, discount }: {
+  initial: Profile; logo: string | null; canEditLogo: boolean; settings: Settings | null; discount: Discount | null;
 }) {
+  const [logo, setLogo] = useState(initialLogo ?? "");
   // The boxes show "@" in front, so keep handles without their own "@".
   const [p, setP] = useState(() => ({ ...initial, instagram: initial.instagram?.replace(/^@/, "") ?? null, tiktok: initial.tiktok?.replace(/^@/, "") ?? null }));
   const set = (k: keyof Profile) => (e: { target: { value: string; checked?: boolean; type?: string } }) =>
@@ -45,6 +47,19 @@ export function ReceiptEditor({ initial, logo, settings, discount }: {
     <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
       <Card title="Receipt details">
         <div className="space-y-4">
+          {canEditLogo ? (
+            <LogoInput initial={initialLogo} onChange={setLogo} label="Outlet logo" hint="Shown on the POS tablets and in the receipt preview (paper receipts print text only for now)." />
+          ) : (
+            <div>
+              <span className="mb-1.5 block text-sm font-medium text-ink">Outlet logo</span>
+              <div className="flex items-center gap-4 rounded-xl border border-line bg-surface-2/50 p-4">
+                <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-white">
+                  {logo ? <img src={logo} alt="Outlet logo" className="h-full w-full object-contain p-1.5" /> : <span className="text-xs text-ink-2">No logo</span>}
+                </div>
+                <p className="text-sm text-ink-2">Only the owner can change the logo.</p>
+              </div>
+            </div>
+          )}
           <Field label="Business name on receipt" name="header_name" value={p.header_name} onChange={set("header_name")} required maxLength={60} />
           <TextArea label="Address" name="address" value={p.address ?? ""} onChange={set("address")} maxLength={200} />
           <Field label="Phone" name="phone" value={p.phone ?? ""} onChange={set("phone")} maxLength={40} />
@@ -57,7 +72,7 @@ export function ReceiptEditor({ initial, logo, settings, discount }: {
           <TextArea label="Note at the bottom" name="footer" value={p.footer ?? ""} onChange={set("footer")} maxLength={200} />
           <Toggle label="Show who served" name="show_server" checked={p.show_server} onChange={set("show_server")} />
           <Toggle label="Show who collected payment" name="show_cashier" checked={p.show_cashier} onChange={set("show_cashier")} />
-          <p className="text-sm text-ink-2">The logo comes from <a href="/settings/locations" className="font-medium text-accent hover:underline">Locations</a>. Tax, service charge and rounding come from <a href="/settings/checkout" className="font-medium text-accent hover:underline">Checkout</a>.</p>
+          <p className="text-sm text-ink-2">Tax, service charge and rounding come from <a href="/settings/checkout" className="font-medium text-accent hover:underline">Checkout</a>.</p>
         </div>
       </Card>
 

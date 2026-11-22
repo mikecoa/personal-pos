@@ -5,7 +5,7 @@ import { receiptLinks } from "@pos/core";
 import { bool, fail, ok, str, type ActionState } from "@/lib/actions";
 
 export async function saveReceipt(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location, isOwner } = await requireManage();
   const header = str(form, "header_name");
   if (!header) return fail("Business name on receipt is required");
   // People paste full profile links; keep just the handle for Instagram and TikTok.
@@ -29,6 +29,15 @@ export async function saveReceipt(_: ActionState, form: FormData): Promise<Actio
     show_cashier: bool(form, "show_cashier"),
   }).eq("location_id", location.id);
   if (error) return fail(error);
+
+  // The logo lives on the location (the tablets show it too); only the owner may change it.
+  if (form.has("logo") && isOwner) {
+    const logo = str(form, "logo") || null;
+    if (logo && (logo.length > 300_000 || !/^data:image\/(png|jpeg|webp);base64,/.test(logo))) return fail("That logo can't be used. Try a PNG, JPG or WebP image.");
+    const { error: logoError } = await supabase.from("locations").update({ logo }).eq("id", location.id);
+    if (logoError) return fail(logoError);
+    revalidatePath("/", "layout");
+  }
   revalidatePath("/settings/receipt");
   return ok();
 }
