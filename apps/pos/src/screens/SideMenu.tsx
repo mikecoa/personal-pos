@@ -6,10 +6,11 @@ import { c } from "../ui/theme";
 
 type Icon = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-const ink = "#f3ece3";         // text on the dark rail
-const inkDim = "#b9ab9c";
-const rail = "#2a211b";        // = c.ink
-const hover = "rgba(255,255,255,0.08)";
+// Light rail so the outlet's see-through logo reads clearly.
+const ink = c.ink;
+const inkDim = c.ink2;
+const rail = c.surface;
+const hover = c.surface2;
 
 /** Side menu: a fixed rail with a label under every icon, and the outlet's name at the top. */
 export function SideMenu() {
@@ -75,10 +76,9 @@ export function SideMenu() {
 }
 
 const st = StyleSheet.create({
-  rail: { width: 96, backgroundColor: rail, paddingTop: 14, paddingBottom: 14 },
-  outlet: { alignItems: "center", gap: 4, paddingHorizontal: 6, paddingBottom: 12, marginHorizontal: 10, borderBottomWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
-  // Logos have a see-through background; a soft cream tile keeps dark lettering readable on the rail.
-  logoTile: { width: 80, height: 80, borderRadius: 16, backgroundColor: c.bg, padding: 5 },
+  rail: { width: 96, backgroundColor: rail, paddingTop: 14, paddingBottom: 14, borderRightWidth: 1, borderColor: c.line },
+  outlet: { alignItems: "center", gap: 4, paddingHorizontal: 6, paddingBottom: 12, marginHorizontal: 10, borderBottomWidth: 1, borderColor: c.line },
+  logoTile: { width: 84, height: 84 },          // logos are uploaded with a see-through background
   outletName: { color: ink, fontSize: 13, fontWeight: "800", textAlign: "center", lineHeight: 16 },
   item: { alignItems: "center", justifyContent: "center", gap: 4, height: 70, borderRadius: 12 },
   itemActive: { backgroundColor: c.accent },
@@ -86,8 +86,8 @@ const st = StyleSheet.create({
   miniBadge: { position: "absolute", top: -6, right: -12, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: c.accent, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: rail },
   miniBadgeText: { color: c.accentInk, fontSize: 11, fontWeight: "800" },
   dot: { position: "absolute", top: -2, right: -3, width: 10, height: 10, borderRadius: 5, backgroundColor: "#e0a23b", borderWidth: 2, borderColor: rail },
-  foot: { alignItems: "center", gap: 6, paddingTop: 12, borderTopWidth: 1, borderColor: "rgba(255,255,255,0.1)", marginHorizontal: 10 },
-  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: "#4a3c31", alignItems: "center", justifyContent: "center" },
+  foot: { alignItems: "center", gap: 6, paddingTop: 12, borderTopWidth: 1, borderColor: c.line, marginHorizontal: 10 },
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" },
   avatarText: { color: ink, fontWeight: "800" },
   who: { color: inkDim, fontSize: 12, fontWeight: "600", maxWidth: 76 },
   lockBtn: { width: 76, minHeight: 60, borderRadius: 12, alignItems: "center", justifyContent: "center", gap: 2 },
