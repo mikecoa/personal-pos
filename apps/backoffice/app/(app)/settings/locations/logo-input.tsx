@@ -114,8 +114,11 @@ async function toLogo(file: File): Promise<string> {
 }
 
 /** Logo picker for a location: preview, replace, remove. Sends the resized image as `logo`. */
-export function LogoInput({ initial }: { initial: string | null }) {
-  const [logo, setLogo] = useState(initial ?? "");
+export function LogoInput({ initial, onChange, label = "Logo", hint }: {
+  initial: string | null; onChange?: (url: string) => void; label?: string; hint?: string;
+}) {
+  const [logo, setLogoState] = useState(initial ?? "");
+  const setLogo = (url: string) => { setLogoState(url); onChange?.(url); };
   const [error, setError] = useState<string | null>(null);
   const file = useRef<HTMLInputElement>(null);
 
@@ -132,7 +135,7 @@ export function LogoInput({ initial }: { initial: string | null }) {
 
   return (
     <div>
-      <span className="mb-1.5 block text-sm font-medium text-ink">Logo</span>
+      <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
       <input type="hidden" name="logo" value={logo} />
       <div className="flex items-center gap-4 rounded-xl border border-line bg-surface-2/50 p-4">
         <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line"
@@ -143,7 +146,7 @@ export function LogoInput({ initial }: { initial: string | null }) {
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => file.current?.click()}
-              className="h-10 rounded-lg border border-line bg-surface px-4 text-sm font-semibold hover:bg-surface-2">
+              className="h-10 rounded-lg border border-line bg-surface px-4 text-sm font-semibold transition hover:bg-surface-2 active:scale-[0.98]">
               {logo ? "Replace" : "Upload logo"}
             </button>
             {logo && (
@@ -152,7 +155,7 @@ export function LogoInput({ initial }: { initial: string | null }) {
               </button>
             )}
           </div>
-          <p className="text-sm text-ink-2">Shown on the POS tablets. PNG, JPG or WebP. The white background is removed (made see-through), edges are trimmed and it&apos;s resized automatically.</p>
+          <p className="text-sm text-ink-2">{hint ?? "Shown on the POS tablets."} PNG, JPG or WebP. The white background is removed (made see-through), edges are trimmed and it&apos;s resized automatically.</p>
           {error && <p className="text-sm font-medium text-danger">{error}</p>}
         </div>
       </div>
