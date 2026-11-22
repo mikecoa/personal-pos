@@ -12,3 +12,7 @@ backups/
 next-env.d.ts
 .expo/
 .claude/
+.vercel
+.env*.local
+dist/
+apps/pos/modules/*/android/build/

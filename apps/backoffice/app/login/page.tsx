@@ -20,6 +20,7 @@ export default function LoginPage() {
           <Field label="Email" name="email" type="email" autoComplete="email" required />
           <Field label="Password" name="password" type="password" autoComplete={mode === "in" ? "current-password" : "new-password"} minLength={8} required />
           <ErrorNote message={state?.error} />
+          {state?.notice && <p role="status" className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-ink">{state.notice}</p>}
           <Button type="submit" disabled={pending} className="w-full">
             {pending ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}
           </Button>

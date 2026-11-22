@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+.git
+backups
+apps/pos/android
+apps/pos/.expo
+**/.next
+**/.next-build
+**/.env*.local
+supabase/.temp
+supabase/.branches
+.claude

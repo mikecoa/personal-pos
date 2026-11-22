@@ -1,0 +1,2334 @@
+{
+ "items": [
+  {
+   "moka_id": 126820788,
+   "name": "AIR HANGAT",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 2000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118603481,
+   "name": "Air Mineral",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 8000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591997,
+   "name": "Americano (panas/dingin)",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 128271016,
+   "name": "Ayam Bakar Djoeragan + Nasi",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 39000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271019,
+   "name": "Ayam Betutu Bali + Nasi",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 42000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 130628165,
+   "name": "Ayam Sambal Matah Rice Bowl",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133025702,
+   "name": "Ayam Sambal Seruit",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 37000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 130628157,
+   "name": "Ayam Saos Djoeragan Rice Bowl",
+   "category": "Menu Nasi ",
+   "description": "Ayam Saos Djoeragan + Nasi + Telor",
+   "variant": "",
+   "sku": null,
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591601,
+   "name": "Bakwan Jagung (4pcs)",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133108946,
+   "name": "basreng",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 9000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118588532,
+   "name": "Basreng",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 131746828,
+   "name": "Berry Cloud",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 28000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118587545,
+   "name": "Bihun Kuah",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118587875,
+   "name": "Bihung Goreng",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 133025716,
+   "name": "Blueberry americano",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 27000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118654337,
+   "name": "Bolu pandan",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 8000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121677120,
+   "name": "Breakfast Menu",
+   "category": "Breakfast Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 20000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Main Course Breakfast",
+    "Drinks Breakfast"
+   ]
+  },
+  {
+   "moka_id": 118588410,
+   "name": "Bubur",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": "783546",
+   "price": null,
+   "variable": true,
+   "sales_type_prices": [
+    {
+     "type": "Take Away",
+     "price": 30000
+    },
+    {
+     "type": "Dine In",
+     "price": 30000
+    }
+   ],
+   "modifiers": [
+    "CONDIMENT"
+   ]
+  },
+  {
+   "moka_id": 119515058,
+   "name": "Bubur Kacang Hijau",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 10000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119515044,
+   "name": "Bubur Ketan Hitam",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 10000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119071043,
+   "name": "Bubur mix kacang hijau & ketan",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 10000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591675,
+   "name": "Bucket Potato",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 45000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 130230960,
+   "name": "butterscot crumble",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 28000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 129625167,
+   "name": "Butterscotch milk crumble",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 28000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591621,
+   "name": "Cakwe",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 4000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591899,
+   "name": "Cappucino",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119515092,
+   "name": "Caramel Cappucino",
+   "category": "Soft Drink",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 28000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119649158,
+   "name": "Caramel latte",
+   "category": "Soft Drink",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119518142,
+   "name": "Chese stick",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 20000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119649220,
+   "name": "Chocolate",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 23000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 118591695,
+   "name": "Choipan (3pcs)",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 20000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591572,
+   "name": "Cireng (5pcs)",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 20000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118592115,
+   "name": "Coca-Cola",
+   "category": "Soft Drink",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 12000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591923,
+   "name": "Coffe Latte",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591917,
+   "name": "Coffee Mocca",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133025715,
+   "name": "Cranbarry americano",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 27000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128272018,
+   "name": "Dark Choco Crunchy",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121435030,
+   "name": "Dawet Ayu",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 23000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591945,
+   "name": "Djoeragan Signature",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 28000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 130628179,
+   "name": "Dori Sambal Matah Rice Bowl",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 36000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 130628174,
+   "name": "Dori Saos Djoeragan Rice Bowl",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 36000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 130144485,
+   "name": "emping jagung mini pedas manis",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 9000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121435120,
+   "name": "Es Campur",
+   "category": "Dessert",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 35000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121435309,
+   "name": "Es Kacang Merah",
+   "category": "Dessert",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 32000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 125364427,
+   "name": "Es Kosong",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 2000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118592139,
+   "name": "Fanta",
+   "category": "Soft Drink",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 12000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591433,
+   "name": "Fish & Chips",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 45000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591222,
+   "name": "French Fries",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271050,
+   "name": "Gado - Gado",
+   "category": "Menu lainnya ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 22000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118592145,
+   "name": "Groovy Rootbeer",
+   "category": "Soft Drink",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 12000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 119515104,
+   "name": "Hazelnut latte",
+   "category": "Soft Drink",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 128271347,
+   "name": "Iced Spanish Latte",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121434962,
+   "name": "Iga Bakar",
+   "category": "Menu Nasi ",
+   "description": "Iga Bakar + Nasi ",
+   "variant": "",
+   "sku": null,
+   "price": 50000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133025704,
+   "name": "Iga sambal seruit",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 50000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271039,
+   "name": "Ikan Nila Bakar + Nasi",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 38000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118584906,
+   "name": "Indomie Goreng Original",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "82542",
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118586301,
+   "name": "Indomie Kuah",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "2894",
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133025932,
+   "name": "jangek tahu",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 8000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118588523,
+   "name": "Japanese Curry",
+   "category": "Menu lainnya ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 29000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118592101,
+   "name": "Jeruk (panas/dingin)",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 118592059,
+   "name": "Jus Alpukat",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 21000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118592069,
+   "name": "Jus Buah Naga",
+   "category": "Jus",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 21000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118592051,
+   "name": "Jus Mangga",
+   "category": "Jus",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 21000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118592078,
+   "name": "Jus Sirsak",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 21000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128631412,
+   "name": "Keletik Udang",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 12000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133004832,
+   "name": "Kentang balado",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 8000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 129908124,
+   "name": "keripik pedas daun jeruk",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 8000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119517606,
+   "name": "Kerupuk Emping",
+   "category": "Tambahan Kerupuk",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 7000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119516997,
+   "name": "KERUPUK UDANG",
+   "category": "Tambahan Kerupuk",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 5000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119518008,
+   "name": "Kerupuk Warna-Warni",
+   "category": "Tambahan Kerupuk",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 2000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133025726,
+   "name": "Kopi Butter",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 19000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591873,
+   "name": "Kopi Hitam",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 16000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 128271335,
+   "name": "Kopi Hitam Strong",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 18000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 118591891,
+   "name": "Kopi Susu",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 18000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 133025728,
+   "name": "Kopi susu butter",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 21000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271342,
+   "name": "Kopi Susu Strong",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 20000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 118584394,
+   "name": "Kwetiau Medan",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "47867",
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 118641409,
+   "name": "Lapis legit",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119518070,
+   "name": "Lapis Malang",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 13000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 123888838,
+   "name": "Lapis Malang 2",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 12000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591960,
+   "name": "Lemon Tea (panas/dingin)",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 118588496,
+   "name": "Lontong Kari Ayam",
+   "category": "Menu lainnya ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 23000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118588509,
+   "name": "Lontong Kari Rendang",
+   "category": "Menu lainnya ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 28000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 123499362,
+   "name": "Loungan",
+   "category": "Dessert",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118711147,
+   "name": "Lychee Tea",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 18000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 118591969,
+   "name": "Lychee Yakult",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591977,
+   "name": "Manggo Yakult",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271284,
+   "name": "Matcha Coconut Cloud",
+   "category": "Matcha",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 24000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271293,
+   "name": "Matcha Espresso",
+   "category": "Matcha",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 24000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271277,
+   "name": "Matcha Latte",
+   "category": "Matcha",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 21000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 118584468,
+   "name": "Mie Ayam",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "7426",
+   "price": 20000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118584411,
+   "name": "Mie Celor Ayam",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "6353",
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118584428,
+   "name": "Mie Celor Daging",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "5324",
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133025707,
+   "name": "Mie Celor Udang",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 35000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118584443,
+   "name": "Mie Goreng Ayam",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "97653",
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 118584454,
+   "name": "Mie Goreng Seafood",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "67533",
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 118584694,
+   "name": "Mie Kangkung",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "35345",
+   "price": 28000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118584483,
+   "name": "Mie Kari Ayam",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "7328",
+   "price": 28000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118587894,
+   "name": "Mie Nasi Goreng",
+   "category": "Menu Mie",
+   "description": null,
+   "variant": "",
+   "sku": "86438",
+   "price": 20000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 129630215,
+   "name": "milk choco crunchy",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": null,
+   "variable": true,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 129630218,
+   "name": "Milk choco crunchy",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118637675,
+   "name": "Milo Malaysia",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 133025722,
+   "name": "mont blanc",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121434983,
+   "name": "Nasi Ayam Bacem + Sayur Asem",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 37000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118584365,
+   "name": "Nasi Ayam Curry Katsu",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": "98688",
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118584088,
+   "name": "Nasi Ayam Geprek",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": "8963",
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118584356,
+   "name": "Nasi Ayam Kremes + sayur asem",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": "98648",
+   "price": 37000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121434988,
+   "name": "Nasi Ayam Madura + Sayur Asem",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 37000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118580717,
+   "name": "Nasi Gemuk Ayam",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": "78582",
+   "price": 22000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118580782,
+   "name": "Nasi Gemuk Daging",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": "75834",
+   "price": 24000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118580612,
+   "name": "Nasi Goreng Ayam",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": "13465",
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 121434997,
+   "name": "Nasi Goreng Buntut",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 49000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 133025710,
+   "name": "Nasi goreng daging sambal ijo",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 40000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118580927,
+   "name": "Nasi Goreng Djoeragan",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": "897832",
+   "price": 35000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 130628187,
+   "name": "Nasi Goreng Gila",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 35000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 133025698,
+   "name": "Nasi goreng iga",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 55000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133025700,
+   "name": "Nasi goreng katsu",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 38000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119515168,
+   "name": "Nasi Goreng petai",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 118580897,
+   "name": "Nasi Goreng Seafood",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": "987576",
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Tingkat kepedasan"
+   ]
+  },
+  {
+   "moka_id": 119514969,
+   "name": "NASI KOSONG",
+   "category": "OPEN MENU",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 6000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121434979,
+   "name": "Nasi Rawon",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 38000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118584103,
+   "name": "Nasi Telor Barenda",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": "97679",
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118584349,
+   "name": "Nasi Telur Kecap",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": "4633456",
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271023,
+   "name": "Nasi Tempong Ayam",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 36000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271033,
+   "name": "Nasi Tempong Lele",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 27000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271031,
+   "name": "Nasi Tempong Nila",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 39000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121859977,
+   "name": "Nastar",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 70000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271009,
+   "name": "Oseng Mercon + Nasi",
+   "category": "Menu Nasi ",
+   "description": "Oseng Mercon 80gr",
+   "variant": "",
+   "sku": null,
+   "price": 55000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591611,
+   "name": "Otak-Otak Bakar (5pcs)",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 35000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133025718,
+   "name": "Passion americano",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 29000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118588944,
+   "name": "Pempek (5pcs)",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271041,
+   "name": "Pepes Nila + Nasi",
+   "category": "Menu Nasi ",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 40000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118590202,
+   "name": "Pisang Goreng",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 18000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591545,
+   "name": "Roti Bakar Pandan/Srikaya/Coklat",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 23000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Rasa"
+   ]
+  },
+  {
+   "moka_id": 120558244,
+   "name": "Roti chesee",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 16000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119518033,
+   "name": "Roti Chocolate",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 13000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118654331,
+   "name": "Roti goreng",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 5000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119518049,
+   "name": "Roti Keju",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 16000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118654315,
+   "name": "Roti marble",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 12000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119518062,
+   "name": "Roti Nuttela",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 16000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119518024,
+   "name": "Roti Pisang Coklat Kejh",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 16000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118654299,
+   "name": "Roti sisir",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 12000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121859987,
+   "name": "Sagu keju",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 55000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118588428,
+   "name": "Sate Kacang",
+   "category": "Menu lainnya ",
+   "description": null,
+   "variant": "",
+   "sku": "093734",
+   "price": 28000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121086122,
+   "name": "Semprit Wisman",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 50000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119518126,
+   "name": "Semprong",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 35000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591578,
+   "name": "Singkong Terasi",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 19000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 130144476,
+   "name": "siomay pedas daun jeruk",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 10000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271355,
+   "name": "Soda Gembira",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133002954,
+   "name": "soes coklat",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 13000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 121434953,
+   "name": "Sop Buntut",
+   "category": "Menu Nasi ",
+   "description": "Sop Buntut + Nasi ",
+   "variant": "",
+   "sku": null,
+   "price": 65000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133025696,
+   "name": "Sop iga",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 55000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118588478,
+   "name": "Soto Ayam",
+   "category": "Menu lainnya ",
+   "description": null,
+   "variant": "",
+   "sku": "384367",
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Soto"
+   ]
+  },
+  {
+   "moka_id": 118588455,
+   "name": "Soto Betawi",
+   "category": "Menu lainnya ",
+   "description": null,
+   "variant": "",
+   "sku": "3242",
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Soto"
+   ]
+  },
+  {
+   "moka_id": 118588489,
+   "name": "Soto Daging",
+   "category": "Menu lainnya ",
+   "description": null,
+   "variant": "",
+   "sku": "24245",
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Soto"
+   ]
+  },
+  {
+   "moka_id": 132737351,
+   "name": "SOTONG PREMIUM",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 12000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118592135,
+   "name": "Sprite",
+   "category": "Soft Drink",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 12000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 125367478,
+   "name": "stik keju",
+   "category": "Kue",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 9000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 128271288,
+   "name": "Strawberry Matcha Latte",
+   "category": "Matcha",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 24000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591588,
+   "name": "Tahu Isi (5pcs)",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 29000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591825,
+   "name": "Teh Manis Panas/Dingin",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 5000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 128271102,
+   "name": "Teh Susu Panas/Dingin",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 119649080,
+   "name": "Teh Talua",
+   "category": "Soft Drink",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 17000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 118591861,
+   "name": "Teh Tarik",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 118591853,
+   "name": "Teh Tawar (panas/dingin)",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 4000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": [
+    "Suhu"
+   ]
+  },
+  {
+   "moka_id": 118591560,
+   "name": "Telor 1/2 Matang (2 Butir)",
+   "category": "Snack Menu",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 15000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119514991,
+   "name": "Telur Barenda",
+   "category": "OPEN MENU",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 10000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 130333681,
+   "name": "Telur Ceplok/Dadar",
+   "category": "OPEN MENU",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 5000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119514997,
+   "name": "Telur Kecap",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 10000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 133025713,
+   "name": "Triple peach americano",
+   "category": "Minuman",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 29000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 120722794,
+   "name": "TWG",
+   "category": "TEH TWG",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 30000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 130212950,
+   "name": "usus",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": null,
+   "variable": true,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 130212954,
+   "name": "usus pedas daun jeruk",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 14000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 119649141,
+   "name": "Vanilla latte",
+   "category": "Soft Drink",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 25000,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  },
+  {
+   "moka_id": 131440154,
+   "name": "Yakult",
+   "category": "Uncategorized",
+   "description": null,
+   "variant": "",
+   "sku": null,
+   "price": 3500,
+   "variable": false,
+   "sales_type_prices": [],
+   "modifiers": []
+  }
+ ],
+ "modifiers": [
+  {
+   "moka_id": 431273,
+   "name": "Tingkat kepedasan",
+   "min": 0,
+   "max": 0,
+   "options": [
+    {
+     "name": "Tidak pedas",
+     "price": 0
+    },
+    {
+     "name": "Sedang",
+     "price": 0
+    },
+    {
+     "name": "Pedas",
+     "price": 0
+    },
+    {
+     "name": "SANGAT PEDAS",
+     "price": 0
+    }
+   ]
+  },
+  {
+   "moka_id": 429610,
+   "name": "CONDIMENT",
+   "min": 0,
+   "max": 0,
+   "options": [
+    {
+     "name": "Ikan",
+     "price": 0
+    },
+    {
+     "name": "Ayam",
+     "price": 0
+    }
+   ]
+  },
+  {
+   "moka_id": 431274,
+   "name": "Soto",
+   "min": 0,
+   "max": 0,
+   "options": [
+    {
+     "name": "Bening",
+     "price": 0
+    },
+    {
+     "name": "Santan",
+     "price": 0
+    }
+   ]
+  },
+  {
+   "moka_id": 431524,
+   "name": "Rasa",
+   "min": 0,
+   "max": 0,
+   "options": [
+    {
+     "name": "Srikaya",
+     "price": 0
+    },
+    {
+     "name": "Coklat",
+     "price": 0
+    },
+    {
+     "name": "Pandan",
+     "price": 0
+    }
+   ]
+  },
+  {
+   "moka_id": 425774,
+   "name": "Suhu",
+   "min": 0,
+   "max": 0,
+   "options": [
+    {
+     "name": "Panas",
+     "price": 0
+    },
+    {
+     "name": "Dingin",
+     "price": 0
+    }
+   ]
+  },
+  {
+   "moka_id": 429603,
+   "name": "Main Course Breakfast",
+   "min": 0,
+   "max": 0,
+   "options": [
+    {
+     "name": "Nasi Gemuk Ayam",
+     "price": 0
+    },
+    {
+     "name": "Nasi Goreng Ayam",
+     "price": 0
+    },
+    {
+     "name": "Mie Ayam",
+     "price": 0
+    },
+    {
+     "name": "Mie Goreng Ayam",
+     "price": 0
+    },
+    {
+     "name": "Soto Ayam + Nasi",
+     "price": 0
+    }
+   ]
+  },
+  {
+   "moka_id": 429604,
+   "name": "Drinks Breakfast",
+   "min": 0,
+   "max": 0,
+   "options": [
+    {
+     "name": "Teh Tawar [P/D]",
+     "price": 0
+    },
+    {
+     "name": "Teh Manis [P/D]",
+     "price": 0
+    },
+    {
+     "name": "Kopi Hitam Tradisional",
+     "price": 0
+    },
+    {
+     "name": "Kopi susu Tradisional",
+     "price": 0
+    },
+    {
+     "name": "Air Mineral",
+     "price": 0
+    }
+   ]
+  }
+ ]
+}
