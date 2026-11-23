@@ -62,7 +62,7 @@ export const ID: Record<string, string> = {
   "Save to table {name}": "Simpan ke meja {name}",
   ", in use": ", terpakai",
   "in use": "terpakai",
-  "No table (takeaway, bar…)": "Tanpa meja (bawa pulang, bar…)",
+  "No table": "Tanpa meja",
   "Guests": "Tamu",
   "Customer name (optional)": "Nama pelanggan (opsional)",
   "e.g. Pak Budi": "mis. Pak Budi",

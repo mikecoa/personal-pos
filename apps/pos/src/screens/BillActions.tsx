@@ -60,7 +60,7 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
             <Label>{t("Table")}</Label>
             <Pressable onPress={() => setTableId(null)} accessibilityRole="radio" accessibilityState={{ selected: !tableId }}
               style={[st.tableBtn, { height: 32, minWidth: 0, paddingHorizontal: 12, borderRadius: r.sm }, !tableId && { backgroundColor: c.accentSoft, borderColor: c.accent }]}>
-              <Text style={{ fontSize: 12, fontWeight: "700", color: !tableId ? c.accent : c.ink2 }}>{t("No table (takeaway, bar…)")}</Text>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: !tableId ? c.accent : c.ink2 }}>{t("No table")}</Text>
             </Pressable>
           </View>
           {groups.length > 1 && (
