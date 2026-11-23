@@ -83,7 +83,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
       moveToTable(tb); onClose(); return;
     }
     if (bills.length === 0) {
-      if (order && order.version > 0) return setNotice(t("Save or close the bill on screen before starting a new table."));
+      // A saved bill on screen is put away (it's already saved) when seating the new table.
       return setPanel({ kind: "seat", table: tb });
     }
     if (bills.length === 1) { openBill(bills[0]!.id); onClose(); return; }
