@@ -271,7 +271,7 @@ export function Sell() {
                 onPress={() => guard("bill_print", t("Print bill"), () => setModal({ kind: "billPreview" }))} />
             )}
             {hasLines && (
-              <ToolButton icon="chef-hat" label={t("Print order")} disabled={!printable} onPress={() => setModal({ kind: "ticketPreview" })} />
+              <ToolButton icon="clipboard-list-outline" label={t("Print order")} disabled={!printable} onPress={() => setModal({ kind: "ticketPreview" })} />
             )}
             {order?.version
               ? <ToolButton icon="close-octagon-outline" label={t("Cancel bill")} danger onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
