@@ -1,4 +1,5 @@
--- Cancelled orders (cleared on the tablet before being saved or paid) get their own report list,
+-- Open bills, and cancelled orders (cleared on the tablet before being saved or paid), get their
+-- own report lists,
 -- separate from cancelled bills; and the owner can delete cancelled orders / bills and void
 -- records from the history.
 
@@ -35,6 +36,14 @@ language sql stable security invoker set search_path = '' as $$
       where o.location_id = any (p_locations) and o.status = 'cancelled' and o.cancelled_at >= p_from and o.cancelled_at < p_to
         and coalesce(o.bill_name, '') = ''
       order by o.cancelled_at desc limit p_limit offset p_offset) t), '[]')
+    -- Open bills: saved and not paid yet, as they are right now (the date filter doesn't apply).
+    when 'open' then coalesce((select jsonb_agg(x order by x->>'at' desc) from (
+      select jsonb_build_object('id', o.id, 'at', o.opened_at, 'number', o.number, 'location', loc.name, 'bill', o.bill_name,
+        'table', o.table_name, 'guests', o.guests, 'by', o.opened_by_name, 'total', o.total, 'updated', o.updated_at,
+        'items', (select string_agg(case when ol.qty > 1 then ol.item_name || ' ×' || ol.qty else ol.item_name end, ', ' order by ol.sort_order) from public.order_lines ol where ol.order_id = o.id)) x
+      from public.orders o join public.locations loc on loc.id = o.location_id
+      where o.location_id = any (p_locations) and o.status = 'open'
+      order by o.opened_at desc limit p_limit offset p_offset) t), '[]')
     when 'voids' then coalesce((select jsonb_agg(x order by x->>'at' desc) from (
       select jsonb_build_object('id', v.id, 'at', v.voided_at, 'number', o.number, 'location', loc.name, 'bill', o.bill_name,
         'item', v.item_name, 'qty', v.qty, 'amount', v.amount, 'reason', v.reason, 'by', v.employee_name) x
