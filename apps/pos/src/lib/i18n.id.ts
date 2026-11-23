@@ -585,4 +585,5 @@ export const ID: Record<string, string> = {
   "Printing…": "Mencetak…",
   "Print {n} copies": "Cetak {n} salinan",
   "Print": "Cetak",
+  "Search": "Cari",
 };

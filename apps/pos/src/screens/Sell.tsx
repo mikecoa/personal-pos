@@ -42,7 +42,8 @@ export function Sell() {
   const [modal, setModal] = useState<Modal>(null);
   // Start at the real width (remembered, or worked out from the screen) so tiles don't resize on open.
   const { w: screenW, compact, narrow, short, cartW, railW, pad } = useLayout();
-  const tight = compact || narrow;                              // short top-row controls (phones, portrait tablets)
+  const tight = compact || narrow || short;                     // icon buttons instead of labels (phones, portrait / small tablets)
+  const bh = compact ? 48 : 42;                                 // toolbar height: lower on tablets so more menu fits
   const [cartOpen, setCartOpen] = useState(false);              // phones: order shown full screen
   const [gridW, setGridW] = useState(() => lastGridW ?? screenW - railW - cartW - pad * 2);
   const [measured, setMeasured] = useState(lastGridW !== null);
@@ -202,7 +203,7 @@ export function Sell() {
           </View>
         )}
 
-        <View style={{ padding: 16, paddingTop: 12, gap: 10, borderTopWidth: 1, borderColor: c.line }}>
+        <View style={{ padding: short ? 10 : 16, paddingTop: short ? 8 : 12, gap: 8, borderTopWidth: 1, borderColor: c.line }}>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <ToolButton icon="tag-outline" label={t("Discount")} disabled={!hasLines}
               onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
@@ -218,7 +219,7 @@ export function Sell() {
               ? <ToolButton icon="close-octagon-outline" label={t("Cancel bill")} danger onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
               : <ToolButton icon="backspace-outline" label={t("Clear")} disabled={!hasLines} onPress={() => clearOrder()} />}
           </View>
-          <Btn big testID="charge" title={hasLines ? t("Charge {v0}", { v0: money(order!.total) }) : t("Charge")} disabled={!hasLines || !can("charge")} onPress={() => setModal({ kind: "charge" })} />
+          <Btn big={compact} style={compact ? undefined : { minHeight: 52 }} testID="charge" title={hasLines ? t("Charge {v0}", { v0: money(order!.total) }) : t("Charge")} disabled={!hasLines || !can("charge")} onPress={() => setModal({ kind: "charge" })} />
         </View>
     </>
   );
@@ -226,44 +227,47 @@ export function Sell() {
   return (
     <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.bg }}>
       {/* ── catalog ── */}
-      <View style={{ flex: 1, padding: pad, gap: 12 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", height: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingLeft: 14 }}>
+      <View style={{ flex: 1, padding: pad, gap: compact ? 12 : 10 }}>
+        {/* Tablets: search and menu buttons share one row; phones: two rows. */}
+        <View style={{ flexDirection: compact ? "column" : "row", gap: compact ? 12 : 8 }}>
+        <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", height: bh, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingLeft: 14 }}>
             <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
-            <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Search item or scan SKU…")} placeholderTextColor="#a3968a" accessibilityLabel="Search items"
-              style={{ flex: 1, height: 46, paddingHorizontal: 10, fontSize: 17, color: c.ink }} />
+            <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={tight && !compact ? t("Search") : t("Search item or scan SKU…")} placeholderTextColor="#a3968a" accessibilityLabel="Search items"
+              style={{ flex: 1, height: bh - 2, paddingHorizontal: 8, fontSize: 16, color: c.ink }} />
             {q ? (
-              <Pressable onPress={() => setQ("")} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search" style={{ paddingHorizontal: 12, height: 46, justifyContent: "center" }}>
+              <Pressable onPress={() => setQ("")} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search" style={{ paddingHorizontal: 12, height: bh - 2, justifyContent: "center" }}>
                 <MaterialCommunityIcons name="close-circle" size={22} color={c.ink2} />
               </Pressable>
             ) : null}
           </View>
           {!tight && <SyncBadge />}
-          <Btn kind="secondary" title={`${tight ? t("Bills") : t("Billing list")}${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
+          <Btn kind="secondary" style={{ minHeight: bh, paddingHorizontal: 14 }} title={`${tight ? t("Bills") : t("Billing list")}${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: tight ? 8 : 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           {/* One button for categories, however many there are. */}
           <Pressable onPress={() => setModal({ kind: "categories" })} accessibilityRole="button" accessibilityLabel={`Category: ${catName}. Change`}
-            style={({ pressed }) => [catBtn, pressed && { backgroundColor: c.surface2 }]}>
-            <MaterialCommunityIcons name="shape-outline" size={20} color={c.ink2} />
-            <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink, maxWidth: tight ? 150 : 260 }} numberOfLines={1}>{catName}</Text>
+            style={({ pressed }) => [catBtn, { height: bh, paddingHorizontal: 12 }, pressed && { backgroundColor: c.surface2 }]}>
+            <MaterialCommunityIcons name="shape-outline" size={18} color={c.ink2} />
+            <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink, maxWidth: tight ? 120 : 220 }} numberOfLines={1}>{catName}</Text>
             <MaterialCommunityIcons name="chevron-down" size={22} color={c.ink2} />
           </Pressable>
           {cat && (
             <Pressable onPress={() => setCat(null)} accessibilityRole="button" accessibilityLabel="Show all items"
-              style={({ pressed }) => [catBtn, pressed && { backgroundColor: c.surface2 }]}>
+              style={({ pressed }) => [catBtn, { height: bh, paddingHorizontal: 12 }, pressed && { backgroundColor: c.surface2 }]}>
               <MaterialCommunityIcons name="close" size={20} color={c.accent} />
               {!tight && <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>{t("Show all")}</Text>}
             </Pressable>
           )}
-          <View style={{ flex: 1 }} />
+          {compact && <View style={{ flex: 1 }} />}
           {/* Phones: icon buttons so everything fits on one row. */}
           {!editingMenu && (tight
-            ? <IconBtn icon="plus-circle-outline" label={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />
-            : <Btn kind="secondary" title={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />)}
+            ? <IconBtn size={bh} icon="plus-circle-outline" label={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />
+            : <Btn kind="secondary" style={{ minHeight: bh }} title={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />)}
           {canEditMenu && (tight && !editingMenu
-            ? <IconBtn icon="pencil-outline" label={t("Edit menu")} onPress={() => setEditingMenu(true)} />
-            : <Btn kind={editingMenu ? "primary" : "secondary"} title={editingMenu ? t("Done") : t("Edit menu")} onPress={() => setEditingMenu(!editingMenu)} />)}
+            ? <IconBtn size={bh} icon="pencil-outline" label={t("Edit menu")} onPress={() => setEditingMenu(true)} />
+            : <Btn kind={editingMenu ? "primary" : "secondary"} style={{ minHeight: bh }} title={editingMenu ? t("Done") : t("Edit menu")} onPress={() => setEditingMenu(!editingMenu)} />)}
+        </View>
         </View>
         {editingMenu && (
           <Muted style={{ fontSize: 14 }}>{t("Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.")}</Muted>
@@ -473,8 +477,8 @@ function ToolButton({ icon, label, onPress, disabled, danger }: { icon: IconName
   return (
     <Tap onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} scaleTo={0.95}
       style={[tile.tool, danger && { borderColor: c.danger }, disabled && { opacity: 0.4 }]}>
-      <MaterialCommunityIcons name={icon} size={22} color={tone} />
-      <Text style={{ fontSize: 13, fontWeight: "700", color: tone }} numberOfLines={1}>{label}</Text>
+      <MaterialCommunityIcons name={icon} size={19} color={tone} />
+      <Text style={{ fontSize: 12, fontWeight: "700", color: tone }} numberOfLines={1}>{label}</Text>
     </Tap>
   );
 }
@@ -482,13 +486,13 @@ function ToolButton({ icon, label, onPress, disabled, danger }: { icon: IconName
 const tile = StyleSheet.create({
   box: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", gap: 2, height: 52, paddingHorizontal: 8, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   text: { fontSize: 14, fontWeight: "700" },
-  tool: { flex: 1, minWidth: 0, height: 56, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  tool: { flex: 1, minWidth: 0, height: 48, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
 });
 /** Square icon button (phones), with the full label for screen readers. */
-function IconBtn({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+function IconBtn({ icon, label, onPress, size = 52 }: { icon: IconName; label: string; onPress: () => void; size?: number }) {
   return (
-    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={label} scaleTo={0.92} style={phone.icon}>
-      <MaterialCommunityIcons name={icon} size={24} color={c.ink} />
+    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={label} scaleTo={0.92} style={[phone.icon, { width: size, height: size, borderRadius: size / 2 }]}>
+      <MaterialCommunityIcons name={icon} size={size < 48 ? 21 : 24} color={c.ink} />
     </Tap>
   );
 }
