@@ -1,0 +1,66 @@
+# Daily encrypted backup of the live Orda database, sent to Telegram.
+# Same contents as scripts/backup.sh (schema + all app data + sign-in accounts), encrypted with
+# BACKUP_PASSPHRASE. Restore: scripts/restore-telegram-backup.sh <file>. Set up: scripts/setup-telegram-backup.sh
+name: Backup to Telegram
+
+on:
+  schedule:
+    - cron: "30 16 * * *"      # every day 23:30 WIB (16:30 UTC); GitHub may start it a few minutes late
+  workflow_dispatch: {}        # "Run workflow" button, for a backup right now
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump the database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          STAMP="$(TZ=Asia/Jakarta date +%Y-%m-%d_%H%M)"
+          DIR="orda-backup-$STAMP"
+          mkdir -p "$DIR"
+          supabase db dump --db-url "$DATABASE_URL" -f "$DIR/schema.sql" > /dev/null
+          supabase db dump --db-url "$DATABASE_URL" --data-only --use-copy --schema public,auth -f "$DIR/data.sql" > /dev/null
+          (cd "$DIR" && sha256sum *.sql > SHA256SUMS)
+          tar -czf backup.tgz "$DIR"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+
+      - name: Encrypt
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in backup.tgz -out "orda-backup-$STAMP.tgz.enc" -pass env:BACKUP_PASSPHRASE
+          rm backup.tgz
+          echo "SIZE=$(du -h "orda-backup-$STAMP.tgz.enc" | cut -f1)" >> "$GITHUB_ENV"
+
+      - name: Send to Telegram
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+            --form-string "chat_id=${TELEGRAM_CHAT_ID}" \
+            --form-string "caption=Orda backup ${STAMP} (${SIZE}, encrypted). Restore with scripts/restore-telegram-backup.sh" \
+            -F "document=@orda-backup-${STAMP}.tgz.enc" > /dev/null
+
+      - name: Tell Telegram it failed
+        if: failure()
+        run: |
+          curl -fsS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --form-string "chat_id=${TELEGRAM_CHAT_ID}" \
+            --form-string "text=⚠️ Orda backup FAILED. Check GitHub → Actions → Backup to Telegram." > /dev/null || true
