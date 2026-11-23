@@ -29,13 +29,17 @@ export type State = {
   page: Page;
   /** An action waiting for a manager's PIN. */
   approval: { perm: string; label: string } | null;
+  /** A void or refund slip waiting to be printed (shown as a preview with a Print button). */
+  slip: Slip | null;
   lang: Lang;
 };
+export type Slip = { kind: "void" | "refund"; order: OrderDoc; items: { name: string; qty: number; amount: number }[]; reason: string;
+  by: string | null; at: string; method?: string };
 
 let state: State = {
   phase: "loading", device: null, catalog: null, employee: null, order: null, openOrders: [], shift: null,
   sync: { online: false, pending: 0, rejected: 0, lastSync: null, error: null, problem: null }, notice: null,
-  page: "pos", approval: null, lang: currentLang(),
+  page: "pos", approval: null, slip: null, lang: currentLang(),
 };
 const listeners = new Set<() => void>();
 function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
@@ -198,9 +202,10 @@ export type PrinterSettings = {
   name: string;               // shown in settings
   paper: 58 | 80;             // mm
   autoPrint: boolean;         // print a receipt after every sale
-  copies: number;
+  copies: number;             // receipts and bills
+  slipCopies: number;         // void / refund slips (e.g. one for the kitchen, one for the cashier)
 };
-export const defaultPrinter: PrinterSettings = { connection: "none", address: "", name: "", paper: 58, autoPrint: false, copies: 1 };
+export const defaultPrinter: PrinterSettings = { connection: "none", address: "", name: "", paper: 58, autoPrint: false, copies: 1, slipCopies: 1 };
 export const printerSettings = (): PrinterSettings => ({ ...defaultPrinter, ...(db.kvGet<PrinterSettings>("printer") ?? {}) });
 export function savePrinterSettings(p: PrinterSettings) { db.kvSet("printer", p); }
 
@@ -289,9 +294,14 @@ export function setQty(lineId: string, qty: number, voidReason?: string) {
     const lines = qty <= 0
       ? o.lines.filter((l) => l.id !== lineId)
       : o.lines.map((l) => (l.id === lineId ? { ...l, qty, saved_qty: Math.min(saved, qty) } : l));
+    if (voided > 0) {
+      const v = voids[voids.length - 1]!;
+      set({ slip: { kind: "void", order: o, items: [{ name: v.item_name, qty: v.qty, amount: v.amount }], reason: v.reason, by: v.employee_name, at: v.voided_at } });
+    }
     return { ...o, lines, voids };
   });
 }
+export const closeSlip = () => set({ slip: null });
 export function setLineDetails(lineId: string, patch: { note?: string | null; discount?: AppliedDiscount | null }) {
   update((o) => ({ ...o, lines: o.lines.map((l) => (l.id === lineId ? { ...l, ...patch } : l)) }));
 }
@@ -735,6 +745,7 @@ export function refund(order: OrderDoc, picks: Record<string, number>, reason: s
     lines: q.lines.map((l) => ({ id: randomUUID(), order_line_id: l.line.id, item_id: l.line.item_id, item_name: lineLabel(l.line), qty: l.qty, amount: l.amount })),
   };
   db.saveRefund(r);
+  set({ slip: { kind: "refund", order, items: r.lines.map((l) => ({ name: l.item_name, qty: l.qty, amount: l.amount })), reason, by: r.employee_name, at: r.refunded_at, method: r.method_name } });
   refreshLocal();
   void syncNow();
   return r;

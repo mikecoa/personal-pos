@@ -2,7 +2,7 @@ import { receiptLines, type ReceiptOrder } from "@pos/core";
 import { lineLabel, lineSalesType, mixedSalesTypes } from "../lib/order";
 import type { Catalog, OrderDoc } from "../lib/types";
 import { lineWidth, printLines } from "../lib/printer";
-import { printerSettings } from "../lib/store";
+import { printerSettings, type Slip } from "../lib/store";
 
 export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string, width = 32): string[] {
   // Mixed bill (e.g. Dine In + Take Away): items grouped by type, each showing its type.
@@ -31,4 +31,36 @@ export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string, width = 
 export async function printReceipt(o: OrderDoc, catalog: Catalog, copy?: string) {
   const p = printerSettings();
   await printLines(p, toReceipt(o, catalog, copy, lineWidth(p.paper)));
+}
+
+/** Void / refund slip: which items were taken off (or paid back), why, and by whom. */
+export function slipLines(sl: Slip, catalog: Catalog, width = 32): string[] {
+  const rule = "-".repeat(width);
+  const center = (x: string) => " ".repeat(Math.max(0, Math.floor((width - x.length) / 2))) + x;
+  const pair = (a: string, b: string) => { const room = width - b.length - 1; const left = a.length > room ? a.slice(0, room) : a; return left + " ".repeat(Math.max(1, width - left.length - b.length)) + b; };
+  const rp = (n: number) => n.toLocaleString("id-ID");
+  const at = new Date(sl.at);
+  const o = sl.order;
+  const total = sl.items.reduce((s, i) => s + i.amount, 0);
+  return [
+    center(catalog.receipt.header_name || catalog.location.name),
+    "",
+    center(sl.kind === "void" ? "*** VOID ***" : "*** REFUND ***"),
+    rule,
+    pair(at.toLocaleDateString("en-GB"), at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })),
+    pair("No.", o.number),
+    ...(o.table_name ? [pair("Table", o.table_name)] : o.bill_name ? [pair("Bill", o.bill_name)] : []),
+    ...(sl.by ? [pair("By", sl.by)] : []),
+    rule,
+    ...sl.items.flatMap((i) => [pair(`${i.qty}x ${i.name}`, `-${rp(i.amount)}`)]),
+    rule,
+    pair("TOTAL", `-Rp ${rp(total)}`),
+    ...(sl.method ? [pair("Paid back as", sl.method)] : []),
+    `Reason: ${sl.reason}`,
+  ];
+}
+
+export async function printSlip(sl: Slip, catalog: Catalog) {
+  const p = printerSettings();
+  await printLines(p, slipLines(sl, catalog, lineWidth(p.paper)), p.slipCopies ?? 1);
 }

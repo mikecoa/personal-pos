@@ -591,4 +591,10 @@ export const ID: Record<string, string> = {
   "Opened": "Dibuka",
   "Cancelled": "Dibatalkan",
   "VOIDED ITEMS": "ITEM VOID",
+  "Void / refund slip copies": "Salinan slip void / refund",
+  "Printed after removing items from a saved bill or giving a refund.": "Dicetak setelah menghapus item dari bill tersimpan atau memberi refund.",
+  "Slip printed.": "Slip dicetak.",
+  "Print void slip": "Cetak slip void",
+  "Print refund slip": "Cetak slip refund",
+  "Skip": "Lewati",
 };

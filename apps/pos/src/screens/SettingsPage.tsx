@@ -278,6 +278,13 @@ function Printer() {
         <Text style={{ flex: 1, fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Copies")}</Text>
         <Stepper value={p.copies} min={1} onChange={(n) => change({ copies: Math.min(3, n) })} />
       </View>
+      <View style={st.toggleRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Void / refund slip copies")}</Text>
+          <Muted style={{ fontSize: 13 }}>{t("Printed after removing items from a saved bill or giving a refund.")}</Muted>
+        </View>
+        <Stepper value={p.slipCopies ?? 1} min={1} onChange={(n) => change({ slipCopies: Math.min(3, n) })} />
+      </View>
       <Muted style={{ fontSize: 14 }}>{t("Printer settings belong to this tablet only and save automatically.")}</Muted>
     </Pane>
   );

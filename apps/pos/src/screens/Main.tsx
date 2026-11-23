@@ -12,6 +12,8 @@ import { SideMenu } from "./SideMenu";
 import { TablesSheet } from "./TablesSheet";
 
 /** Signed-in layout: side menu + the chosen page. */
+import { SlipSheet } from "./SlipSheet";
+
 export function Main() {
   const page = useStore((s) => s.page);
   const { compact } = useLayout();
@@ -27,6 +29,7 @@ export function Main() {
         {page === "settings" && <SettingsPage />}
       </FadeIn>
       <ApprovalSheet />
+      <SlipSheet />
     </View>
   );
 }
