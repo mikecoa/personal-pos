@@ -644,6 +644,10 @@ export const recentSales = () => db.listOrders("completed", 100);
 /** Cancelled bills kept on this tablet, newest first. */
 export const cancelledBills = () => db.listOrders("cancelled", 100);
 /** Every item void on bills this tablet knows about (open, paid or cancelled), newest first. */
+/** Refunds on this tablet with the sale they belong to (billing list). */
+export function refundLog() {
+  return db.recentRefunds().flatMap((r) => { const order = db.getOrder(r.order_id); return order ? [{ ...r, order }] : []; });
+}
 export function voidLog() {
   const orders = [...state.openOrders, ...db.listOrders("completed", 300), ...db.listOrders("cancelled", 100)];
   const seen = new Set<string>();

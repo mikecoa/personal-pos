@@ -119,6 +119,10 @@ export function refundsForOrder(orderId: string): RefundDoc[] {
 export function refundsInShift(shiftId: string): RefundDoc[] {
   return db.getAllSync<{ doc: string }>("SELECT doc FROM refunds WHERE shift_id = ? ORDER BY refunded_at", shiftId).map((r) => JSON.parse(r.doc));
 }
+/** Latest refunds on this tablet, newest first (billing list). */
+export function recentRefunds(limit = 200): RefundDoc[] {
+  return db.getAllSync<{ doc: string }>("SELECT doc FROM refunds ORDER BY refunded_at DESC LIMIT ?", limit).map((r) => JSON.parse(r.doc));
+}
 export function dirtyRefunds(): RefundDoc[] {
   return db.getAllSync<{ doc: string }>("SELECT doc FROM refunds WHERE dirty = 1 ORDER BY refunded_at").map((r) => JSON.parse(r.doc));
 }

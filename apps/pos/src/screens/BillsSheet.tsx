@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { cancelledBills, openBill, showSlip, tableLabel, useStore, voidLog } from "../lib/store";
+import { cancelledBills, openBill, refundLog, showSlip, tableLabel, useStore, voidLog } from "../lib/store";
 import type { OrderDoc } from "../lib/types";
 import { Btn, money, Muted, Sheet } from "../ui/kit";
 import { lineLabel } from "../lib/order";
 import { c, r } from "../ui/theme";
 import { dateLocale, t } from "../lib/i18n";
 
-type Tab = "open" | "cancelled" | "voids";
+type Tab = "open" | "cancelled" | "voids" | "refunds";
 
 const age = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -26,17 +26,21 @@ export function BillsSheet({ onClose }: { onClose: () => void }) {
   const bills = useStore((s) => s.openOrders);
   const [tab, setTab] = useState<Tab>("open");
   const [detail, setDetail] = useState<{ order: OrderDoc; voidId?: string } | null>(null);
+  const [refund, setRefund] = useState<ReturnType<typeof refundLog>[number] | null>(null);
   const cancelled = cancelledBills();
   const voids = voidLog();
+  const refunds = refundLog();
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "open", label: "Open bills", count: bills.length },
     { key: "cancelled", label: "Cancelled bills", count: cancelled.length },
     { key: "voids", label: "Item voids", count: voids.length },
+    { key: "refunds", label: "Refunds", count: refunds.length },
   ];
 
   return (
     <Sheet visible onClose={onClose} title={t("Billing list")} width={900}>
-      {detail ? <BillDetail order={detail.order} voidId={detail.voidId} onBack={() => setDetail(null)} /> : <>
+      {refund ? <RefundDetail r={refund} onBack={() => setRefund(null)} />
+        : detail ? <BillDetail order={detail.order} voidId={detail.voidId} onBack={() => setDetail(null)} /> : <>
       <View style={st.tabs}>
         {tabs.map((tb) => (
           <Pressable key={tb.key} onPress={() => setTab(tb.key)} accessibilityRole="tab" accessibilityState={{ selected: tab === tb.key }}
@@ -53,6 +57,7 @@ export function BillsSheet({ onClose }: { onClose: () => void }) {
         {tab === "open" && <OpenBills bills={bills} onClose={onClose} />}
         {tab === "cancelled" && <Cancelled list={cancelled} onPick={(o) => setDetail({ order: o })} />}
         {tab === "voids" && <Voids list={voids} onPick={(o, id) => setDetail({ order: o, voidId: id })} />}
+        {tab === "refunds" && <Refunds list={refunds} onPick={setRefund} />}
       </View>
       </>}
     </Sheet>
@@ -222,6 +227,79 @@ function BillDetail({ order: o, voidId, onBack }: { order: OrderDoc; voidId?: st
             items: o.lines.map((l) => ({ name: lineLabel(l), qty: l.qty, amount: l.line_total })), reason: o.cancel_reason ? t(o.cancel_reason) : "—",
             by: o.closed_by_name, at: o.cancelled_at ?? o.opened_at })} />
         )}
+      </View>
+    </View>
+  );
+}
+
+type RefundRow = ReturnType<typeof refundLog>[number];
+const refundSlip = (r: RefundRow) => ({ kind: "refund" as const, reprint: true, order: r.order,
+  items: r.lines.map((l) => ({ name: l.item_name, qty: l.qty, amount: l.amount })), reason: t(r.reason), by: r.employee_name, at: r.refunded_at, method: r.method_name });
+
+function Refunds({ list, onPick }: { list: RefundRow[]; onPick: (r: RefundRow) => void }) {
+  if (!list.length) return <Muted>{t("No refunds on this tablet. Refunds are issued from Activity.")}</Muted>;
+  const total = list.reduce((s, r) => s + r.amount, 0);
+  return (
+    <View style={{ gap: 10 }}>
+      <Muted style={{ fontSize: 14 }}>{list.length === 1 ? t("1 refund") : t("{n} refunds", { n: list.length })} · {money(total)}</Muted>
+      <View style={st.table}>
+        {list.map((r, i) => (
+          <Pressable key={r.id} onPress={() => onPick(r)} accessibilityRole="button" accessibilityLabel={t("Details of {name}", { name: r.order.number })}
+            style={({ pressed }) => [st.row, i > 0 && st.rowLine, pressed && { backgroundColor: c.surface2 }]}>
+            <Text style={st.time}>{when(r.refunded_at)}</Text>
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text style={{ fontWeight: "700", color: c.ink }} numberOfLines={1}>{r.lines.map((l) => `${l.qty}× ${l.item_name}`).join(", ")}</Text>
+              <Text style={{ color: c.ink2 }} numberOfLines={1}>{r.order.number} · {billTitle(r.order)} · {r.method_name}</Text>
+              <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={2}>
+                {t("Reason")}: <Text style={{ color: c.ink }}>{t(r.reason)}</Text>{r.employee_name ? ` · ${t("by {name}", { name: r.employee_name })}` : ""}
+              </Text>
+            </View>
+            <Text style={[st.amount, { color: c.danger }]}>−{money(r.amount)}</Text>
+            <Text style={st.chev}>›</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** One refund: when, who, why, how it was paid back, and which items. */
+function RefundDetail({ r, onBack }: { r: RefundRow; onBack: () => void }) {
+  const rows: [string, string | null | undefined][] = [
+    [t("Receipt number"), r.order.number],
+    [t("Refunded"), `${when(r.refunded_at)}${r.employee_name ? ` · ${r.employee_name}` : ""}`],
+    [t("Reason"), t(r.reason)],
+    [t("Paid back as"), r.method_name],
+    [t("Items restocked"), r.restock ? t("Yes") : t("No")],
+    [t("Sale paid"), r.order.completed_at ? when(r.order.completed_at) : null],
+    [t("Table"), r.order.table_id ? tableLabel(r.order) : null],
+  ];
+  return (
+    <View style={{ gap: 4 }}>
+      <Pressable onPress={onBack} accessibilityRole="button" style={{ alignSelf: "flex-start", paddingVertical: 6 }}>
+        <Text style={{ color: c.accent, fontWeight: "700", fontSize: 15 }}>‹ {t("Back")}</Text>
+      </Pressable>
+      <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }}>{t("Refund")} · {billTitle(r.order)}</Text>
+      <View style={{ flexDirection: "row", gap: 24, flexWrap: "wrap" }}>
+        <View style={{ flex: 1, minWidth: 260 }}>
+          <Text style={st.h}>{t("DETAILS")}</Text>
+          {rows.filter(([, v]) => v).map(([k, v]) => (
+            <View key={k} style={st.kv}><Text style={st.k}>{k}</Text><Text style={st.v}>{v}</Text></View>
+          ))}
+        </View>
+        <View style={{ flex: 1, minWidth: 260 }}>
+          <Text style={st.h}>{t("REFUNDED ITEMS")}</Text>
+          {r.lines.map((l) => (
+            <View key={l.id} style={{ flexDirection: "row", justifyContent: "space-between", gap: 8, paddingVertical: 5, borderBottomWidth: 1, borderColor: c.line }}>
+              <Text style={{ color: c.ink, fontWeight: "600", flexShrink: 1 }}>{l.qty}× {l.item_name}</Text>
+              <Text style={{ color: c.danger }}>−{money(l.amount)}</Text>
+            </View>
+          ))}
+          <View style={[st.kv, { marginTop: 4 }]}><Text style={{ fontWeight: "800", color: c.ink }}>{t("Total")}</Text><Text style={{ fontWeight: "800", color: c.danger }}>−{money(r.amount)}</Text></View>
+        </View>
+      </View>
+      <View style={{ flexDirection: "row", marginTop: 12 }}>
+        <Btn title={t("Reprint refund slip")} onPress={() => showSlip(refundSlip(r))} />
       </View>
     </View>
   );
