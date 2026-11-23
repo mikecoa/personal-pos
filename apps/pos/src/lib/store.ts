@@ -609,7 +609,9 @@ export function mergeSplit(o: OrderDoc): OrderDoc {
   }
   const merged: OrderDoc = reprice({
     ...first!, version: first!.version + 1, bill_name: stripPart(first!.bill_name ?? first!.number) || null,
-    lines, discounts: [...first!.discounts, ...rest.flatMap((b) => b.discounts)],
+    // Amount discounts add up (each bill had its own); the same percentage discount applies once.
+    lines, discounts: [...first!.discounts, ...rest.flatMap((b) => b.discounts)].filter((d, i, all) =>
+      d.kind !== "percent" || all.findIndex((x) => x.kind === "percent" && (x.discount_id ?? x.name) === (d.discount_id ?? d.name)) === i),
   }, state.catalog!);
   db.saveOrder(merged);
   for (const b of rest) {
