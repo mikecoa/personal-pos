@@ -624,4 +624,6 @@ export const ID: Record<string, string> = {
   "Save the bill first, then print the order.": "Simpan bill dulu, lalu cetak pesanan.",
   "Bill saved.": "Bill tersimpan.",
   "Close bill and start a new order": "Tutup bill dan mulai pesanan baru",
+  "Press Done to confirm the changes, then you can print.": "Tekan Selesai untuk mengonfirmasi perubahan, lalu bisa dicetak.",
+  "Save the bill to print the order or the bill.": "Simpan bill untuk mencetak pesanan atau bill.",
 };

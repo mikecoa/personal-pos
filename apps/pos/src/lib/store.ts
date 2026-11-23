@@ -31,6 +31,8 @@ export type State = {
   approval: { perm: string; label: string } | null;
   /** A void or refund slip waiting to be printed (shown as a preview with a Print button). */
   slip: Slip | null;
+  /** The saved bill on screen has changes the cashier hasn't confirmed with Done yet (printing waits for that). */
+  billChanged: boolean;
   lang: Lang;
 };
 export type Slip = { kind: "void" | "refund" | "cancel"; reprint?: boolean; order: OrderDoc; items: { name: string; qty: number; amount: number }[]; reason: string;
@@ -39,7 +41,7 @@ export type Slip = { kind: "void" | "refund" | "cancel"; reprint?: boolean; orde
 let state: State = {
   phase: "loading", device: null, catalog: null, employee: null, order: null, openOrders: [], shift: null,
   sync: { online: false, pending: 0, rejected: 0, lastSync: null, error: null, problem: null }, notice: null,
-  page: "pos", approval: null, slip: null, lang: currentLang(),
+  page: "pos", approval: null, slip: null, billChanged: false, lang: currentLang(),
 };
 const listeners = new Set<() => void>();
 function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
@@ -250,8 +252,13 @@ function ensureOrder(): OrderDoc {
 }
 function update(fn: (o: OrderDoc) => OrderDoc) {
   const next = reprice(fn(ensureOrder()), state.catalog!);
-  set({ order: next });
+  set({ order: next, billChanged: true });
   if (next.version > 0) scheduleBillSave();
+}
+/** "Done": the cashier confirms the bill's changes; printing is allowed again. */
+export function confirmBill() {
+  saveOpenBill(false);
+  set({ billChanged: false });
 }
 
 // Saved bills keep themselves up to date: changes are written a moment after the last tap, so
@@ -271,7 +278,7 @@ export function saveOpenBill(done: boolean) {
   if (!o || o.version === 0) return;
   const next: OrderDoc = { ...o, version: o.version + 1, lines: done ? o.lines.map((l) => ({ ...l, saved_qty: l.qty })) : o.lines };
   db.saveOrder(next);
-  set({ order: done ? null : next });
+  set({ order: done ? null : next, ...(done ? { billChanged: false } : {}) });
   refreshLocal();
   void syncNow();
 }
@@ -317,7 +324,7 @@ export const closeSlip = () => set({ slip: null });
 export function markSent() {
   const o = state.order;
   if (!o || o.version === 0) return;
-  set({ order: { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) } });
+  set({ order: { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) }, billChanged: false });
   saveOpenBill(false);
 }
 /** Show a slip again (reprint from the billing list). */
@@ -442,7 +449,7 @@ export function saveBill(name: string) {
   // Items count as sent once the order is printed, or when the bill is closed / another one opened.
   const next: OrderDoc = { ...o, bill_name: name, status: "open", version: o.version + 1 };
   db.saveOrder(next);
-  set({ order: next });                     // stay on the bill, ready to print the order or the bill
+  set({ order: next, billChanged: false }); // stay on the bill, ready to print the order or the bill
   refreshLocal();
   void syncNow();
 }
@@ -462,7 +469,7 @@ export function saveBillAt(opts: { table: DiningTable | null; guests: number | n
 export function openBill(id: string) {
   if (state.order && state.order.version > 0 && state.order.id !== id) saveOpenBill(true);
   const o = db.getOrder(id);
-  if (o) set({ order: reprice(o, state.catalog!) });
+  if (o) set({ order: reprice(o, state.catalog!), billChanged: false });
 }
 export function cancelBill(reason: string) {
   const o = state.order!;

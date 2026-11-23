@@ -3,7 +3,7 @@ import { type ComponentProps, useMemo, useState } from "react";
 import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { can, clearOrder, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
+import { can, clearOrder, confirmBill, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, lineSalesType, mixedSalesTypes, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
@@ -32,6 +32,7 @@ type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kin
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
+  const billChanged = useStore((s) => s.billChanged);
   const order = useStore((s) => s.order);
   const openCount = useStore((s) => s.openOrders.length);
   const notice = useStore((s) => s.notice);
@@ -117,6 +118,9 @@ export function Sell() {
   if (!shift) return <StartShiftPanel />;
 
   // The order panel's content; shown beside the menu, or full screen on phones.
+  // Printing only for a saved bill with its changes confirmed (Save bill / Done), so nothing can be
+  // printed for the kitchen or the customer and then quietly cleared.
+  const printable = hasLines && !!order?.version && !billChanged;
   const cartBody = (
     <>
         <View style={{ padding: short ? 12 : 16, gap: short ? 8 : 12, borderBottomWidth: 1, borderColor: c.line }}>
@@ -212,6 +216,11 @@ export function Sell() {
         )}
 
         <View style={{ padding: short ? 10 : 16, paddingTop: short ? 8 : 12, gap: 8, borderTopWidth: 1, borderColor: c.line }}>
+          {hasLines && !printable && (
+            <Text style={{ color: c.ink2, fontSize: 12, textAlign: "center" }}>
+              {order?.version ? t("Press Done to confirm the changes, then you can print.") : t("Save the bill to print the order or the bill.")}
+            </Text>
+          )}
           <View style={{ flexDirection: "row", gap: 8 }}>
             <ToolButton icon="tag-outline" label={t("Discount")} disabled={!hasLines}
               onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
@@ -221,7 +230,7 @@ export function Sell() {
                   // the new items go to the kitchen now and count as sent.
                   const o = order!; const items = newItems(o);
                   if (printerSettings().autoTicket && items.length) { autoTicket(o, items, o.lines.some((l) => (l.saved_qty ?? 0) > 0)); markSent(); }
-                  else saveOpenBill(false);
+                  else confirmBill();
                   notify(t("Bill saved."));
                 }} />
               : catalog.settings.save_bill_enabled && (
@@ -229,11 +238,11 @@ export function Sell() {
                   onPress={() => guard("open_bills_manage", t("Save the bill"), () => setModal({ kind: "save" }))} />
               )}
             {can("bill_print") && (
-              <ToolButton icon="printer-outline" label={t("Print bill")} disabled={!hasLines}
-                onPress={() => (order?.version ? guard("bill_print", t("Print bill"), () => setModal({ kind: "billPreview" })) : notify(t("Save the bill first, then print it.")))} />
+              <ToolButton icon="printer-outline" label={t("Print bill")} disabled={!printable}
+                onPress={() => guard("bill_print", t("Print bill"), () => setModal({ kind: "billPreview" }))} />
             )}
             {hasLines && (
-              <ToolButton icon="chef-hat" label={t("Print order")} onPress={() => (order?.version ? setModal({ kind: "ticketPreview" }) : notify(t("Save the bill first, then print the order.")))} />
+              <ToolButton icon="chef-hat" label={t("Print order")} disabled={!printable} onPress={() => setModal({ kind: "ticketPreview" })} />
             )}
             {order?.version
               ? <ToolButton icon="close-octagon-outline" label={t("Cancel bill")} danger onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
