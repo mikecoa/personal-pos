@@ -3,7 +3,7 @@ import { type ComponentProps, useMemo, useState } from "react";
 import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { can, clearOrder, getState, guard, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
+import { can, clearOrder, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, lineSalesType, mixedSalesTypes, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
@@ -215,10 +215,10 @@ export function Sell() {
               )}
             {can("bill_print") && (
               <ToolButton icon="printer-outline" label={t("Print bill")} disabled={!hasLines}
-                onPress={() => guard("bill_print", t("Print bill"), () => setModal({ kind: "billPreview" }))} />
+                onPress={() => (order?.version ? guard("bill_print", t("Print bill"), () => setModal({ kind: "billPreview" })) : notify(t("Save the bill first, then print it.")))} />
             )}
             {hasLines && (
-              <ToolButton icon="chef-hat" label={t("Print order")} onPress={() => setModal({ kind: "ticketPreview" })} />
+              <ToolButton icon="chef-hat" label={t("Print order")} onPress={() => (order?.version ? setModal({ kind: "ticketPreview" }) : notify(t("Save the bill first, then print the order.")))} />
             )}
             {order?.version
               ? <ToolButton icon="close-octagon-outline" label={t("Cancel bill")} danger onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
@@ -545,13 +545,18 @@ function BillPreviewSheet({ onClose, ticket }: { onClose: () => void; ticket?: b
   const catalog = useStore((s) => s.catalog)!;
   const [busy, setBusy] = useState(false);
   const p = printerSettings();
-  // "Print order": every item on the order, no prices, for the kitchen / checker (order ticket copies).
-  const lines = ticket ? ticketLines(order, allItems(order), lineWidth(p.paper)) : toReceipt(order, catalog, undefined, lineWidth(p.paper));
+  // "Print order" (saved bills only): the items not sent to the kitchen yet; when everything was
+  // sent already, the whole order again marked as a reprint. Printing marks the items as sent.
+  const fresh = newItems(order);
+  const anySent = order.lines.some((l) => (l.saved_qty ?? 0) > 0);
+  const tItems = fresh.length ? fresh : allItems(order);
+  const tAdded = fresh.length > 0 && anySent, tReprint = fresh.length === 0;
+  const lines = ticket ? ticketLines(order, tItems, lineWidth(p.paper), tAdded, tReprint) : toReceipt(order, catalog, undefined, lineWidth(p.paper));
   const n = ticket ? p.ticketCopies ?? 3 : p.copies;
   const print = async () => {
     setBusy(true);
     try {
-      if (ticket) { await printTicket(order, allItems(order)); notify(t("Order ticket printed.")); }
+      if (ticket) { await printTicket(order, tItems, tAdded, tReprint); markSent(); notify(t("Order ticket printed.")); }
       else { await printReceipt(order, catalog); notify(t("Bill printed.")); }
       onClose();
     } catch (e) { notify((e as Error).message); setBusy(false); }

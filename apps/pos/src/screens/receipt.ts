@@ -81,7 +81,7 @@ export const allItems = (o: OrderDoc): TicketItem[] =>
   o.lines.map((l) => ({ name: lineLabel(l), qty: l.qty, modifiers: l.modifiers.map((m) => m.option), note: l.note, salesType: lineSalesType(l, o) ?? null }));
 
 /** Order ticket: what to make, for whom, no prices. `added` marks items added to an existing bill. */
-export function ticketLines(o: OrderDoc, items: TicketItem[], width = 32, added = false): string[] {
+export function ticketLines(o: OrderDoc, items: TicketItem[], width = 32, added = false, reprint = false): string[] {
   const rule = "-".repeat(width);
   const center = (x: string) => " ".repeat(Math.max(0, Math.floor((width - x.length) / 2))) + x;
   const pair = (a: string, b: string) => a + " ".repeat(Math.max(1, width - a.length - b.length)) + b;
@@ -90,6 +90,7 @@ export function ticketLines(o: OrderDoc, items: TicketItem[], width = 32, added 
   const mixed = new Set(items.map((i) => i.salesType)).size > 1;
   return [
     center(added ? "*** ADDITIONAL ORDER ***" : "*** ORDER ***"),
+    ...(reprint ? [center("(REPRINT)")] : []),
     ...(who ? [center(who)] : []),
     ...(o.customer_name && o.table_name ? [center(o.customer_name)] : []),
     rule,
@@ -107,9 +108,9 @@ export function ticketLines(o: OrderDoc, items: TicketItem[], width = 32, added 
   ];
 }
 
-export async function printTicket(o: OrderDoc, items: TicketItem[], added = false) {
+export async function printTicket(o: OrderDoc, items: TicketItem[], added = false, reprint = false) {
   const p = printerSettings();
-  await printLines(p, ticketLines(o, items, lineWidth(p.paper), added), p.ticketCopies ?? 3);
+  await printLines(p, ticketLines(o, items, lineWidth(p.paper), added, reprint), p.ticketCopies ?? 3);
 }
 
 /** Prints order tickets by itself when that's switched on (Settings → Printer). Errors show as a notice. */

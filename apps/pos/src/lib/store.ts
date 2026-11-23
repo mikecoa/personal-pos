@@ -313,6 +313,13 @@ export function setQty(lineId: string, qty: number, voidReason?: string) {
   });
 }
 export const closeSlip = () => set({ slip: null });
+/** The kitchen has the order: its items now count as sent (taking them off is a void with a reason). */
+export function markSent() {
+  const o = state.order;
+  if (!o || o.version === 0) return;
+  set({ order: { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) } });
+  saveOpenBill(false);
+}
 /** Show a slip again (reprint from the billing list). */
 export const showSlip = (slip: Slip) => set({ slip });
 export function setLineDetails(lineId: string, patch: { note?: string | null; discount?: AppliedDiscount | null }) {

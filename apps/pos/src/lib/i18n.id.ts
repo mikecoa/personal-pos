@@ -620,4 +620,6 @@ export const ID: Record<string, string> = {
   "Yes": "Ya",
   "No": "Tidak",
   "Paid back as": "Dikembalikan lewat",
+  "Save the bill first, then print it.": "Simpan bill dulu, lalu cetak.",
+  "Save the bill first, then print the order.": "Simpan bill dulu, lalu cetak pesanan.",
 };
