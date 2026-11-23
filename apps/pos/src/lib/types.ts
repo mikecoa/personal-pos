@@ -36,7 +36,7 @@ export type Catalog = {
   discounts: Discount[];
   modifier_sets: ModifierSet[];
   items: Item[];
-  table_areas?: { id: string; name: string }[];
+  table_areas?: { id: string; name: string; /** floor grid size, set in the backoffice */ grid_cols?: number; grid_rows?: number }[];
   tables?: DiningTable[];
   customers?: Customer[];
   /** One-tap note buttons for this location; category_ids empty = every item. */

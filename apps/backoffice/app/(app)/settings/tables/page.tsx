@@ -15,7 +15,7 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
   const { supabase, location } = await requireManage();
   const sp = await searchParams;
   const [{ data: areas }, { data: tables }, { data: open }] = await Promise.all([
-    supabase.from("table_areas").select("id, name, sort_order, is_active").eq("location_id", location.id).order("sort_order").order("name"),
+    supabase.from("table_areas").select("id, name, sort_order, is_active, grid_cols, grid_rows").eq("location_id", location.id).order("sort_order").order("name"),
     supabase.from("dining_tables").select("id, name, area_id, seats, shape, sort_order, is_active, pos_x, pos_y").eq("location_id", location.id).order("sort_order").order("name"),
     supabase.from("orders").select("table_id").eq("location_id", location.id).eq("status", "open").not("table_id", "is", null),
   ]);
@@ -45,8 +45,8 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
             {g.area && <Link scroll={false} href={`${BASE}?area=${g.area.id}`} className="text-sm text-accent hover:underline">{t("Edit area")}</Link>}
             <span className="text-sm text-ink-2">{t("{n} tables", { n: g.items.length })} · {t("{n} seats", { n: g.items.reduce((s, x) => s + x.seats, 0) })}</span>
           </div>
-          {g.items.length ? (
-            <FloorMap editHref={`${BASE}?table=`}
+          {g.items.length || g.area ? (
+            <FloorMap editHref={`${BASE}?table=`} area={g.area}
               // Name order, like the tablet, so tables without a saved cell land in the same place.
               tables={[...g.items].sort((x, y) => x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: "base" }))
                 .map((t) => ({ ...t, busy: busy.has(t.id) }))} />

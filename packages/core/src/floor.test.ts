@@ -34,3 +34,16 @@ describe("moveOnFloor", () => {
     expect(moveOnFloor(l, "b", { x: 99, y: 0 })).toEqual([{ id: "a", x: 0, y: 0 }, { id: "b", x: FLOOR_COLS - 1, y: 0 }]);
   });
 });
+
+describe("area grid size", () => {
+  it("lays out and clamps moves to the area's columns", async () => {
+    const { floorMinSize, floorRows, floorSize } = await import("./floor");
+    const l = floorLayout([t("a"), t("b"), t("c"), t("d", 9, 0)], 3);
+    expect(l.get("d")).toEqual({ x: 0, y: 1 });                      // column 9 doesn't exist in a 3-wide grid
+    expect(moveOnFloor(l, "a", { x: 99, y: 0 }, 3)).toEqual([{ id: "a", x: 2, y: 0 }, { id: "b", x: 1, y: 0 }, { id: "c", x: 0, y: 0 }, { id: "d", x: 0, y: 1 }]);
+    expect(floorMinSize(l)).toEqual({ cols: 3, rows: 2 });
+    expect(floorRows(l, { cols: 3, rows: 1 })).toBe(2);              // never hides a table below the grid
+    expect(floorSize({ grid_cols: 40, grid_rows: 0 })).toEqual({ cols: 12, rows: 1 });
+    expect(floorSize(null)).toEqual({ cols: 8, rows: 4 });
+  });
+});

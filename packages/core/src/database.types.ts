@@ -761,14 +761,14 @@ isOneToOne: false
                   ]
                 },"table_areas": {
                   Row: {
-                    "account_id": string,"created_at": string,"id": string,"is_active": boolean,"location_id": string,"name": string,"sort_order": number,"updated_at": string
+                    "account_id": string,"created_at": string,"grid_cols": number,"grid_rows": number,"id": string,"is_active": boolean,"location_id": string,"name": string,"sort_order": number,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"location_id": string,"name": string,"sort_order"?: number,"updated_at"?: string
+                    "account_id": string,"created_at"?: string,"grid_cols"?: number,"grid_rows"?: number,"id"?: string,"is_active"?: boolean,"location_id": string,"name": string,"sort_order"?: number,"updated_at"?: string
                   }
                   Update: {
-                    "account_id"?: string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"location_id"?: string,"name"?: string,"sort_order"?: number,"updated_at"?: string
+                    "account_id"?: string,"created_at"?: string,"grid_cols"?: number,"grid_rows"?: number,"id"?: string,"is_active"?: boolean,"location_id"?: string,"name"?: string,"sort_order"?: number,"updated_at"?: string
                   }
                   Relationships: [
                     {

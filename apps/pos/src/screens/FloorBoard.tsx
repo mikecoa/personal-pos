@@ -1,16 +1,17 @@
 import { useRef, useState, type ReactNode } from "react";
 import { Animated, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
-import { FLOOR_COLS, FLOOR_MAX_ROW, firstFreeCell, floorLayout, moveOnFloor, usedCells } from "@pos/core";
+import { FLOOR_MAX_ROW, firstFreeCell, floorLayout, floorRows, floorSize, moveOnFloor, usedCells, type FloorSize } from "@pos/core";
 import { billsAt } from "../lib/store";
 import type { DiningTable } from "../lib/types";
 import { money } from "../ui/kit";
 import { c } from "../ui/theme";
 import { t } from "../lib/i18n";
 
-const COLS = FLOOR_COLS;
 const PAD = 12;     // board padding
 const GAP = 14;     // space between neighbouring tables
-const MIN_CELL = 112; // narrower than this and the board scrolls sideways instead of shrinking
+export const MIN_CELL = 112; // narrower than this and the board scrolls sideways instead of shrinking
+const FIT_CELL = 84;  // the map shrinks to fit the screen down to this; smaller and it shows tiles instead (no sideways scrolling)
+const MAX_CELL = 170; // small grids (few columns) don't blow tables up to giant boxes
 
 const elapsed = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -21,6 +22,8 @@ type Props = {
   /** Phones: a simple grid of table tiles (3 per row) instead of the floor map. */
   list?: boolean;
   tables: DiningTable[];
+  /** The area's grid size (columns × rows), set in the backoffice. */
+  size?: FloorSize;
   mode: "seat" | "move" | "edit";
   currentTableId: string | null;
   isSelected: (t: DiningTable) => boolean;
@@ -33,6 +36,8 @@ type Props = {
   onDragging?: (dragging: boolean) => void;
   /** Width of the board with no side panel open. Tables keep this size when a panel opens (the board scrolls instead). */
   fullWidth?: number;
+  /** Height available for the map: cells shrink so every row fits without scrolling (0 = no limit). */
+  fitHeight?: number;
   /** Holding a table picks it up for dragging (people allowed to edit tables). */
   canArrange?: boolean;
 };
@@ -41,26 +46,33 @@ type Props = {
  * 2D floor map of one area. Tables sit on a grid so the board stays tidy; in edit mode they can
  * be dragged to another cell (dropping on a table swaps the two).
  */
-export function FloorBoard({ list, tables, mode, currentTableId, isSelected, onPress, onLongPress, onLayoutChange, onAdd, addActive, onDragging, fullWidth = 0, canArrange = false }: Props) {
+export function FloorBoard({ list, tables, size = floorSize(null), mode, currentTableId, isSelected, onPress, onLongPress, onLayoutChange, onAdd, addActive, onDragging, fullWidth = 0, fitHeight = 0, canArrange = false }: Props) {
   const [avail, setAvail] = useState(0);
   const [lifted, setLifted] = useState<string | null>(null);     // held down long enough to drag
   const [dragging, setDragging] = useState(false);
   // Fit the space we have; only scroll sideways when even the smallest cells don't fit.
   void fullWidth;
-  const width = avail ? Math.max(Math.floor(avail), COLS * MIN_CELL + PAD * 2) : 0;
+  const COLS = size.cols;
   const editing = mode === "edit";
-  const cellW = width ? (width - PAD * 2) / COLS : 0;
-  const cellH = Math.round(cellW * 0.95);
-  const scale = Math.max(0.7, Math.min(1.15, cellW / 130));
+  // Too many columns for this screen: tiles (outside edit mode). Arranging keeps the map and scrolls if it must.
+  const tooNarrow = avail > 0 && avail < COLS * FIT_CELL + PAD * 2 && !editing;
+  const width = avail ? Math.max(Math.min(Math.floor(avail), COLS * MAX_CELL + PAD * 2), COLS * FIT_CELL + PAD * 2) : 0;
+  const layout = floorLayout(tables, COLS);
+  const addCell = onAdd ? firstFreeCell(usedCells(layout), COLS) : null;
+  // The area's rows (more if tables sit below), plus a spare row while arranging.
+  const rows = Math.min(FLOOR_MAX_ROW + 1, floorRows(layout, size, addCell) + (editing ? 1 : 0));
 
-  const layout = floorLayout(tables);
-  const addCell = onAdd ? firstFreeCell(usedCells(layout)) : null;
-  const maxY = Math.max(-1, ...[...layout.values()].map((p) => p.y), addCell?.y ?? -1);
-  const rows = Math.min(FLOOR_MAX_ROW + 1, Math.max(4, maxY + 1 + (editing ? 1 : 0)));
+  // Cells as big as fit both the width and (when given) the height, so the whole map is on screen.
+  const fitW = width ? (width - PAD * 2) / COLS : 0;
+  const fitH = fitHeight > 0 ? (fitHeight - PAD * 2) / rows / 0.95 : Infinity;
+  const cellW = fitW ? Math.max(FIT_CELL, Math.min(fitW, fitH)) : 0;
+  const cellH = Math.round(cellW * 0.95);
+  const boardW = width ? cellW * COLS + PAD * 2 : 0;
+  const scale = Math.max(0.65, Math.min(1.15, cellW / 130));
 
   const drop = (t: DiningTable, dx: number, dy: number) => {
     const from = layout.get(t.id)!;
-    const cells = moveOnFloor(layout, t.id, { x: from.x + dx / cellW, y: from.y + dy / cellH });
+    const cells = moveOnFloor(layout, t.id, { x: from.x + dx / cellW, y: from.y + dy / cellH }, COLS);
     if (cells) onLayoutChange(cells);
   };
 
@@ -68,7 +80,7 @@ export function FloorBoard({ list, tables, mode, currentTableId, isSelected, onP
 
   const dragState = (d: boolean) => { setDragging(d); onDragging?.(d); };
 
-  if (list) {
+  if (list || tooNarrow) {
     const per = avail >= 420 ? 4 : 3, gap = 10;
     const tileW = avail ? (avail - gap * (per - 1)) / per : 0;
     const sorted = [...tables].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
@@ -86,8 +98,8 @@ export function FloorBoard({ list, tables, mode, currentTableId, isSelected, onP
 
   return (
     <View onLayout={(e: LayoutChangeEvent) => setAvail(e.nativeEvent.layout.width)} style={{ borderRadius: 6, backgroundColor: c.surface2, overflow: "hidden" }}>
-    <ScrollView horizontal scrollEnabled={!dragging && width > avail} showsHorizontalScrollIndicator={width > avail}>
-    <View style={{ width: width || avail, height: width ? rows * cellH + PAD * 2 : 300 }}>
+    <ScrollView horizontal scrollEnabled={!dragging && boardW > avail} showsHorizontalScrollIndicator={boardW > avail}>
+    <View style={{ width: boardW || avail, height: width ? rows * cellH + PAD * 2 : 300 }}>
       {width > 0 && editing && Array.from({ length: rows * COLS }, (_, i) => (
         <View key={`g${i}`} pointerEvents="none" style={[st.gridCell, box({ x: i % COLS, y: Math.floor(i / COLS) })]} />
       ))}

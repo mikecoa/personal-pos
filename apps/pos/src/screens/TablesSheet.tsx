@@ -4,7 +4,8 @@ import { billsAt, byTableName, can, guard, isSplitPart, mergeSplit, notify, edit
 import type { DiningTable, OrderDoc } from "../lib/types";
 import { Btn, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
-import { FloorBoard } from "./FloorBoard";
+import { FloorBoard, MIN_CELL } from "./FloorBoard";
+import { floorSize } from "@pos/core";
 import { t } from "../lib/i18n";
 import { lineLabel } from "../lib/order";
 import { SplitPrintSheet } from "./BillActions";
@@ -54,6 +55,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
   const currentArea = areas.some((a) => a.id === area) || area === NO_AREA ? area : (areas[0]?.id ?? NO_AREA);
   const inArea = (t: DiningTable, a: string) => (a === NO_AREA ? !t.area_id : t.area_id === a);
   const shown = areas.length ? tables.filter((t) => inArea(t, currentArea)) : tables;
+  const areaSize = floorSize(areas.find((a) => a.id === currentArea));
   const busyIn = (a: string) => tables.filter((t) => inArea(t, a) && billsAt(t.id).length).length;
   const totalBusy = tables.filter((t) => billsAt(t.id).length).length;
   void openOrders;                                          // subscribed so busy/free updates live
@@ -74,6 +76,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
   // doesn't change under the finger); keep moving the same finger to drag it.
   const hold = (_t: DiningTable) => { if (!editing && canEdit) startEditing(); };
   const [rowW, setRowW] = useState(0);
+  const [rowH, setRowH] = useState(0);
 
   const tap = (tb: DiningTable) => {
     setNotice(null);
@@ -143,14 +146,14 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
           )}
 
           {/* With a panel open on a narrow screen, tables show as tiles (like on phones) so none is cut off. */}
-          <View style={{ flexDirection: "row", flex: 1, minHeight: 0 }} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
+          <View style={{ flexDirection: "row", flex: 1, minHeight: 0 }} onLayout={(e) => { setRowW(e.nativeEvent.layout.width); setRowH(e.nativeEvent.layout.height); }}>
             {/* grid */}
             <ScrollView style={{ flex: 1 }} scrollEnabled={!dragging} contentContainerStyle={{ padding: compact ? 14 : 20, gap: 14 }}>
               {notice && <Text style={st.notice}>{notice}</Text>}
               {(shown.length > 0 || editing) && (
-                <FloorBoard list={(compact || (sideOpen && rowW - 360 - 40 < 8 * 112 + 24)) && !editing} tables={shown} mode={editing ? "edit" : mode} currentTableId={order?.table_id ?? null}
+                <FloorBoard list={(compact || (sideOpen && rowW - 360 - 40 < areaSize.cols * MIN_CELL + 24)) && !editing} tables={shown} size={areaSize} mode={editing ? "edit" : mode} currentTableId={order?.table_id ?? null}
                   isSelected={(t) => (editing ? selection.includes(t.id) : (panel?.kind === "seat" || panel?.kind === "bills") && panel.table.id === t.id)}
-                  onPress={tap} onLongPress={hold} onDragging={setDragging} fullWidth={rowW - 40} canArrange={canEdit}
+                  onPress={tap} onLongPress={hold} onDragging={setDragging} fullWidth={rowW - 40} fitHeight={editing ? 0 : rowH - (compact ? 28 : 40) - (notice ? 56 : 0)} canArrange={canEdit}
                   onAdd={editing ? () => { setSelection([]); setPanel({ kind: "new" }); } : undefined} addActive={panel?.kind === "new"}
                   onLayoutChange={(cells) => { setNotice(null); saveLayout(cells).catch((e) => setNotice((e as Error).message)); }} />
               )}
