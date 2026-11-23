@@ -21,11 +21,14 @@ import { CategoryEditor, CategoryPicker, ItemEditor } from "./MenuEditor";
 import { CustomerSheet } from "./CustomerSheet";
 import { NoteSheet } from "./NoteSheet";
 import { addCustom, addItem } from "../lib/store";
-import { printReceipt } from "./receipt";
+import { printReceipt, toReceipt } from "./receipt";
+import { ReceiptView } from "./ReceiptView";
+import { lineWidth } from "../lib/printer";
+import { printerSettings } from "../lib/store";
 import { t } from "../lib/i18n";
 
 type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "note"; id: string }
-  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
+  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "billPreview" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
@@ -49,10 +52,10 @@ export function Sell() {
   const items = useMemo(() => {
     const term = q.trim().toLowerCase();
     return catalog.items.filter((i) => (!cat || i.category_id === cat) &&
-      (!term || i.name.toLowerCase().includes(term) || i.variants.some((v) => v.sku?.toLowerCase() === term)));
+      (!term || i.name.toLowerCase().includes(term) || byInitials(i.name, term) || i.variants.some((v) => v.sku?.toLowerCase() === term)));
   }, [catalog.items, cat, q]);
-  const cols = Math.max(compact ? 2 : 3, Math.floor(gridW / (compact ? 150 : short ? 118 : 150)));
-  const tileW = (gridW - 10 * (cols - 1)) / cols;
+  const cols = Math.max(1, Math.floor(gridW / 230));          // list rows: 1 column on phones, 2+ beside the order
+  const tileW = (gridW - 8 * (cols - 1)) / cols;
   const catName = cat ? catalog.categories.find((k) => k.id === cat)?.name ?? t("Category") : t("All items");
 
   // Grid rows: a header per category (in "All items"), then the items in rows of `cols`.
@@ -209,7 +212,7 @@ export function Sell() {
             )}
             {can("bill_print") && (
               <ToolButton icon="printer-outline" label={t("Print bill")} disabled={!hasLines}
-                onPress={() => void printReceipt(order!, catalog).then(() => notify(t("Bill printed."))).catch((e: Error) => notify(e.message))} />
+                onPress={() => guard("bill_print", t("Print bill"), () => setModal({ kind: "billPreview" }))} />
             )}
             {order?.version
               ? <ToolButton icon="close-octagon-outline" label={t("Cancel bill")} danger onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
@@ -284,12 +287,12 @@ export function Sell() {
                 <Text style={{ color: c.ink2, fontSize: 13 }}>{row.count === 1 ? t("1 item") : t("{n} items", { n: row.count })}</Text>
               </View>
             ) : (
-              <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
                 {row.items.map((item) => item === ADD_TILE ? (
                   <Pressable key="add" onPress={() => setModal({ kind: "editItem", item: null })} accessibilityRole="button" accessibilityLabel="New item"
-                    style={({ pressed }) => ({ width: tileW, minHeight: 150, borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent,
+                    style={({ pressed }) => ({ width: tileW, minHeight: 56, flexDirection: "row", borderRadius: r.sm, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent,
                       alignItems: "center", justifyContent: "center", gap: 4, opacity: pressed ? 0.7 : 1 })}>
-                    <MaterialCommunityIcons name="plus" size={30} color={c.accent} />
+                    <MaterialCommunityIcons name="plus" size={22} color={c.accent} />
                     <Text style={{ color: c.accent, fontWeight: "700" }}>{t("New item")}</Text>
                   </Pressable>
                 ) : (() => {
@@ -297,30 +300,22 @@ export function Sell() {
                   return (
                     <Tap key={item.id} onPress={() => (editingMenu ? setModal({ kind: "editItem", item }) : tap(item))} accessibilityRole="button"
                       accessibilityLabel={editingMenu ? t("Edit {name}", { name: item.name }) : `${item.name}, ${priceLabel(item)}`} scaleTo={0.95}
-                      style={{ width: tileW, borderRadius: r.md, overflow: "hidden", backgroundColor: c.surface,
-                        borderWidth: 1, borderColor: c.line, opacity: out ? 0.55 : 1 }}>
-                      {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: short ? 48 : 72 }} /> : (
-                        <View style={{ height: short ? 48 : 72, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
-                          <Text style={{ fontSize: short ? 20 : 26, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
-                        </View>
-                      )}
-                      {!editingMenu && (inCart.get(item.id) ?? 0) > 0 && (
-                        <Pop value={inCart.get(item.id)} style={{ position: "absolute", top: 8, right: 8 }}>
-                          <FadeIn from={0} scale={0.4} duration={160} style={{ minWidth: 30, height: 30, borderRadius: 15, paddingHorizontal: 8, backgroundColor: c.accent,
-                            alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: c.surface }}>
-                            <Text style={{ color: c.accentInk, fontWeight: "800" }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>{inCart.get(item.id)}</Text>
-                          </FadeIn>
+                      style={{ width: tileW, minHeight: 56, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8,
+                        borderRadius: r.sm, backgroundColor: c.surface, borderWidth: 1, borderColor: (inCart.get(item.id) ?? 0) > 0 && !editingMenu ? c.accent : c.line, opacity: out ? 0.55 : 1 }}>
+                      {/* Compact menu row: name on the left, price on the right, how many are on the order. */}
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }} numberOfLines={2}>{item.name}</Text>
+                        {out && <Text style={{ color: c.danger, fontSize: 12 }}>{t("Out of stock")}</Text>}
+                      </View>
+                      <Text style={{ color: c.ink2, fontSize: 14 }} numberOfLines={1}>{priceLabel(item)}</Text>
+                      {editingMenu ? <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink2} />
+                        : (inCart.get(item.id) ?? 0) > 0 && (
+                        <Pop value={inCart.get(item.id)}>
+                          <View style={{ minWidth: 26, height: 26, borderRadius: 13, paddingHorizontal: 7, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
+                            <Text style={{ color: c.accentInk, fontWeight: "800", fontSize: 13 }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>{inCart.get(item.id)}</Text>
+                          </View>
                         </Pop>
                       )}
-                      {editingMenu && (
-                        <View style={{ position: "absolute", top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" }}>
-                          <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink} />
-                        </View>
-                      )}
-                      <View style={{ padding: short ? 8 : 10, gap: 2 }}>
-                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: short ? 14 : 15 }} numberOfLines={tight ? 3 : 2}>{item.name}</Text>
-                        <Text style={{ color: c.ink2 }}>{out ? t("Out of stock") : priceLabel(item)}</Text>
-                      </View>
                     </Tap>
                   );
                 })())}
@@ -370,6 +365,7 @@ export function Sell() {
       {modal?.kind === "line" && <LineSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "note" && <NoteSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "charge" && <ChargeSheet onClose={() => { setModal(null); if (!getState().order?.lines.length) setCartOpen(false); }} />}
+      {modal?.kind === "billPreview" && order && <BillPreviewSheet onClose={() => setModal(null)} />}
       {modal?.kind === "bills" && <BillsSheet onClose={() => setModal(null)} />}
       {modal?.kind === "save" && <SaveBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "discount" && <BillDiscountSheet onClose={() => setModal(null)} />}
@@ -515,3 +511,41 @@ const drop = StyleSheet.create({
   value: { flex: 1, textAlign: "right", color: c.ink, fontSize: 17, fontWeight: "800" },
   row: { flexDirection: "row", alignItems: "center", minHeight: 60, paddingHorizontal: 18, borderRadius: r.md, borderWidth: 2, borderColor: c.line, backgroundColor: c.surface },
 });
+
+/**
+ * Search by initials too: "ah" or "a h" finds "Air Hangat", and "air ha" matches word starts in order.
+ */
+function byInitials(name: string, term: string) {
+  const words = name.toLowerCase().split(/[\s/()+-]+/).filter(Boolean);
+  const squeezed = term.replace(/\s+/g, "");
+  if (squeezed.length >= 2 && words.map((w) => w[0]).join("").startsWith(squeezed)) return true;
+  const parts = term.split(/\s+/);
+  if (parts.length < 2) return false;
+  let w = 0;
+  for (const p of parts) {
+    while (w < words.length && !words[w]!.startsWith(p)) w++;
+    if (w++ >= words.length) return false;
+  }
+  return true;
+}
+
+/** "Print bill": shows exactly what will be printed, then prints it. */
+function BillPreviewSheet({ onClose }: { onClose: () => void }) {
+  const order = useStore((s) => s.order)!;
+  const catalog = useStore((s) => s.catalog)!;
+  const [busy, setBusy] = useState(false);
+  const p = printerSettings();
+  const lines = toReceipt(order, catalog, undefined, lineWidth(p.paper));
+  const print = async () => {
+    setBusy(true);
+    try { await printReceipt(order, catalog); notify(t("Bill printed.")); onClose(); }
+    catch (e) { notify((e as Error).message); setBusy(false); }
+  };
+  return (
+    <Sheet visible onClose={onClose} title={t("Print bill")} width={p.paper === 80 ? 520 : 440}
+      footer={<><Btn kind="secondary" title={t("Close")} onPress={onClose} />
+        <Btn style={{ flex: 1 }} title={busy ? t("Printing…") : p.copies > 1 ? t("Print {n} copies", { n: p.copies }) : t("Print")} disabled={busy} onPress={() => void print()} /></>}>
+      <ScrollView contentContainerStyle={{ paddingVertical: 8 }}><ReceiptView lines={lines} /></ScrollView>
+    </Sheet>
+  );
+}
