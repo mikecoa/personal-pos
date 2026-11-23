@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { type ComponentProps, useMemo, useState } from "react";
+import { type ComponentProps, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -114,6 +114,23 @@ export function Sell() {
     setQty(lineId, next);
   };
 
+  // Scroll the order list to the item just added (or whose quantity went up), so the cashier sees it.
+  const linesRef = useRef<FlatList<NonNullable<typeof order>["lines"][number]>>(null);
+  const prevQty = useRef<{ id: string | null; qty: Map<string, number> }>({ id: null, qty: new Map() });
+  useEffect(() => {
+    const lines = order?.lines ?? [];
+    const prev = prevQty.current;
+    const sameOrder = prev.id === (order?.id ?? null);
+    prevQty.current = { id: order?.id ?? null, qty: new Map(lines.map((l) => [l.id, l.qty])) };
+    if (!sameOrder || !lines.length) return;
+    const idx = lines.findIndex((l) => l.qty > (prev.qty.get(l.id) ?? 0));
+    if (idx < 0) return;
+    requestAnimationFrame(() => {
+      if (idx === lines.length - 1) linesRef.current?.scrollToEnd({ animated: true });
+      else linesRef.current?.scrollToIndex({ index: idx, viewPosition: 0.5, animated: true });
+    });
+  }, [order?.id, order?.lines]);
+
   // No shift yet: count the cash first. The menu stays hidden until then.
   if (!shift) return <StartShiftPanel />;
 
@@ -165,9 +182,11 @@ export function Sell() {
         </View>
 
         <FlatList
+          ref={linesRef}
           style={{ flex: 1 }}
           data={order?.lines ?? []}
           keyExtractor={(l) => l.id}
+          onScrollToIndexFailed={() => linesRef.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={<View style={{ padding: 24 }}><Muted>{t("Tap items to add them.")}</Muted></View>}
           renderItem={({ item: l }) => (
             <FadeIn from={0} duration={220} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 14, paddingRight: 8, paddingVertical: 4, borderBottomWidth: 1, borderColor: c.line }}>
