@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { type ComponentProps, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { cashSuggestions, settle } from "@pos/core";
-import { completeSale, useStore } from "../lib/store";
+import { completeSale, syncNow, useStore } from "../lib/store";
 import type { OrderDoc, OrderPayment, PaymentMethod } from "../lib/types";
 import { Btn, Field, H, Keypad, Label, money, Muted, Sheet } from "../ui/kit";
 import { c, r } from "../ui/theme";
@@ -39,6 +39,8 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
     setPrinting(false);
   };
   // Print automatically after the sale when the tablet is set to.
+  // Fetch the latest payment methods (and the rest of the menu) from the backoffice when charging.
+  useEffect(() => { void syncNow({ catalog: true }); }, []);
   useEffect(() => { if (done && hasPrinter && printerSettings().autoPrint) void print(done); }, [done]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const total = done?.total ?? order?.total ?? 0;
