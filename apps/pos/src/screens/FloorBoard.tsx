@@ -45,7 +45,9 @@ export function FloorBoard({ list, tables, mode, currentTableId, isSelected, onP
   const [avail, setAvail] = useState(0);
   const [lifted, setLifted] = useState<string | null>(null);     // held down long enough to drag
   const [dragging, setDragging] = useState(false);
-  const width = avail ? Math.max(avail, fullWidth, COLS * MIN_CELL + PAD * 2) : 0;
+  // Fit the space we have; only scroll sideways when even the smallest cells don't fit.
+  void fullWidth;
+  const width = avail ? Math.max(Math.floor(avail), COLS * MIN_CELL + PAD * 2) : 0;
   const editing = mode === "edit";
   const cellW = width ? (width - PAD * 2) / COLS : 0;
   const cellH = Math.round(cellW * 0.95);
