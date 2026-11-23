@@ -685,4 +685,12 @@ export const ID: Record<string, string> = {
   "Edit split": "Ubah pisah",
   "Press Done to confirm the changes, then you can print or split.": "Tekan Selesai untuk mengonfirmasi perubahan, lalu bisa dicetak atau dipisah.",
   "A bill here has changes that aren't confirmed. Open it and press Done first.": "Ada bill di sini dengan perubahan yang belum dikonfirmasi. Buka dan tekan Selesai dulu.",
+  "Cancel all {n} bills": "Batalkan semua {n} bill",
+  "What to cancel": "Yang dibatalkan",
+  "Only {name}": "Hanya {name}",
+  "The other bills stay open and are renumbered.": "Bill lainnya tetap terbuka dan dinomori ulang.",
+  "All {n} bills at {where}": "Semua {n} bill di {where}",
+  "this table": "meja ini",
+  "Every bill of this split is cancelled with the same reason.": "Semua bill dari pisahan ini dibatalkan dengan alasan yang sama.",
+  "These bills are closed without payment. Their items and this reason are kept in the report.": "Bill-bill ini ditutup tanpa pembayaran. Item dan alasannya tetap tercatat di laporan.",
 };

@@ -113,6 +113,9 @@ const st = StyleSheet.create({
   splitHead: { padding: 6, gap: 2 },
   splitItem: { flexDirection: "row", alignItems: "center", gap: 6, padding: 8, borderRadius: r.sm, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   printRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface },
+  choice: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface },
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: c.line, alignItems: "center", justifyContent: "center" },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.danger },
   undoBox: { padding: 10, marginBottom: 10, borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent, alignItems: "center" },
   tick: { width: 24, height: 24, borderRadius: r.sm, borderWidth: 1.5, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
   totalBox: { padding: 12, borderRadius: r.md, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, gap: 2 },
@@ -149,11 +152,36 @@ export function BillDiscountSheet({ onClose }: { onClose: () => void }) {
 export function CancelBillSheet({ onClose }: { onClose: () => void }) {
   const order = useStore((s) => s.order)!;
   const [reason, setReason] = useState("");
+  // Split bill: cancel just this one, or every bill of the split (the whole table).
+  const [parts] = useState(() => (isSplitPart(order) ? splitParts(order) : [order]));
+  const split = parts.length > 1;
+  const [all, setAll] = useState(false);
+  const name = order.table_id ? t("Table {name}", { name: tableLabel(order) }) : order.bill_name ?? order.number;
+  const where = order.table_id ? t("Table {name}", { name: tableLabel({ table_id: order.table_id, table_name: order.table_name }) }) : "";
+  const total = parts.reduce((s, b) => s + b.total, 0);
   return (
-    <Sheet visible onClose={onClose} title={t("Cancel bill {v0}", { v0: order.bill_name ?? order.number })} width={520}
-      footer={<><Btn kind="secondary" title={t("Keep bill")} onPress={onClose} /><Btn kind="danger" style={{ flex: 1 }} title={t("Cancel bill")}
-        disabled={!reason.trim()} onPress={() => { cancelBill(reason.trim()); onClose(); }} /></>}>
-      <Text style={{ color: c.ink }}>{t("The bill is closed without payment. Its items and this reason are kept in the report.")}</Text>
+    <Sheet visible onClose={onClose} title={t("Cancel bill {v0}", { v0: name })} width={560}
+      footer={<><Btn kind="secondary" title={t("Keep bill")} onPress={onClose} /><Btn kind="danger" style={{ flex: 1 }}
+        title={all ? t("Cancel all {n} bills", { n: parts.length }) : t("Cancel bill")}
+        disabled={!reason.trim()} onPress={() => { cancelBill(reason.trim(), all); onClose(); }} /></>}>
+      {split && (
+        <View style={{ gap: 8, marginBottom: 6 }}>
+          <Label>{t("What to cancel")}</Label>
+          {([[false, t("Only {name}", { name }), money(order.total), t("The other bills stay open and are renumbered.")],
+            [true, t("All {n} bills at {where}", { n: parts.length, where: where || t("this table") }), money(total), t("Every bill of this split is cancelled with the same reason.")]] as const).map(([v, title, amt, hint]) => (
+            <Pressable key={String(v)} onPress={() => setAll(v)} accessibilityRole="radio" accessibilityState={{ checked: all === v }}
+              style={[st.choice, all === v && { borderColor: c.danger, backgroundColor: c.dangerSoft }]}>
+              <View style={[st.radio, all === v && { borderColor: c.danger }]}>{all === v && <View style={st.radioDot} />}</View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{title}</Text>
+                <Text style={{ color: c.ink2, fontSize: 12 }}>{hint}</Text>
+              </View>
+              <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{amt}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+      <Text style={{ color: c.ink }}>{all ? t("These bills are closed without payment. Their items and this reason are kept in the report.") : t("The bill is closed without payment. Its items and this reason are kept in the report.")}</Text>
       <Field label={t("Reason")} value={reason} onChangeText={setReason} autoFocus placeholder={t("e.g. Customer left")} maxLength={120} />
     </Sheet>
   );

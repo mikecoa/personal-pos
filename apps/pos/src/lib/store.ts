@@ -682,14 +682,31 @@ function renumberSplit(o: OrderDoc) {
   refreshLocal();
   void syncNow();
 }
-export function cancelBill(reason: string) {
+/**
+ * Cancel the bill on screen with a reason. For a split bill, `all` cancels every bill of the split
+ * (same reason); otherwise only this one, and the remaining bills are renumbered ((1/3)…, or a
+ * normal bill again when one is left). Items stay recorded on the cancelled bills.
+ */
+export function cancelBill(reason: string, all = false) {
   const o = state.order!;
-  const next: OrderDoc = {
-    ...o, status: "cancelled", version: o.version + 1, cancelled_at: now(), cancel_reason: reason,
-    closed_by: state.employee!.id, closed_by_name: state.employee!.name,
-  };
-  db.saveOrder(next);
-  set({ order: null });
+  const split = isSplitPart(o);
+  const parts = split ? splitParts(o) : [o];
+  const targets = all ? parts : [o];
+  for (const p of targets) {
+    const doc = p.id === o.id ? o : db.getOrder(p.id) ?? p;
+    db.saveOrder({
+      ...doc, status: "cancelled", version: doc.version + 1, cancelled_at: now(), cancel_reason: reason,
+      closed_by: state.employee!.id, closed_by_name: state.employee!.name,
+    });
+  }
+  set({ order: null, billChanged: false });
+  if (split && !all) {
+    const rest = parts.filter((p) => p.id !== o.id);
+    if (rest.length === 1) {
+      const only = db.getOrder(rest[0]!.id)!;
+      db.saveOrder({ ...only, bill_name: stripPart(only.bill_name ?? only.number) || null, version: only.version + 1 });
+    } else if (rest.length > 1) renumberSplit(db.getOrder(rest[0]!.id)!);
+  }
   refreshLocal();
   void syncNow();
 }
