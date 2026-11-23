@@ -140,9 +140,9 @@ function QuickNotesEditor({ onClose }: { onClose: () => void }) {
 }
 
 const st = StyleSheet.create({
-  icon: { width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
+  icon: { width: 52, height: 52, borderRadius: 6, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  chip: { paddingHorizontal: 18, height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface, justifyContent: "center" },
+  chip: { paddingHorizontal: 18, height: 48, borderRadius: 6, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface, justifyContent: "center" },
   chipOn: { backgroundColor: c.accent, borderColor: c.accent },
   chipText: { fontSize: 16, fontWeight: "700", color: c.ink },
   seg: { flexDirection: "row", borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, overflow: "hidden", alignSelf: "flex-start" },

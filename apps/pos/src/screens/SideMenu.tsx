@@ -107,13 +107,13 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
 const st = StyleSheet.create({
   bar: { flexDirection: "row", backgroundColor: rail, borderTopWidth: 1, borderColor: c.line, paddingHorizontal: 4, paddingTop: 6, paddingBottom: 8 },
   barItem: { flex: 1, alignItems: "center", gap: 2, minHeight: 56, justifyContent: "center" },
-  barIcon: { width: 52, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  barIcon: { width: 52, height: 32, borderRadius: 6, alignItems: "center", justifyContent: "center" },
   barLabel: { color: ink, fontSize: 12, fontWeight: "700" },
   rail: { width: 72, backgroundColor: rail, paddingTop: 14, paddingBottom: 14, borderRightWidth: 1, borderColor: c.line },
   outlet: { alignItems: "center", gap: 4, paddingHorizontal: 2, paddingBottom: 10, marginHorizontal: 6, borderBottomWidth: 1, borderColor: c.line },
   logoTile: { width: 58, height: 58 },          // logos are uploaded with a see-through background
   outletName: { color: ink, fontSize: 11, fontWeight: "800", textAlign: "center", lineHeight: 16 },
-  item: { alignItems: "center", justifyContent: "center", gap: 3, height: 60, borderRadius: 10 },
+  item: { alignItems: "center", justifyContent: "center", gap: 3, height: 60, borderRadius: 6 },
   itemActive: { backgroundColor: c.accent },
   label: { color: ink, fontSize: 11, fontWeight: "700" },
   miniBadge: { position: "absolute", top: -6, right: -12, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: c.accent, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: rail },
@@ -123,5 +123,5 @@ const st = StyleSheet.create({
   avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" },
   avatarText: { color: ink, fontWeight: "800" },
   who: { color: inkDim, fontSize: 11, fontWeight: "600", maxWidth: 62 },
-  lockBtn: { width: 60, minHeight: 50, borderRadius: 12, alignItems: "center", justifyContent: "center", gap: 2 },
+  lockBtn: { width: 60, minHeight: 50, borderRadius: 6, alignItems: "center", justifyContent: "center", gap: 2 },
 });

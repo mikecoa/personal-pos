@@ -347,7 +347,7 @@ function LogOut() {
 
 const st = StyleSheet.create({
   printerCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: r.md, borderWidth: 2, borderColor: c.accent, backgroundColor: c.surface },
-  printerIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" },
+  printerIcon: { width: 48, height: 48, borderRadius: 6, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" },
   foundRow: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   langRow: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 76, paddingHorizontal: 18, borderRadius: r.md, borderWidth: 2, borderColor: c.line, backgroundColor: c.surface },
   nav: { width: 260, borderRightWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingTop: 8 },

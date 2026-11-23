@@ -83,7 +83,7 @@ export function FloorBoard({ list, tables, mode, currentTableId, isSelected, onP
   }
 
   return (
-    <View onLayout={(e: LayoutChangeEvent) => setAvail(e.nativeEvent.layout.width)} style={{ borderRadius: 16, backgroundColor: c.surface2, overflow: "hidden" }}>
+    <View onLayout={(e: LayoutChangeEvent) => setAvail(e.nativeEvent.layout.width)} style={{ borderRadius: 6, backgroundColor: c.surface2, overflow: "hidden" }}>
     <ScrollView horizontal scrollEnabled={!dragging && width > avail} showsHorizontalScrollIndicator={width > avail}>
     <View style={{ width: width || avail, height: width ? rows * cellH + PAD * 2 : 300 }}>
       {width > 0 && editing && Array.from({ length: rows * COLS }, (_, i) => (
@@ -181,11 +181,11 @@ function MapTile({ table, mode, scale, current, selected, onPress, onPressOut, o
 }
 
 const st = StyleSheet.create({
-  tile: { flex: 1, borderRadius: 14, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center", gap: 2, paddingHorizontal: 6 },
+  tile: { flex: 1, borderRadius: 6, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center", gap: 2, paddingHorizontal: 6 },
   timeWrap: { position: "absolute", left: 0, right: 0, bottom: -9, alignItems: "center" },
   time: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: c.surface, borderWidth: 1, borderColor: c.accent },
   check: { position: "absolute", top: 6, right: 6, width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
   checkOn: { backgroundColor: c.accent, borderColor: c.accent },
-  gridCell: { position: "absolute", borderRadius: 14, borderWidth: 1, borderStyle: "dashed", borderColor: c.line },
-  add: { position: "absolute", borderRadius: 14, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent, alignItems: "center", justifyContent: "center" },
+  gridCell: { position: "absolute", borderRadius: 6, borderWidth: 1, borderStyle: "dashed", borderColor: c.line },
+  add: { position: "absolute", borderRadius: 6, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent, alignItems: "center", justifyContent: "center" },
 });

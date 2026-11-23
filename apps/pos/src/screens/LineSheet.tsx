@@ -49,7 +49,7 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
         <Stepper value={qty} onChange={setQ} />
       </View>
       {voiding > 0 && (
-        <View style={{ gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.dangerSoft }}>
+        <View style={{ gap: 10, padding: 14, borderRadius: 6, backgroundColor: c.dangerSoft }}>
           <Text style={{ color: c.danger, fontWeight: "700" }}>
             {voiding > 1 ? t("Voiding {n} already-saved items. Why?", { n: voiding }) : t("Voiding 1 already-saved item. Why?")}
           </Text>

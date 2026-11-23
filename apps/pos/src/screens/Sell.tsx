@@ -320,7 +320,7 @@ export function Sell() {
                       {editingMenu ? <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink2} />
                         : (inCart.get(item.id) ?? 0) > 0 && (
                         <Pop value={inCart.get(item.id)}>
-                          <View style={{ minWidth: 26, height: 26, borderRadius: 13, paddingHorizontal: 7, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
+                          <View style={{ minWidth: 26, height: 26, borderRadius: 6, paddingHorizontal: 7, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
                             <Text style={{ color: c.accentInk, fontWeight: "800", fontSize: 13 }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>{inCart.get(item.id)}</Text>
                           </View>
                         </Pop>
@@ -440,10 +440,10 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
 let lastGridW: number | null = null;
 
 const noteBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 4, alignSelf: "flex-start" as const, minHeight: 30,
-  paddingHorizontal: 8, borderRadius: 15, borderWidth: 1, borderStyle: "dashed" as const, borderColor: c.line };
-const qtyBtn = { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: c.line, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: c.surface };
+  paddingHorizontal: 8, borderRadius: 4, borderWidth: 1, borderStyle: "dashed" as const, borderColor: c.line };
+const qtyBtn = { width: 42, height: 42, borderRadius: 6, borderWidth: 1, borderColor: c.line, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: c.surface };
 type GridRow = { kind: "header"; key: string; name: string; count: number } | { kind: "row"; key: string; items: Item[] };
-const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 52, paddingHorizontal: 16, borderRadius: 26,
+const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 52, paddingHorizontal: 16, borderRadius: 6,
   borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
 
 /** Placeholder first tile while editing the menu. */
@@ -497,14 +497,14 @@ const tile = StyleSheet.create({
 /** Square icon button (phones), with the full label for screen readers. */
 function IconBtn({ icon, label, onPress, size = 52 }: { icon: IconName; label: string; onPress: () => void; size?: number }) {
   return (
-    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={label} scaleTo={0.92} style={[phone.icon, { width: size, height: size, borderRadius: size / 2 }]}>
+    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={label} scaleTo={0.92} style={[phone.icon, { width: size, height: size, borderRadius: 6 }]}>
       <MaterialCommunityIcons name={icon} size={size < 48 ? 21 : 24} color={c.ink} />
     </Tap>
   );
 }
 
 const phone = StyleSheet.create({
-  icon: { width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
+  icon: { width: 52, height: 52, borderRadius: 6, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   bar: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingHorizontal: 16, borderRadius: r.md, backgroundColor: c.accent },
   barTitle: { color: c.accentInk, fontSize: 16, fontWeight: "800" },
   barSub: { color: c.accentInk, opacity: 0.85, fontSize: 13, fontWeight: "600" },

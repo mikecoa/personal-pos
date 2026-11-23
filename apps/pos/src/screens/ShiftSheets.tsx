@@ -18,7 +18,7 @@ export function StartShiftPanel() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, alignItems: "center", justifyContent: "center", padding: 24 }}>
       <View style={{ width: 420, maxWidth: "100%", padding: 28, gap: 16, alignItems: "center", borderRadius: r.lg, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface }}>
-        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 64, height: 64, borderRadius: 6, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" }}>
           <MaterialCommunityIcons name="cash-register" size={32} color={c.accent} />
         </View>
         <H>{t("Start a shift")}</H>
