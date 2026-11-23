@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -143,11 +144,37 @@ class PosPrinterModule : Module() {
       ?: throw PrinterException("This tablet has no Bluetooth.")
     if (!hasBluetoothPermission()) throw PrinterException("BLUETOOTH_PERMISSION")
     adapter.cancelDiscovery()
-    adapter.getRemoteDevice(address).createRfcommSocketToServiceRecord(SPP_UUID).use { s ->
-      s.connect()
-      s.outputStream.apply { write(bytes); flush() }
-      Thread.sleep(400)
+    val device = adapter.getRemoteDevice(address)
+    // Many cheap thermal printers refuse the standard secure connection; try the usual fallbacks.
+    val attempts: List<() -> BluetoothSocket> = listOf(
+      { device.createRfcommSocketToServiceRecord(SPP_UUID) },
+      { device.createInsecureRfcommSocketToServiceRecord(SPP_UUID) },
+      { device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType).invoke(device, 1) as BluetoothSocket },
+    )
+    var last: Exception? = null
+    for (make in attempts) {
+      val s = try { make() } catch (e: Exception) { last = e; continue }
+      try {
+        s.connect()
+        val out = s.outputStream
+        // Small chunks: the printer's buffer is tiny and drops data sent all at once.
+        var off = 0
+        while (off < bytes.size) {
+          val n = minOf(512, bytes.size - off)
+          out.write(bytes, off, n); out.flush()
+          off += n
+          Thread.sleep(25)
+        }
+        Thread.sleep(maxOf(800L, bytes.size / 20L)) // let it finish printing before hanging up
+        s.close()
+        return
+      } catch (e: Exception) {
+        last = e
+        try { s.close() } catch (_: Exception) {}
+        Thread.sleep(300)
+      }
     }
+    throw PrinterException("BLUETOOTH_CONNECT: ${last?.message ?: "no answer"}")
   }
 
   // ───────────────────────────── USB
