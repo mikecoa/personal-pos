@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { AppliedDiscount } from "@pos/core";
+import { floorLayout, floorSize, type AppliedDiscount } from "@pos/core";
 import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, isSplitPart, lockBill, mergeSplit, resplit, splitBillMany, splitParts, tableLabel, useStore } from "../lib/store";
 import { lineLabel } from "../lib/order";
-import type { OrderDoc } from "../lib/types";
+import type { DiningTable, OrderDoc } from "../lib/types";
 import { autoTicket, newItems, printReceipt, toReceipt } from "./receipt";
 import { ReceiptView } from "./ReceiptView";
 import { lineWidth } from "../lib/printer";
@@ -29,6 +29,7 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const table = tables.find((t) => t.id === tableId) ?? null;
   const busy = (id: string) => billsAt(id).some((b) => b.id !== order.id);
+  const [areaTab, setAreaTab] = useState<string>(() => (table ? (table.area_id && areas.some((a) => a.id === table.area_id) ? table.area_id : "none") : areas[0]?.id ?? "none"));
 
   const ok = table ? true : !!name.trim();
   const save = () => {
@@ -43,53 +44,48 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
     } catch (e) { setError((e as Error).message); }
   };
 
-  // Group by area, in the area order; tables without an area last.
-  const groups = [...areas.map((a) => ({ key: a.id, name: a.name, list: tables.filter((t) => t.area_id === a.id) })),
-    { key: "none", name: areas.length ? t("No area") : "", list: tables.filter((t) => !t.area_id || !areas.some((a) => a.id === t.area_id)) }]
+  // Areas as tabs (the one of the bill's table first); tables without an area get their own tab.
+  const groups = [...areas.map((a) => ({ key: a.id, name: a.name, area: a, list: tables.filter((t) => t.area_id === a.id) })),
+    { key: "none", name: t("No area"), area: null, list: tables.filter((t) => !t.area_id || !areas.some((a) => a.id === t.area_id)) }]
     .filter((g) => g.list.length);
-
+  const shownGroup = groups.find((g) => g.key === areaTab) ?? groups[0];
   return (
     <Sheet visible onClose={onClose} title={order.version ? t("Update bill") : t("Save bill")} width={hasTables ? 640 : 520}
       footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
         <Btn style={{ flex: 1 }} big title={table ? t("Save to table {name}", { name: table.name }) : t("Save bill")} disabled={!ok} onPress={save} /></>}>
       {hasTables && (
         <View style={{ gap: 10 }}>
-          <Label>{t("Table")}</Label>
-          {groups.map((g) => (
-            <View key={g.key} style={{ gap: 6 }}>
-              {!!g.name && <Text style={{ color: c.ink2, fontSize: 12, fontWeight: "600" }}>{g.name}</Text>}
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {g.list.map((tb) => {
-                  const taken = busy(tb.id);
-                  const on = tableId === tb.id;
-                  return (
-                    <Pressable key={tb.id} disabled={taken} onPress={() => { setTableId(on ? null : tb.id); setError(null); }}
-                      accessibilityRole="radio" accessibilityState={{ selected: on, disabled: taken }}
-                      accessibilityLabel={`Table ${tb.name}${taken ? t(", in use") : ""}`}
-                      style={[st.tableBtn, on && st.tableOn, taken && { opacity: 0.35 }]}>
-                      <Text style={[st.tableText, on && { color: c.accentInk }]}>{tb.name}</Text>
-                      {taken && <Text style={{ fontSize: 10, color: c.ink2 }}>{t("in use")}</Text>}
-                    </Pressable>
-                  );
-                })}
-              </View>
+          {/* "No table" sits beside the label so the map and the name field both fit without scrolling. */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <Label>{t("Table")}</Label>
+            <Pressable onPress={() => setTableId(null)} accessibilityRole="radio" accessibilityState={{ selected: !tableId }}
+              style={[st.tableBtn, { height: 38, paddingHorizontal: 14 }, !tableId && st.tableOn]}>
+              <Text style={[st.tableText, { fontSize: 13 }, !tableId && { color: c.accentInk }]}>{t("No table (takeaway, bar…)")}</Text>
+            </Pressable>
+          </View>
+          {groups.length > 1 && (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {groups.map((g) => <Chip key={g.key} label={g.name} active={shownGroup?.key === g.key} onPress={() => setAreaTab(g.key)} />)}
             </View>
-          ))}
-          <Pressable onPress={() => setTableId(null)} accessibilityRole="radio" accessibilityState={{ selected: !tableId }}
-            style={[st.tableBtn, { alignSelf: "flex-start", paddingHorizontal: 16 }, !tableId && st.tableOn]}>
-            <Text style={[st.tableText, { fontSize: 14 }, !tableId && { color: c.accentInk }]}>{t("No table (takeaway, bar…)")}</Text>
-          </Pressable>
+          )}
+          {shownGroup && (
+            <MiniFloor key={shownGroup.key} tables={shownGroup.list} area={shownGroup.area} selected={tableId} busy={busy}
+              onPick={(id) => { setTableId(tableId === id ? null : id); setError(null); }} />
+          )}
         </View>
       )}
 
       {table ? (
-        <>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        // Side by side so the whole pop-up fits without scrolling.
+        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 16 }}>
+          <View style={{ flex: 1 }}>
+            <Field label={t("Customer name (optional)")} value={customer} onChangeText={setCustomer} placeholder={t("e.g. Pak Budi")} maxLength={40} />
+          </View>
+          <View style={{ gap: 8 }}>
             <Label>{t("Guests")}</Label>
             <Stepper value={guests} min={1} onChange={setGuests} />
           </View>
-          <Field label={t("Customer name (optional)")} value={customer} onChangeText={setCustomer} placeholder={t("e.g. Pak Budi")} maxLength={40} />
-        </>
+        </View>
       ) : (
         <Field label={hasTables ? t("Bill name") : t("Table or customer name")} value={name} onChangeText={setName} autoFocus={!hasTables}
           placeholder={hasTables ? t("e.g. Pak Budi, Ojol 3") : "e.g. 12, Sofa, Pak Budi"} maxLength={40} />
@@ -105,6 +101,45 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
       )}
       {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
+  );
+}
+
+/**
+ * Tables of one area laid out like the floor map (same grid as the Tables page), small enough to
+ * fit in a pop-up. Empty rows below the last table are left out. Tables in use can't be picked.
+ */
+function MiniFloor({ tables, area, selected, busy, onPick }: {
+  tables: DiningTable[]; area: { grid_cols?: number; grid_rows?: number } | null; selected: string | null; busy: (id: string) => boolean; onPick: (id: string) => void;
+}) {
+  const [w, setW] = useState(0);
+  const { cols } = floorSize(area);
+  const layout = floorLayout(tables, cols);
+  const rows = Math.max(1, ...[...layout.values()].map((p) => p.y + 1));
+  const GAP = 6;
+  const cellW = w ? Math.min(84, Math.floor((w - GAP * (cols - 1)) / cols)) : 0;
+  const cellH = Math.max(34, Math.round(cellW * 0.62));
+  const small = cellW < 64;
+  return (
+    <View style={{ padding: 8, borderRadius: r.md, backgroundColor: c.surface2 }}>
+    <View onLayout={(e) => setW(Math.floor(e.nativeEvent.layout.width))}
+      style={{ height: cellW ? rows * cellH + (rows - 1) * GAP : 60, alignSelf: "stretch" }}>
+      {cellW > 0 && tables.map((tb) => {
+        const p = layout.get(tb.id)!;
+        const taken = busy(tb.id);
+        const on = selected === tb.id;
+        return (
+          <Pressable key={tb.id} disabled={taken} onPress={() => onPick(tb.id)}
+            accessibilityRole="radio" accessibilityState={{ selected: on, disabled: taken }}
+            accessibilityLabel={`Table ${tb.name}${taken ? t(", in use") : ""}`}
+            style={[st.tableBtn, { position: "absolute", left: p.x * (cellW + GAP), top: p.y * (cellH + GAP), width: cellW, height: cellH, minWidth: 0, minHeight: 0, paddingHorizontal: 2 },
+              tb.shape === "round" && { borderRadius: cellH / 2 }, on && st.tableOn, taken && { opacity: 0.35 }]}>
+            <Text style={[st.tableText, small && { fontSize: 13 }, on && { color: c.accentInk }]} numberOfLines={1}>{tb.name}</Text>
+            {taken && <Text style={{ fontSize: small ? 9 : 10, color: c.ink2 }} numberOfLines={1}>{t("in use")}</Text>}
+          </Pressable>
+        );
+      })}
+    </View>
+    </View>
   );
 }
 
