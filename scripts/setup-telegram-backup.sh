@@ -8,9 +8,20 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 
-read -rsp "Telegram bot token (hidden): " TOKEN; echo
-name="$(curl -fsS "https://api.telegram.org/bot${TOKEN}/getMe" | python3 -c 'import json,sys; print(json.load(sys.stdin)["result"]["username"])')" \
-  || { echo "That token didn't work. Copy it again from @BotFather." >&2; exit 1; }
+while :; do
+  read -rsp "Telegram bot token (hidden): " TOKEN; echo
+  # Copying from Telegram can bring spaces, quotes or a line break along; keep just the token.
+  TOKEN="$(printf %s "$TOKEN" | tr -d ' \t\r\n"'"'"'')"
+  if ! [[ "$TOKEN" =~ ^[0-9]{6,}:[A-Za-z0-9_-]{30,}$ ]]; then
+    echo "That doesn't look like a bot token (it should look like 123456789:ABC…). Try pasting it again."; continue
+  fi
+  name="$(curl -sS "https://api.telegram.org/bot${TOKEN}/getMe" | python3 -c 'import json,sys
+try:
+    d=json.load(sys.stdin); print(d["result"]["username"] if d.get("ok") else "")
+except Exception: print("")' || true)"
+  [ -n "$name" ] && break
+  echo "Telegram didn't accept that token. If you used /revoke, paste the NEW token BotFather sent after it."
+done
 echo "Bot found: @$name"
 echo "Now open Telegram, find @$name and send it any message (e.g. hi). Waiting…"
 CHAT=""
