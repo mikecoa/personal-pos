@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { floorLayout, floorSize, type AppliedDiscount } from "@pos/core";
 import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, isSplitPart, lockBill, mergeSplit, resplit, splitBillMany, splitParts, tableLabel, useStore } from "../lib/store";
 import { lineLabel } from "../lib/order";
@@ -50,7 +50,7 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
     .filter((g) => g.list.length);
   const shownGroup = groups.find((g) => g.key === areaTab) ?? groups[0];
   return (
-    <Sheet visible onClose={onClose} title={order.version ? t("Update bill") : t("Save bill")} width={hasTables ? 640 : 520}
+    <Sheet visible onClose={onClose} title={order.version ? t("Update bill") : t("Save bill")} width={hasTables ? 820 : 520}
       footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
         <Btn style={{ flex: 1 }} big title={table ? t("Save to table {name}", { name: table.name }) : t("Save bill")} disabled={!ok} onPress={save} /></>}>
       {hasTables && (
@@ -59,8 +59,8 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <Label>{t("Table")}</Label>
             <Pressable onPress={() => setTableId(null)} accessibilityRole="radio" accessibilityState={{ selected: !tableId }}
-              style={[st.tableBtn, { height: 38, paddingHorizontal: 14 }, !tableId && st.tableOn]}>
-              <Text style={[st.tableText, { fontSize: 13 }, !tableId && { color: c.accentInk }]}>{t("No table (takeaway, bar…)")}</Text>
+              style={[st.tableBtn, { height: 32, minWidth: 0, paddingHorizontal: 12, borderRadius: r.sm }, !tableId && { backgroundColor: c.accentSoft, borderColor: c.accent }]}>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: !tableId ? c.accent : c.ink2 }}>{t("No table (takeaway, bar…)")}</Text>
             </Pressable>
           </View>
           {groups.length > 1 && (
@@ -112,13 +112,17 @@ function MiniFloor({ tables, area, selected, busy, onPick }: {
   tables: DiningTable[]; area: { grid_cols?: number; grid_rows?: number } | null; selected: string | null; busy: (id: string) => boolean; onPick: (id: string) => void;
 }) {
   const [w, setW] = useState(0);
+  const winH = useWindowDimensions().height;
+  // Room left for the map once the title, name field and buttons are counted, so nothing needs scrolling.
+  const maxH = Math.max(140, Math.min(300, winH - 432));
   const { cols } = floorSize(area);
   const layout = floorLayout(tables, cols);
   const rows = Math.max(1, ...[...layout.values()].map((p) => p.y + 1));
   const GAP = 6;
-  const cellW = w ? Math.min(84, Math.floor((w - GAP * (cols - 1)) / cols)) : 0;
-  const cellH = Math.max(34, Math.round(cellW * 0.62));
-  const small = cellW < 64;
+  const cellW = w ? Math.min(96, Math.floor((w - GAP * (cols - 1)) / cols)) : 0;
+  // As tall as the width allows, but the map never gets taller than ~230 so the pop-up fits without scrolling.
+  const cellH = Math.max(30, Math.min(Math.round(cellW * 0.68), Math.floor((maxH - GAP * (rows - 1)) / rows)));
+  const small = cellW < 60 || cellH < 40;
   return (
     <View style={{ padding: 8, borderRadius: r.md, backgroundColor: c.surface2 }}>
     <View onLayout={(e) => setW(Math.floor(e.nativeEvent.layout.width))}
