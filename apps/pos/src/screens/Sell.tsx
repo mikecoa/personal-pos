@@ -124,7 +124,15 @@ export function Sell() {
             <Text style={{ fontSize: short ? 19 : 22, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
               {order?.table_id ? t("Table {v0}", { v0: tableLabel(order) }) : order?.bill_name ?? t("New order")}
             </Text>
-            <Text style={{ color: c.ink2, fontSize: 14 }}>{order?.number ?? ""}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={{ color: c.ink2, fontSize: 14 }}>{order?.number ?? ""}</Text>
+              {order?.version ? (
+                <Tap onPress={() => saveOpenBill(true)} accessibilityRole="button" accessibilityLabel={t("Close bill and start a new order")} hitSlop={8} scaleTo={0.9}
+                  style={{ width: 34, height: 34, borderRadius: r.md, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface }}>
+                  <MaterialCommunityIcons name="close" size={20} color={c.ink2} />
+                </Tap>
+              ) : null}
+            </View>
           </View>
           {/* One row of equal tiles: table details and the customer. */}
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -208,7 +216,14 @@ export function Sell() {
             <ToolButton icon="tag-outline" label={t("Discount")} disabled={!hasLines}
               onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
             {order?.version
-              ? <ToolButton icon="check" label={t("Done")} onPress={() => { const o = order!; const items = newItems(o); saveOpenBill(true); autoTicket(o, items, true); }} />
+              ? <ToolButton icon="check" label={t("Done")} onPress={() => {
+                  // Save and stay on the bill (to print the order or the bill next). With auto-print on,
+                  // the new items go to the kitchen now and count as sent.
+                  const o = order!; const items = newItems(o);
+                  if (printerSettings().autoTicket && items.length) { autoTicket(o, items, o.lines.some((l) => (l.saved_qty ?? 0) > 0)); markSent(); }
+                  else saveOpenBill(false);
+                  notify(t("Bill saved."));
+                }} />
               : catalog.settings.save_bill_enabled && (
                 <ToolButton icon="content-save-outline" label={t("Save bill")} disabled={!hasLines}
                   onPress={() => guard("open_bills_manage", t("Save the bill"), () => setModal({ kind: "save" }))} />

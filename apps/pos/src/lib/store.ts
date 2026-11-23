@@ -439,9 +439,10 @@ export function clearOrder() {
 // ───────────────────────────────────────────── bills
 export function saveBill(name: string) {
   const o = state.order!;
-  const next: OrderDoc = { ...o, bill_name: name, status: "open", version: o.version + 1, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) };
+  // Items count as sent once the order is printed, or when the bill is closed / another one opened.
+  const next: OrderDoc = { ...o, bill_name: name, status: "open", version: o.version + 1 };
   db.saveOrder(next);
-  set({ order: null });
+  set({ order: next });                     // stay on the bill, ready to print the order or the bill
   refreshLocal();
   void syncNow();
 }
