@@ -547,6 +547,45 @@ export function splitParts(o: OrderDoc): OrderDoc[] {
     .map((b) => (state.order?.id === b.id ? state.order : db.getOrder(b.id) ?? b));
   return parts.length ? parts : [o];
 }
+/** True when `o` is one part of a split bill ("… (2/3)"). */
+export const isSplitPart = (o: Pick<OrderDoc, "bill_name">) => / \(\d+\/\d+\)$/.test(o.bill_name ?? "");
+
+/**
+ * Undo a split: put every part's items back on the first bill (same items are added together),
+ * drop the "(1/3)" numbering, and close the other parts as empty bills with the reason "Split
+ * undone" so there's a record and nothing is counted twice. Returns the merged bill.
+ */
+export function mergeSplit(o: OrderDoc): OrderDoc {
+  if (state.order?.version) saveOpenBill(false);
+  const parts = splitParts(o).filter((b) => b.status === "open");
+  if (parts.length < 2) throw new Error(t("This bill isn't split."));
+  const [first, ...rest] = parts.map((b) => (state.order?.id === b.id ? state.order! : db.getOrder(b.id)!));
+  const lines = [...first!.lines];
+  for (const b of rest) for (const l of b.lines) {
+    const same = lines.findIndex((x) => sameLine(x, l) && (x.note ?? null) === (l.note ?? null) && (x.sales_type_id ?? null) === (l.sales_type_id ?? null));
+    if (same >= 0) {
+      const x = lines[same]!;
+      lines[same] = { ...x, qty: x.qty + l.qty, saved_qty: (x.saved_qty ?? 0) + (l.saved_qty ?? 0), printed_qty: printedQty(x) + printedQty(l) };
+    } else lines.push(l);
+  }
+  const merged: OrderDoc = reprice({
+    ...first!, version: first!.version + 1, bill_name: stripPart(first!.bill_name ?? first!.number) || null,
+    lines, discounts: [...first!.discounts, ...rest.flatMap((b) => b.discounts)],
+  }, state.catalog!);
+  db.saveOrder(merged);
+  for (const b of rest) {
+    db.saveOrder({
+      ...b, status: "cancelled", version: b.version + 1, lines: [], discounts: [], cancelled_at: now(),
+      cancel_reason: `Split undone (merged into ${merged.number})`,
+      closed_by: state.employee!.id, closed_by_name: state.employee!.name,
+    });
+  }
+  if (state.order && parts.some((p) => p.id === state.order!.id)) set({ order: merged, billChanged: false });
+  refreshLocal();
+  void syncNow();
+  return merged;
+}
+
 function renumberSplit(o: OrderDoc) {
   const base = stripPart(o.bill_name ?? o.number);
   const parts = splitParts(o);

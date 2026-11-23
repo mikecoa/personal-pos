@@ -671,4 +671,10 @@ export const ID: Record<string, string> = {
   "Open {name}": "Buka {name}",
   "Open": "Buka",
   "No items yet": "Belum ada item",
+  "This bill isn't split.": "Bill ini tidak dipisah.",
+  "Undo split": "Batalkan pisah",
+  "Tap again to merge": "Ketuk lagi untuk gabung",
+  "Split undone: {n} bills merged into one": "Pisah dibatalkan: {n} bill digabung jadi satu",
+  "Tap again to merge all {n} bills back into one": "Ketuk lagi untuk menggabung semua {n} bill jadi satu",
+  "Undo split: merge all {n} bills back into one": "Batalkan pisah: gabung semua {n} bill jadi satu",
 };

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView } from "react-native";
-import { billsAt, byTableName, can, guard, editFloorPlan, editTables, getState, saveLayout, moveToTable, openBill, seatAtTable, tableLabel, updateSeating, useStore } from "../lib/store";
+import { billsAt, byTableName, can, guard, isSplitPart, mergeSplit, notify, editFloorPlan, editTables, getState, saveLayout, moveToTable, openBill, seatAtTable, tableLabel, updateSeating, useStore } from "../lib/store";
 import type { DiningTable, OrderDoc } from "../lib/types";
 import { Btn, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
@@ -254,11 +254,22 @@ function SeatPanel({ table, onCancel, onDone }: { table: DiningTable; onCancel: 
  */
 function BillsPanel({ table, bills, onPick, onCancel }: { table: DiningTable; bills: OrderDoc[]; onPick: (id: string) => void; onCancel: () => void }) {
   const [printing, setPrinting] = useState(false);
+  const [undo, setUndo] = useState(false);           // first tap asks, second tap merges
+  const split = bills.some(isSplitPart);
   const sorted = [...bills].sort((a, b) => tableLabel(a).localeCompare(tableLabel(b), undefined, { numeric: true }) || a.opened_at.localeCompare(b.opened_at));
   const total = bills.reduce((s, b) => s + b.total, 0);
   return (
     <PanelShell title={t("Table {name}", { name: table.name })} sub={t("{length} open bills", { length: bills.length })}
       footer={<><Btn kind="secondary" title={t("Back")} onPress={onCancel} />
+        {split && can("open_bills_manage") && (
+          <Btn kind={undo ? "danger" : "secondary"} title={undo ? t("Tap again to merge") : t("Undo split")}
+            onPress={() => {
+              if (!undo) return setUndo(true);
+              const m = mergeSplit(sorted.find(isSplitPart)!);
+              notify(t("Split undone: {n} bills merged into one", { n: bills.filter(isSplitPart).length }));
+              onPick(m.id);
+            }} />
+        )}
         {can("bill_print") && <Btn style={{ flex: 1 }} title={t("Print bills")} onPress={() => setPrinting(true)} />}</>}>
       <View style={st.tableTotal}>
         <Text style={{ color: c.ink2, fontSize: 12 }}>{t("Whole table · {n} bills", { n: bills.length })}</Text>

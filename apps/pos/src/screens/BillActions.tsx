@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { AppliedDiscount } from "@pos/core";
-import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, splitBillMany, splitParts, tableLabel, useStore } from "../lib/store";
+import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, isSplitPart, mergeSplit, splitBillMany, splitParts, tableLabel, useStore } from "../lib/store";
 import { lineLabel } from "../lib/order";
 import type { OrderDoc } from "../lib/types";
 import { autoTicket, newItems, printReceipt, toReceipt } from "./receipt";
@@ -113,6 +113,7 @@ const st = StyleSheet.create({
   splitHead: { padding: 6, gap: 2 },
   splitItem: { flexDirection: "row", alignItems: "center", gap: 6, padding: 8, borderRadius: r.sm, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   printRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface },
+  undoBox: { padding: 10, marginBottom: 10, borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent, alignItems: "center" },
   tick: { width: 24, height: 24, borderRadius: r.sm, borderWidth: 1.5, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
   totalBox: { padding: 12, borderRadius: r.md, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, gap: 2 },
   stepNo: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: c.line, alignItems: "center", justifyContent: "center" },
@@ -170,7 +171,8 @@ export function SplitBillSheet({ onClose }: { onClose: () => void }) {
   const [bills, setBills] = useState(2);
   const [target, setTarget] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<OrderDoc[] | null>(null);       // after splitting: the bills to print, in order
+  const [result, setResult] = useState<OrderDoc[] | null>(null);
+  const [undoAsk, setUndoAsk] = useState(false);       // after splitting: the bills to print, in order
   const unit = (id: string) => { const l = order.lines.find((x) => x.id === id)!; return l.line_total / l.qty; };
   const count = (b: number) => order.lines.reduce((s, l) => s + (alloc[l.id]![b] ?? 0), 0);
   const amount = (b: number) => order.lines.reduce((s, l) => s + Math.round(unit(l.id) * (alloc[l.id]![b] ?? 0)), 0);
@@ -196,6 +198,17 @@ export function SplitBillSheet({ onClose }: { onClose: () => void }) {
       footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
         <Btn style={{ flex: 1 }} title={t("Split into {n} bills", { n: bills })} disabled={!ok} onPress={split} /></>}>
       <Muted style={{ fontSize: 12, marginBottom: 10 }}>{t("Tap a bill to choose it, then tap items to move them there. Tap an item in the chosen bill to send it back.")}</Muted>
+      {isSplitPart(order) && (
+        <Pressable onPress={() => {
+          if (!undoAsk) return setUndoAsk(true);
+          const parts = splitParts(order).length;
+          mergeSplit(order); notify(t("Split undone: {n} bills merged into one", { n: parts })); onClose();
+        }} style={[st.undoBox, undoAsk && { borderColor: c.danger }]}>
+          <Text style={{ color: undoAsk ? c.danger : c.accent, fontWeight: "800", fontSize: 13 }}>
+            {undoAsk ? t("Tap again to merge all {n} bills back into one", { n: splitParts(order).length }) : t("Undo split: merge all {n} bills back into one", { n: splitParts(order).length })}
+          </Text>
+        </Pressable>
+      )}
       <ScrollView horizontal contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
         {Array.from({ length: bills }, (_, b) => {
           const on = b === target;
