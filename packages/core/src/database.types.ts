@@ -37,6 +37,20 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"backup_runs": {
+                  Row: {
+                    "id": number,"note": string | null,"ok": boolean,"ran_at": string,"size_bytes": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: never,"note"?: string | null,"ok": boolean,"ran_at"?: string,"size_bytes"?: number | null
+                  }
+                  Update: {
+                    "id"?: never,"note"?: string | null,"ok"?: boolean,"ran_at"?: string,"size_bytes"?: number | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"cash_movements": {
                   Row: {
                     "account_id": string,"amount": number,"description": string,"employee_id": string | null,"employee_name": string | null,"id": string,"kind": "in"|"out","location_id": string,"moved_at": string,"shift_id": string

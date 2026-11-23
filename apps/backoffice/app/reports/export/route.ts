@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (!canManage) return new NextResponse("Not allowed", { status: 403 });
 
   const q = Object.fromEntries(req.nextUrl.searchParams);
-  const range = resolveRange(q);
+  const range = await resolveRange(q);
   const { supabase, scope } = await reportScope(q);
   const base = { p_locations: scope.ids, p_from: range.from, p_to: range.to };
   let header: string[] = [];

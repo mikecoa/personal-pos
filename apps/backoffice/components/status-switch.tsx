@@ -2,14 +2,17 @@
 import { useEffect, useState, useTransition } from "react";
 import { setActive, type StatusList } from "@/app/(app)/status-actions";
 import { Switch, toast } from "./controls";
+import { useT } from "./lang";
 
 /**
  * On/off switch for a list row (Active / Hidden …). Flips at once, saves in the background and
  * flips back with a message if saving fails.
  */
-export function StatusSwitch({ list, id, active, name, on = "Active", off = "Hidden" }: {
+export function StatusSwitch({ list, id, active, name, on: onLabel, off: offLabel }: {
   list: StatusList; id: string; active: boolean; name: string; on?: string; off?: string;
 }) {
+  const t = useT();
+  const on = onLabel ?? t("Active"), off = offLabel ?? t("Hidden");
   const [value, setValue] = useState(active);
   const [pending, start] = useTransition();
   useEffect(() => setValue(active), [active]);

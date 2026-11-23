@@ -1,6 +1,7 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DateRangePicker, Select } from "./controls";
+import { useT } from "./lang";
 
 type Props = {
   locations: { id: string; name: string }[]; loc: string; preset: string; fromDate: string; toDate: string; label: string;
@@ -10,6 +11,7 @@ type Props = {
 /** One row of filters above every report: location, period presets, custom dates. */
 export function ReportFilters({ locations, loc, preset, fromDate, toDate, label, presets }: Props) {
   const router = useRouter();
+  const t = useT();
   const path = usePathname();
   const sp = useSearchParams();
   const go = (patch: Record<string, string | null>) => {
@@ -27,11 +29,11 @@ export function ReportFilters({ locations, loc, preset, fromDate, toDate, label,
     <div className="mb-6 flex flex-wrap items-center gap-2">
       {locations.length > 1 && (
         <div className="w-48">
-          <Select ariaLabel="Location" size="sm" value={loc} onChange={(v) => go({ loc: v })} className="rounded-full font-semibold"
-            options={[{ value: "all", label: "All locations" }, ...locations.map((l) => ({ value: l.id, label: l.name }))]} />
+          <Select ariaLabel={t("Location")} size="sm" value={loc} onChange={(v) => go({ loc: v })} className="rounded-full font-semibold"
+            options={[{ value: "all", label: t("All locations") }, ...locations.map((l) => ({ value: l.id, label: l.name }))]} />
         </div>
       )}
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("Period")}>
         {presets.map((p) => (
           <button key={p.id} type="button" className={chip(preset === p.id)} aria-pressed={preset === p.id}
             onClick={() => go({ range: p.id, from: null, to: null })}>{p.label}</button>

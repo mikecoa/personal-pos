@@ -7,6 +7,7 @@ import { Checkbox, toast } from "@/components/controls";
 import { RowLink } from "@/components/row-link";
 import { StatusSwitch } from "@/components/status-switch";
 import { copyItems } from "./actions";
+import { useT } from "@/components/lang";
 
 export type ListItem = {
   id: string; name: string; category: string | null; is_active: boolean; track_stock: boolean;
@@ -16,6 +17,7 @@ export type ListItem = {
 export function ItemList({ items, targets, editHrefTemplate }: {
   items: ListItem[]; targets: { id: string; name: string }[]; /** URL containing "__ID__" */ editHrefTemplate: string;
 }) {
+  const t = useT();
   const editHref = (id: string) => editHrefTemplate.replace("__ID__", id);
   const [selected, setSelected] = useState<string[]>([]);
   const [chosen, setChosen] = useState<string[]>([]);
@@ -31,17 +33,17 @@ export function ItemList({ items, targets, editHrefTemplate }: {
       {canCopy && selected.length > 0 && (
         <div className="anim-pop sticky top-16 z-10 mb-3 rounded-2xl border border-accent/25 bg-accent-soft p-4 shadow-sm lg:top-3">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <p className="text-sm font-semibold text-accent">{selected.length} selected · copy to</p>
+            <p className="text-sm font-semibold text-accent">{t("{n} selected · copy to", { n: selected.length })}</p>
             {targets.map((t) => (
               <Checkbox key={t.id} name="target" value={t.id} label={t.name} className="text-sm"
                 checked={chosen.includes(t.id)} onChange={(e) => setChosen(e.target.checked ? [...chosen, t.id] : chosen.filter((x) => x !== t.id))} />
             ))}
             <div className="ml-auto flex items-center gap-2">
-              <button type="button" className="h-10 px-2 text-sm text-ink-2 hover:text-ink" onClick={() => setSelected([])}>Clear</button>
-              <Button type="submit" disabled={pending || !chosen.length}>{pending ? "Copying…" : "Copy items"}</Button>
+              <button type="button" className="h-10 px-2 text-sm text-ink-2 hover:text-ink" onClick={() => setSelected([])}>{t("Clear")}</button>
+              <Button type="submit" disabled={pending || !chosen.length}>{pending ? t("Copying…") : t("Copy items")}</Button>
             </div>
           </div>
-          <p className="mt-2 text-xs text-ink-2">Copies include variants, prices, category and modifier sets. Items copied before are updated, not duplicated.</p>
+          <p className="mt-2 text-xs text-ink-2">{t("Copies include variants, prices, category and modifier sets. Items copied before are updated, not duplicated.")}</p>
           <ErrorNote message={state?.error} />
         </div>
       )}
@@ -52,12 +54,12 @@ export function ItemList({ items, targets, editHrefTemplate }: {
             <tr>
               {canCopy && (
                 <th className="w-10 pl-3">
-                  <Checkbox aria-label="Select all" checked={all} indeterminate={selected.length > 0 && !all}
+                  <Checkbox aria-label={t("Select all")} checked={all} indeterminate={selected.length > 0 && !all}
                     onChange={() => setSelected(all ? [] : items.map((i) => i.id))} />
                 </th>
               )}
-              <th className={`${canCopy ? "px-2" : "px-4"} py-3`}>Name</th><th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3 text-right">Price</th><th className="px-4 py-3 text-right">Stock</th><th className="px-4 py-3">On POS</th>
+              <th className={`${canCopy ? "px-2" : "px-4"} py-3`}>{t("Name")}</th><th className="px-4 py-3">{t("Category")}</th>
+              <th className="px-4 py-3 text-right">{t("Price")}</th><th className="px-4 py-3 text-right">{t("Stock")}</th><th className="px-4 py-3">{t("On POS")}</th>
               <th className="w-10" aria-hidden />
             </tr>
           </thead>
@@ -75,17 +77,17 @@ export function ItemList({ items, targets, editHrefTemplate }: {
                   )}
                   <td className={`${canCopy ? "px-2" : "px-4"} py-3.5`}>
                     <Link href={editHref(i.id)} scroll={false} className={`font-medium ${i.is_active ? "" : "text-ink-2"}`}>{i.name}</Link>
-                    {i.variants > 1 && <span className="ml-2 text-xs text-ink-2">{i.variants} variants</span>}
+                    {i.variants > 1 && <span className="ml-2 text-xs text-ink-2">{t("{n} variants", { n: i.variants })}</span>}
                   </td>
                   <td className="px-4 py-3.5 text-ink-2">{i.category ?? "—"}</td>
                   <td className="whitespace-nowrap px-4 py-3.5 text-right tabular-nums">
                     {i.min === i.max ? formatRupiah(rp(i.min)) : `${formatRupiah(rp(i.min))} – ${formatRupiah(rp(i.max))}`}
-                    {i.perSalesType && <span className="block text-xs text-ink-2">+ sales-type prices</span>}
+                    {i.perSalesType && <span className="block text-xs text-ink-2">{t("+ sales-type prices")}</span>}
                   </td>
                   <td className="px-4 py-3.5 text-right tabular-nums">
                     {i.track_stock ? <span className={low ? "font-semibold text-danger" : ""}>{i.stock}</span> : <span className="text-ink-2">—</span>}
                   </td>
-                  <td className="px-4 py-3.5"><StatusSwitch list="items" id={i.id} name={i.name} active={i.is_active} on="Shown" off="Hidden" /></td>
+                  <td className="px-4 py-3.5"><StatusSwitch list="items" id={i.id} name={i.name} active={i.is_active} on={t("Shown")} off={t("Hidden")} /></td>
                 </RowLink>
               );
             })}

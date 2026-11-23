@@ -1,5 +1,7 @@
 import "server-only";
 import { getSession } from "@/lib/session";
+import { getPrefs, getT } from "@/lib/prefs";
+import { dateLocale, tx } from "@/lib/i18n";
 
 /** Business timezone. All locations of one business are assumed to share it (WIB). */
 export const TZ = "Asia/Jakarta";
@@ -7,9 +9,15 @@ const OFFSET = "+07:00";
 
 export type Preset = "today" | "yesterday" | "7d" | "30d" | "month" | "last_month" | "custom";
 export const PRESETS: { id: Preset; label: string }[] = [
-  { id: "today", label: "Today" }, { id: "yesterday", label: "Yesterday" }, { id: "7d", label: "Last 7 days" },
-  { id: "30d", label: "Last 30 days" }, { id: "month", label: "This month" }, { id: "last_month", label: "Last month" },
+  { id: "today", label: tx("Today") }, { id: "yesterday", label: tx("Yesterday") }, { id: "7d", label: tx("Last 7 days") },
+  { id: "30d", label: tx("Last 30 days") }, { id: "month", label: tx("This month") }, { id: "last_month", label: tx("Last month") },
 ];
+
+/** The period buttons, in the reader's language. */
+export async function presets() {
+  const t = await getT();
+  return PRESETS.map((p) => ({ ...p, label: t(p.label) }));
+}
 
 /** YYYY-MM-DD of "now" in the business timezone. */
 export function todayLocal(): string {
@@ -23,7 +31,8 @@ const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.i
 export type Range = { preset: Preset; fromDate: string; toDate: string; from: string; to: string; days: number; label: string; prev: { from: string; to: string } };
 
 /** Inclusive local dates → half-open [from, to) instants, plus the previous period of equal length. */
-export function resolveRange(sp: { range?: string; from?: string; to?: string }): Range {
+export async function resolveRange(sp: { range?: string; from?: string; to?: string }): Promise<Range> {
+  const locale = dateLocale((await getPrefs()).lang);
   const today = todayLocal();
   let preset = (PRESETS.some((p) => p.id === sp.range) || sp.range === "custom" ? sp.range : "7d") as Preset;
   let fromDate = today, toDate = today;
@@ -39,7 +48,7 @@ export function resolveRange(sp: { range?: string; from?: string; to?: string })
       else { preset = "7d"; fromDate = addDays(today, -6); }
   }
   const days = Math.round((Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000) + 1;
-  const fmt = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const fmt = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
   return {
     preset, fromDate, toDate, days,
     from: `${fromDate}T00:00:00${OFFSET}`, to: `${addDays(toDate, 1)}T00:00:00${OFFSET}`,
@@ -54,11 +63,12 @@ export function resolveRange(sp: { range?: string; from?: string; to?: string })
  */
 export async function reportScope(sp: { loc?: string }) {
   const session = await getSession();
+  const t = await getT();
   const all = session.locations;
   const wantsAll = sp.loc === "all" && all.length > 1;
   const one = all.find((l) => l.id === sp.loc) ?? session.location ?? all[0];
   const locations = wantsAll ? all : one ? [one] : [];
-  return { ...session, scope: { ids: locations.map((l) => l.id), label: wantsAll ? "All locations" : one?.name ?? "—", all: wantsAll, value: wantsAll ? "all" : one?.id ?? "" } };
+  return { ...session, scope: { ids: locations.map((l) => l.id), label: wantsAll ? t("All locations") : one?.name ?? "—", all: wantsAll, value: wantsAll ? "all" : one?.id ?? "" } };
 }
 
 /** Build a report URL keeping the current filters. */

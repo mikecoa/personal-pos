@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { useT } from "@/components/lang";
 
 const MAX = 256;            // longest side, px
 const LIMIT = 300_000;      // characters, matches the database check
@@ -114,9 +115,10 @@ async function toLogo(file: File): Promise<string> {
 }
 
 /** Logo picker for a location: preview, replace, remove. Sends the resized image as `logo`. */
-export function LogoInput({ initial, onChange, label = "Logo", hint, name = "logo" }: {
+export function LogoInput({ initial, onChange, label, hint, name = "logo" }: {
   initial: string | null; onChange?: (url: string) => void; label?: string; hint?: string; name?: string;
 }) {
+  const t = useT();
   const [logo, setLogoState] = useState(initial ?? "");
   const setLogo = (url: string) => { setLogoState(url); onChange?.(url); };
   const [error, setError] = useState<string | null>(null);
@@ -125,37 +127,37 @@ export function LogoInput({ initial, onChange, label = "Logo", hint, name = "log
   const pick = async (f: File | undefined) => {
     setError(null);
     if (!f) return;
-    if (!/^image\/(png|jpeg|webp)$/.test(f.type)) return setError("Use a PNG, JPG or WebP image.");
+    if (!/^image\/(png|jpeg|webp)$/.test(f.type)) return setError(t("Use a PNG, JPG or WebP image."));
     try {
       const url = await toLogo(f);
-      if (url.length > LIMIT) return setError("That image is too detailed. Try a simpler or smaller file.");
+      if (url.length > LIMIT) return setError(t("That image is too detailed. Try a simpler or smaller file."));
       setLogo(url);
-    } catch { setError("Couldn't read that image."); }
+    } catch { setError(t("Couldn't read that image.")); }
   };
 
   return (
     <div>
-      <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
+      <span className="mb-1.5 block text-sm font-medium text-ink">{label ?? t("Logo")}</span>
       <input type="hidden" name={name} value={logo} />
       <div className="flex items-center gap-4 rounded-xl border border-line bg-surface-2/50 p-4">
         <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line"
           style={{ backgroundColor: "#fff", backgroundImage: "conic-gradient(#e9edf0 25%, transparent 0 50%, #e9edf0 0 75%, transparent 0)", backgroundSize: "14px 14px" }}>
-          {logo ? <img src={logo} alt="Logo preview" className="h-full w-full object-contain p-1.5" />
-            : <span className="text-xs text-ink-2">No logo</span>}
+          {logo ? <img src={logo} alt={t("Logo preview")} className="h-full w-full object-contain p-1.5" />
+            : <span className="text-xs text-ink-2">{t("No logo")}</span>}
         </div>
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => file.current?.click()}
               className="h-10 rounded-lg border border-line bg-surface px-4 text-sm font-semibold transition hover:bg-surface-2 active:scale-[0.98]">
-              {logo ? "Replace" : "Upload logo"}
+              {logo ? t("Replace") : t("Upload logo")}
             </button>
             {logo && (
               <button type="button" onClick={() => setLogo("")} className="h-10 rounded-lg px-3 text-sm font-semibold text-danger hover:bg-surface-2">
-                Remove
+                {t("Remove")}
               </button>
             )}
           </div>
-          <p className="text-sm text-ink-2">{hint ?? "Shown on the POS tablets."} PNG, JPG or WebP. The white background is removed (made see-through), edges are trimmed and it&apos;s resized automatically.</p>
+          <p className="text-sm text-ink-2">{hint ?? t("Shown on the POS tablets.")} {t("PNG, JPG or WebP. The white background is removed (made see-through), edges are trimmed and it’s resized automatically.")}</p>
           {error && <p className="text-sm font-medium text-danger">{error}</p>}
         </div>
       </div>

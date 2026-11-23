@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ConfirmProvider, Toaster } from "@/components/controls";
+import { LangProvider } from "@/components/lang";
+import { getPrefs } from "@/lib/prefs";
 
 export const metadata: Metadata = {
   title: { default: "Orda Backoffice", template: "%s · Orda" },
@@ -8,9 +10,10 @@ export const metadata: Metadata = {
   applicationName: "Orda",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { theme, lang } = await getPrefs();
   return (
-    <html lang="en" style={{ colorScheme: "light" }}>
+    <html lang={lang} data-theme={theme} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -20,8 +23,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-dvh font-sans antialiased">
-        <ConfirmProvider>{children}</ConfirmProvider>
-        <Toaster />
+        <LangProvider lang={lang}>
+          <ConfirmProvider>{children}</ConfirmProvider>
+          <Toaster />
+        </LangProvider>
       </body>
     </html>
   );

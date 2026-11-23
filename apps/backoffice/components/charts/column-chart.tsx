@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Disclosure } from "../controls";
+import { useT } from "../lang";
 
 type Datum = { label: string; value: number; detail?: string };
 
@@ -14,6 +15,7 @@ export function ColumnChart({ data, kind = "money", title, height = 220, labelEv
   data: Datum[]; kind?: keyof typeof FORMATS; title: string; height?: number; labelEvery?: number;
 }) {
   const format = FORMATS[kind];
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(0); // measured from the container; nothing drawn until known
   const [hover, setHover] = useState<number | null>(null);
@@ -51,7 +53,8 @@ export function ColumnChart({ data, kind = "money", title, height = 220, labelEv
               <g key={i}>
                 {d.value > 0 && (
                   <path d={`M${x},${pad.t + ih} V${yt + r} Q${x},${yt} ${x + r},${yt} H${x + bw - r} Q${x + bw},${yt} ${x + bw},${yt + r} V${pad.t + ih} Z`}
-                    fill="var(--series-1)" opacity={hover === null || hover === i ? 1 : 0.45} />
+                    fill="var(--series-1)" opacity={hover === null || hover === i ? 1 : 0.45}
+                    className="bar-grow transition-opacity duration-150" style={{ animationDelay: `${Math.min(i * 18, 360)}ms`, transformOrigin: `0 ${pad.t + ih}px` }} />
                 )}
                 {i % every === 0 && (
                   <text x={pad.l + i * band + band / 2} y={height - 8} textAnchor="middle" fontSize={11} fill="var(--ink-2)">{d.label}</text>
@@ -65,7 +68,7 @@ export function ColumnChart({ data, kind = "money", title, height = 220, labelEv
           <line x1={pad.l} x2={w - pad.r} y1={pad.t + ih} y2={pad.t + ih} stroke="var(--line)" />
         </svg>}
         {h && hover !== null && (
-          <div role="status" className="pointer-events-none absolute z-10 rounded-lg border border-line bg-surface px-3 py-2 text-sm shadow-lg"
+          <div role="status" className="anim-fade pointer-events-none absolute z-10 rounded-lg border border-line bg-surface px-3 py-2 text-sm shadow-lg"
             style={{ left: Math.min(w - 170, Math.max(0, pad.l + hover * band + band / 2 - 80)), top: Math.max(0, y(h.value) - 64) }}>
             <p className="text-xs text-ink-2">{h.label}</p>
             <p className="font-semibold tabular-nums">{format(h.value)}</p>
@@ -73,7 +76,7 @@ export function ColumnChart({ data, kind = "money", title, height = 220, labelEv
           </div>
         )}
       </div>
-      <Disclosure summary="Show as table">
+      <Disclosure summary={t("Show as table")}>
         <table className="mt-2 w-full text-left text-sm">
           <tbody className="divide-y divide-line">
             {data.map((d) => <tr key={d.label}><td className="py-1 pr-4">{d.label}</td><td className="py-1 text-right tabular-nums">{format(d.value)}</td><td className="py-1 pl-4 text-ink-2">{d.detail}</td></tr>)}
