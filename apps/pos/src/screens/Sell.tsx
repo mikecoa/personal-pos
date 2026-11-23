@@ -37,7 +37,7 @@ export function Sell() {
   const [q, setQ] = useState("");
   const [modal, setModal] = useState<Modal>(null);
   // Start at the real width (remembered, or worked out from the screen) so tiles don't resize on open.
-  const { w: screenW, compact, narrow, cartW, railW, pad } = useLayout();
+  const { w: screenW, compact, narrow, short, cartW, railW, pad } = useLayout();
   const tight = compact || narrow;                              // short top-row controls (phones, portrait tablets)
   const [cartOpen, setCartOpen] = useState(false);              // phones: order shown full screen
   const [gridW, setGridW] = useState(() => lastGridW ?? screenW - railW - cartW - pad * 2);
@@ -219,7 +219,7 @@ export function Sell() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={{ flex: 1, flexDirection: "row", alignItems: "center", height: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingLeft: 14 }}>
             <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
-            <TextInput value={q} onChangeText={setQ} placeholder={t("Search item or scan SKU…")} placeholderTextColor="#a3968a" accessibilityLabel="Search items"
+            <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Search item or scan SKU…")} placeholderTextColor="#a3968a" accessibilityLabel="Search items"
               style={{ flex: 1, height: 46, paddingHorizontal: 10, fontSize: 17, color: c.ink }} />
             {q ? (
               <Pressable onPress={() => setQ("")} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search" style={{ paddingHorizontal: 12, height: 46, justifyContent: "center" }}>
@@ -291,9 +291,9 @@ export function Sell() {
                       accessibilityLabel={editingMenu ? t("Edit {name}", { name: item.name }) : `${item.name}, ${priceLabel(item)}`} scaleTo={0.95}
                       style={{ width: tileW, borderRadius: r.md, overflow: "hidden", backgroundColor: c.surface,
                         borderWidth: 1, borderColor: c.line, opacity: out ? 0.55 : 1 }}>
-                      {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: 88 }} /> : (
-                        <View style={{ height: 88, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
-                          <Text style={{ fontSize: 30, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
+                      {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: short ? 60 : 88 }} /> : (
+                        <View style={{ height: short ? 60 : 88, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ fontSize: short ? 24 : 30, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
                         </View>
                       )}
                       {!editingMenu && (inCart.get(item.id) ?? 0) > 0 && (

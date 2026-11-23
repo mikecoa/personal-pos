@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle } from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle, KeyboardAvoidingView } from "react-native";
 import { formatRupiah, rp } from "@pos/core";
 import { c, r } from "./theme";
 import { FadeIn, Tap } from "./motion";
@@ -35,7 +35,7 @@ export function Field(props: TextInputProps & { label?: string }) {
   return (
     <View style={{ gap: 6 }}>
       {props.label && <Text style={s.label}>{props.label}</Text>}
-      <TextInput placeholderTextColor="#a3968a" {...props} style={[s.input, props.style]} />
+      <TextInput disableFullscreenUI placeholderTextColor="#a3968a" {...props} style={[s.input, props.style]} />
     </View>
   );
 }
@@ -65,7 +65,8 @@ export function Sheet({ visible, onClose, title, children, footer, width = 560, 
   const sheetW = Math.min(width, w - (compact ? 16 : 48));    // never wider than the screen
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} supportedOrientations={["landscape", "portrait"]}>
-      <View style={[s.overlay, compact && { padding: 8 }, side && { alignItems: "flex-end", justifyContent: "flex-start", padding: 0 }]}>
+      {/* The pop-up moves up when the on-screen keyboard opens, so the field being typed in stays visible. */}
+      <KeyboardAvoidingView behavior="padding" style={[s.overlay, compact && { padding: 8 }, side && { alignItems: "flex-end", justifyContent: "flex-start", padding: 0 }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
         <FadeIn from={side ? 0 : 14} scale={side ? 1 : 0.97} duration={180} style={[s.sheet, { width: sheetW }, compact && { maxHeight: "96%" }, side && { height: "100%", borderRadius: 0, maxHeight: "100%" }]}>
           <View style={s.sheetHead}>
@@ -76,7 +77,7 @@ export function Sheet({ visible, onClose, title, children, footer, width = 560, 
           <ScrollView contentContainerStyle={{ padding: compact ? 14 : 20, gap: compact ? 14 : 18 }} keyboardShouldPersistTaps="handled">{children}</ScrollView>
           {footer && <View style={s.sheetFoot}>{footer}</View>}
         </FadeIn>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -93,9 +94,11 @@ export function Stepper({ value, onChange, min = 0 }: { value: number; onChange:
 
 /** Numeric keypad for PINs and cash amounts. */
 /** Number pad. `fill`: stretch across the available width (phones). */
-export function Keypad({ onKey, extra = "00", compact, fill }: { onKey: (k: string) => void; extra?: string; compact?: boolean; fill?: boolean }) {
+export function Keypad({ onKey, extra = "00", compact: small, fill }: { onKey: (k: string) => void; extra?: string; compact?: boolean; fill?: boolean }) {
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", extra, "0", "⌫"];
-  const w = compact ? 88 : 96, h = compact ? 60 : 72, gap = compact ? 10 : 12;
+  const { short } = useLayout();                              // small tablets: keys a bit lower so pop-ups fit
+  const compact = small || short;
+  const w = compact ? 88 : 96, h = short ? 52 : compact ? 60 : 72, gap = short ? 8 : compact ? 10 : 12;
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", width: fill ? "100%" : 3 * w + 2 * gap, gap }}>
       {keys.map((k) => (

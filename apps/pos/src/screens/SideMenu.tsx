@@ -5,6 +5,7 @@ import { billsAt, can, go, guard, lock, useStore, type Page } from "../lib/store
 import { Tap } from "../ui/motion";
 import { c } from "../ui/theme";
 import { t } from "../lib/i18n";
+import { useLayout } from "../ui/layout";
 
 type Icon = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -17,6 +18,7 @@ const hover = c.surface2;
 /** Side menu: a fixed rail with a label under every icon, and the outlet's name at the top. */
 export function SideMenu({ bottom }: { bottom?: boolean }) {
   const page = useStore((s) => s.page);
+  const { short } = useLayout();
   const catalog = useStore((s) => s.catalog)!;
   const employee = useStore((s) => s.employee)!;
   const shift = useStore((s) => s.shift);
@@ -59,10 +61,10 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
   );
 
   return (
-    <View style={st.rail}>
+    <View style={[st.rail, short && { paddingTop: 8, paddingBottom: 8 }]}>
       <View style={[st.outlet, { gap: 6 }]} accessibilityRole="header" accessibilityLabel={`Outlet ${catalog.location.name}`}>
         {catalog.location.logo
-          ? <View style={st.logoTile}><Image source={{ uri: catalog.location.logo }} resizeMode="contain" accessibilityLabel={`${catalog.location.name} logo`} style={{ width: "100%", height: "100%" }} /></View>
+          ? <View style={[st.logoTile, short && { width: 56, height: 56 }]}><Image source={{ uri: catalog.location.logo }} resizeMode="contain" accessibilityLabel={`${catalog.location.name} logo`} style={{ width: "100%", height: "100%" }} /></View>
           : <>
             {/* No logo yet: show the outlet's name instead. */}
             <MaterialCommunityIcons name="storefront-outline" size={24} color={ink} />
@@ -76,7 +78,7 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
           return (
             <Tap key={i.page} scaleTo={0.94} onPress={() => open(i.page)} accessibilityRole="tab" accessibilityState={{ selected: active }}
               accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? t(", no shift open") : ""}`}
-              style={[st.item, active && st.itemActive]}>
+              style={[st.item, short && { height: 56, gap: 2 }, active && st.itemActive]}>
               <View>
                 <MaterialCommunityIcons name={i.icon} size={26} color={active ? c.accentInk : ink} />
                 {i.dot && <View style={st.dot} />}

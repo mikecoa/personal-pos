@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, KeyboardAvoidingView, Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { manageableLocations, registerDevice, signIn } from "../lib/store";
 import { Btn, Field, H, Muted } from "../ui/kit";
 import { c, r } from "../ui/theme";
@@ -20,7 +20,7 @@ export function Setup() {
   };
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: c.bg }}>
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
       {/* Phones: full width with side margins, scrolls above the keyboard. Tablets: a 460-wide column. */}
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 20, paddingVertical: 32 }}>
       <View style={{ width: "100%", maxWidth: 460, gap: 18 }}>
@@ -58,6 +58,6 @@ export function Setup() {
         )}
       </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }

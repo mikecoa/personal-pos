@@ -76,7 +76,7 @@ export function NoteSheet({ lineId, onClose }: { lineId: string; onClose: () => 
           ))}
         </View>
       </View>
-      <TextInput value={text} onChangeText={setText} placeholder={t("Or type a note…")} placeholderTextColor="#a3968a" maxLength={120}
+      <TextInput disableFullscreenUI value={text} onChangeText={setText} placeholder={t("Or type a note…")} placeholderTextColor="#a3968a" maxLength={120}
         accessibilityLabel="Note" style={st.input} />
     </Sheet>
   );
@@ -112,7 +112,7 @@ function QuickNotesEditor({ onClose }: { onClose: () => void }) {
         {rows.map((x, i) => (
           <View key={x.key} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <View style={{ flex: 1 }}>
-              <TextInput value={x.text} onChangeText={(t) => setRows((rs) => rs.map((y) => (y.key === x.key ? { ...y, text: t } : y)))}
+              <TextInput disableFullscreenUI value={x.text} onChangeText={(t) => setRows((rs) => rs.map((y) => (y.key === x.key ? { ...y, text: t } : y)))}
                 placeholder={t("e.g. Less sugar")} placeholderTextColor="#a3968a" maxLength={40} accessibilityLabel={`Quick note ${i + 1}`} style={st.input} />
               {scope(x.id) ? <Text style={{ color: c.ink2, fontSize: 12, marginTop: 2 }}>{t("Only for {v0}", { v0: scope(x.id) })}</Text> : null}
             </View>

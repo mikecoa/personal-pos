@@ -66,12 +66,12 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
         {rows.map((x) => (
           <View key={x.key} style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
             {multi && (
-              <TextInput value={x.name} onChangeText={(v) => patchRow(x.key, { name: v })} placeholder={t("e.g. Panas, Large")} placeholderTextColor="#a3968a"
+              <TextInput disableFullscreenUI value={x.name} onChangeText={(v) => patchRow(x.key, { name: v })} placeholder={t("e.g. Panas, Large")} placeholderTextColor="#a3968a"
                 accessibilityLabel="Variant name" maxLength={40} style={[st.input, { flex: 1, flexBasis: 0 }]} />
             )}
             <View style={[st.input, st.money, multi ? { flex: 1, flexBasis: 0 } : { width: 240 }]}>
               <Text style={{ color: c.ink2, fontSize: 17 }}>{t("Rp")}</Text>
-              <TextInput value={fmt(x.price)} onChangeText={(v) => patchRow(x.key, { price: digits(v) })} keyboardType="number-pad" placeholder="0"
+              <TextInput disableFullscreenUI value={fmt(x.price)} onChangeText={(v) => patchRow(x.key, { price: digits(v) })} keyboardType="number-pad" placeholder="0"
                 placeholderTextColor="#a3968a" accessibilityLabel={multi ? t("Price for {v0}", { v0: x.name || "variant" }) : t("Price")} style={{ flex: 1, fontSize: 17, color: c.ink }} />
             </View>
             {multi && (
@@ -181,7 +181,7 @@ export function CategoryPicker({ current, editing, onPick, onEdit, onClose }: {
       {catalog.categories.length > 8 && (
         <View style={pk.search}>
           <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
-          <TextInput value={q} onChangeText={setQ} placeholder={t("Find a category")} placeholderTextColor="#a3968a" accessibilityLabel="Find a category"
+          <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Find a category")} placeholderTextColor="#a3968a" accessibilityLabel="Find a category"
             style={{ flex: 1, fontSize: 17, color: c.ink, height: 46 }} />
         </View>
       )}

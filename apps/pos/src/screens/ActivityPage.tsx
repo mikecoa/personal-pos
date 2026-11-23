@@ -64,7 +64,7 @@ export function ActivityPage() {
         {!(compact && sel) && <View style={[st.list, compact && { width: "100%", borderRightWidth: 0 }]}>
           <View style={st.search}>
             <MaterialCommunityIcons name="magnify" size={24} color={c.ink2} />
-            <TextInput value={q} onChangeText={setQ} placeholder={t("Receipt number")} placeholderTextColor="#a3968a" accessibilityLabel="Search by receipt number"
+            <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Receipt number")} placeholderTextColor="#a3968a" accessibilityLabel="Search by receipt number"
               autoCapitalize="characters" style={{ flex: 1, fontSize: 17, color: c.ink, height: 52 }} />
           </View>
           <FlatList data={rows} keyExtractor={(row) => (row.kind === "day" ? `d${row.key}` : row.sale.id)}

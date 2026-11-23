@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView } from "react-native";
 import { billsAt, byTableName, can, guard, editFloorPlan, editTables, getState, saveLayout, moveToTable, openBill, seatAtTable, tableLabel, updateSeating, useStore } from "../lib/store";
 import type { DiningTable, OrderDoc } from "../lib/types";
 import { Btn, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
@@ -188,10 +188,10 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
   if (page) return card;
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose} supportedOrientations={["landscape", "portrait"]}>
-      <View style={st.overlay}>
+      <KeyboardAvoidingView behavior="padding" style={st.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
         {card}
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
