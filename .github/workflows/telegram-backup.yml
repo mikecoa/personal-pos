@@ -58,9 +58,19 @@ jobs:
             --form-string "caption=Orda backup ${STAMP} (${SIZE}, encrypted). Restore with scripts/restore-telegram-backup.sh" \
             -F "document=@orda-backup-${STAMP}.tgz.enc" > /dev/null
 
+      - name: Record the result (shown on Settings > Backup)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          bytes="$(stat -c%s "orda-backup-${STAMP}.tgz.enc")"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -c "insert into public.backup_runs (ok, size_bytes, note) values (true, ${bytes}, 'sent to Telegram')"
+
       - name: Tell Telegram it failed
         if: failure()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          psql "$DATABASE_URL" -q -c "insert into public.backup_runs (ok, note) values (false, 'failed: see GitHub Actions')" || true
           curl -fsS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --form-string "chat_id=${TELEGRAM_CHAT_ID}" \
             --form-string "text=⚠️ Orda backup FAILED. Check GitHub → Actions → Backup to Telegram." > /dev/null || true

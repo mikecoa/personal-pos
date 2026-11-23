@@ -6,10 +6,12 @@ import { deleteItem, saveItem } from "./actions";
 import { ItemEditor, type EditorItem } from "./item-editor";
 import { ItemList, type ListItem } from "./item-list";
 import { ItemFilters } from "./item-filters";
+import { getT } from "@/lib/prefs";
 
 type SP = { edit?: string; new?: string; q?: string; cat?: string };
 
 export default async function ItemsPage({ searchParams }: { searchParams: Promise<SP> }) {
+  const t = await getT();
   const { supabase, location, locations } = await requireManage();
   const sp = await searchParams;
 
@@ -63,8 +65,8 @@ export default async function ItemsPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader title="Items" description={<>{list.length} item{list.length === 1 ? "" : "s"} at <b>{location.name}</b></>}
-        actions={<><ButtonLink href="/library/import" variant="secondary">Import CSV</ButtonLink><ButtonLink href={qs({ new: "1" })}>New item</ButtonLink></>} />
+      <PageHeader title={t("Items")} description={<>{t("{n} items at", { n: list.length })} <b>{location.name}</b></>}
+        actions={<><ButtonLink href="/library/import" variant="secondary">{t("Import CSV")}</ButtonLink><ButtonLink href={qs({ new: "1" })}>{t("New item")}</ButtonLink></>} />
 
       <ItemFilters categories={categories ?? []} />
 
@@ -72,15 +74,15 @@ export default async function ItemsPage({ searchParams }: { searchParams: Promis
         <ItemList items={list} targets={locations.filter((l) => l.id !== location.id).map((l) => ({ id: l.id, name: l.name }))}
           editHrefTemplate={qs({ edit: "__ID__" })} />
       ) : (
-        <EmptyState title={sp.q || sp.cat ? "No items match" : "No items yet"}>
-          {sp.q || sp.cat ? "Try a different search." : "Add your first item, or copy items from another location."}
+        <EmptyState title={sp.q || sp.cat ? t("No items match") : t("No items yet")}>
+          {sp.q || sp.cat ? t("Try a different search.") : t("Add your first item, or copy items from another location.")}
         </EmptyState>
       )}
 
       {(sp.new || editing) && (
-        <Panel title={editing ? "Edit item" : "New item"} closeHref={closeHref}>
+        <Panel title={editing ? t("Edit item") : t("New item")} closeHref={closeHref}>
           <EditorForm action={saveItem} deleteAction={editing ? deleteItem : undefined} closeHref={closeHref}
-            confirmDelete={`Delete "${editing?.name}"? Past sales keep their records.`} hidden={{ id: editing?.id }}>
+            confirmDelete={t("Delete “{name}”? Past sales keep their records.", { name: editing?.name ?? "" })} hidden={{ id: editing?.id }}>
             <ItemEditor key={editing?.id ?? "new"} item={editing} categories={categories ?? []} salesTypes={salesTypes ?? []} modifierSets={modifierSets} />
           </EditorForm>
         </Panel>

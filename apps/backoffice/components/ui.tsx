@@ -74,10 +74,7 @@ export function ButtonLink({ href, variant = "primary", className = "", children
   return <Link href={href} scroll={false} className={`${btnBase} ${btn[variant]} ${className}`}>{children}</Link>;
 }
 
-export function ErrorNote({ message }: { message?: string }) {
-  if (!message) return null;
-  return <p role="alert" className="anim-fade rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{message}</p>;
-}
+export { ErrorNote } from "./error-note";
 
 export function SavedNote({ show, children = "Saved" }: { show?: boolean; children?: ReactNode }) {
   if (!show) return null;
@@ -98,7 +95,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
 
 export function Card({ title, description, children, className = "" }: { title?: string; description?: string; children: ReactNode; className?: string }) {
   return (
-    <section className={`min-w-0 rounded-2xl border border-line bg-surface p-6 ${className}`}>
+    <section className={`anim-rise min-w-0 rounded-2xl border border-line bg-surface p-6 ${className}`}>
       {title && <h2 className="text-[17px] font-semibold">{title}</h2>}
       {description && <p className="mt-0.5 text-sm text-ink-2">{description}</p>}
       <div className={title || description ? "mt-4" : ""}>{children}</div>
@@ -113,7 +110,10 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-line px-6 py-14 text-center">
+    <div className="anim-rise rounded-2xl border border-dashed border-line px-6 py-14 text-center">
+      <span className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-ink-2" aria-hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 13l2.5-7h11L20 13M4 13v5h16v-5M4 13h5l1 2h4l1-2h5" /></svg>
+      </span>
       <p className="font-semibold">{title}</p>
       {children && <div className="mt-1 text-sm text-ink-2">{children}</div>}
     </div>

@@ -6,11 +6,14 @@ import { StatusSwitch } from "@/components/status-switch";
 import { EditorForm } from "@/components/editor-form";
 import { deleteDiscount, saveDiscount } from "./actions";
 import { DiscountFields } from "./discount-fields";
+import { getT } from "@/lib/prefs";
+import { tx } from "@/lib/i18n";
 
 const BASE = "/library/discounts";
-const SCOPE = { both: "Bill or item", bill: "Bill", item: "Item" } as const;
+const SCOPE = { both: tx("Bill or item"), bill: tx("Bill"), item: tx("Item") } as const;
 
 export default async function DiscountsPage({ searchParams }: { searchParams: Promise<{ edit?: string; new?: string }> }) {
+  const t = await getT();
   const { supabase, location } = await requireManage();
   const sp = await searchParams;
   const { data: rows } = await supabase.from("discounts").select("id, name, kind, value, scope, is_active")
@@ -19,22 +22,22 @@ export default async function DiscountsPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader title="Discounts" description="Discounts cashiers can apply at checkout." actions={<ButtonLink href={`${BASE}?new=1`}>New discount</ButtonLink>} />
+      <PageHeader title={t("Discounts")} description={t("Discounts cashiers can apply at checkout.")} actions={<ButtonLink href={`${BASE}?new=1`}>{t("New discount")}</ButtonLink>} />
       {rows?.length ? (
-        <Table head={["Name", "Value", "Applies to", "On POS"]} rows="link">
+        <Table head={[t("Name"), t("Value"), t("Applies to"), t("On POS")]} rows="link">
           {rows.map((r) => (
             <RowLink key={r.id} href={`${BASE}?edit=${r.id}`}>
               <td className="px-4 py-3.5 font-medium"><Link href={`${BASE}?edit=${r.id}`} scroll={false}>{r.name}</Link></td>
               <td className="px-4 py-3.5 tabular-nums">{r.kind === "percent" ? `${r.value / 100}%` : formatRupiah(rp(r.value))}</td>
-              <td className="px-4 py-3.5 text-ink-2">{SCOPE[r.scope]}</td>
-              <td className="px-4 py-3.5"><StatusSwitch list="discounts" id={r.id} name={r.name} active={r.is_active} on="Shown" /></td>
+              <td className="px-4 py-3.5 text-ink-2">{t(SCOPE[r.scope])}</td>
+              <td className="px-4 py-3.5"><StatusSwitch list="discounts" id={r.id} name={r.name} active={r.is_active} on={t("Shown")} /></td>
             </RowLink>
           ))}
         </Table>
-      ) : <EmptyState title="No discounts yet" />}
+      ) : <EmptyState title={t("No discounts yet")} />}
 
       {(sp.new || editing) && (
-        <Panel title={editing ? "Edit discount" : "New discount"} closeHref={BASE}>
+        <Panel title={editing ? t("Edit discount") : t("New discount")} closeHref={BASE}>
           <EditorForm action={saveDiscount} deleteAction={editing ? deleteDiscount : undefined} closeHref={BASE} hidden={{ id: editing?.id }}>
             <DiscountFields d={editing} />
           </EditorForm>

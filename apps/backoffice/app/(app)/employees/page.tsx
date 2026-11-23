@@ -4,21 +4,24 @@ import { Badge, ButtonLink, Checkbox, EmptyState, Field, PageHeader, Panel, RowL
 import { StatusSwitch } from "@/components/status-switch";
 import { EditorForm } from "@/components/editor-form";
 import { deleteEmployee, saveEmployee } from "./actions";
+import { getT } from "@/lib/prefs";
+import type { T } from "@/lib/i18n";
 
 const BASE = "/employees";
 
 type Emp = { email: string | null; user_id: string | null; is_active: boolean; roles: { backoffice_pages?: string[] } | null };
 /** Backoffice status of an employee slot. */
-function backoffice(e: Emp) {
+function backoffice(e: Emp, t: T) {
   const pages = e.roles?.backoffice_pages?.length ?? 0;
-  if (!pages) return <span className="text-ink-2">POS only</span>;
-  if (!e.email) return <span className="text-danger">Role allows it · add an email</span>;
-  if (!e.is_active) return <span className="text-ink-2">Inactive</span>;
-  if (e.user_id) return <span className="font-medium text-accent">Signed up · {e.email}</span>;
-  return <span className="text-ink-2">Waiting for {e.email} to sign up</span>;
+  if (!pages) return <span className="text-ink-2">{t("POS only")}</span>;
+  if (!e.email) return <span className="text-danger">{t("Role allows it · add an email")}</span>;
+  if (!e.is_active) return <span className="text-ink-2">{t("Inactive")}</span>;
+  if (e.user_id) return <span className="font-medium text-accent">{t("Signed up")} · {e.email}</span>;
+  return <span className="text-ink-2">{t("Waiting for {email} to sign up", { email: e.email })}</span>;
 }
 
 export default async function EmployeesPage({ searchParams }: { searchParams: Promise<{ edit?: string; new?: string }> }) {
+  const t = await getT();
   const { supabase, membership, allLocations } = await requireOwner();
   const sp = await searchParams;
   const [{ data: emps }, { data: roles }] = await Promise.all([
@@ -32,36 +35,36 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader title="Employee slots" description="Staff who use the POS (each unlocks the tablet with their own 4-digit PIN), and who may sign in to the backoffice."
-        actions={<ButtonLink href={`${BASE}?new=1`}>Add employee</ButtonLink>} />
+      <PageHeader title={t("Employee slots")} description={t("Staff who use the POS (each unlocks the tablet with their own 4-digit PIN), and who may sign in to the backoffice.")}
+        actions={<ButtonLink href={`${BASE}?new=1`}>{t("Add employee")}</ButtonLink>} />
       {emps?.length ? (
-        <Table head={["Name", "Role", "Locations", "PIN", "Backoffice", "Status"]} rows="link">
+        <Table head={[t("Name"), t("Role"), t("Locations"), t("PIN"), t("Backoffice"), t("Status")]} rows="link">
           {emps.map((e) => (
             <RowLink key={e.id} href={`${BASE}?edit=${e.id}`}>
               <td className="px-4 py-3.5 font-medium"><Link href={`${BASE}?edit=${e.id}`} scroll={false}>{e.name}</Link></td>
               <td className="px-4 py-3.5 text-ink-2">{e.roles?.name}</td>
               <td className="px-4 py-3.5 text-ink-2">{e.employee_locations.map((l) => locName.get(l.location_id)).filter(Boolean).join(", ") || "—"}</td>
-              <td className="px-4 py-3.5">{e.has_pin ? <Badge tone="accent">Set</Badge> : <Badge tone="danger">Missing</Badge>}</td>
-              <td className="px-4 py-3.5 text-sm">{backoffice(e)}</td>
-              <td className="px-4 py-3.5"><StatusSwitch list="employees" id={e.id} name={e.name} active={e.is_active} off="Inactive" /></td>
+              <td className="px-4 py-3.5">{e.has_pin ? <Badge tone="accent">{t("Set")}</Badge> : <Badge tone="danger">{t("Missing")}</Badge>}</td>
+              <td className="px-4 py-3.5 text-sm">{backoffice(e, t)}</td>
+              <td className="px-4 py-3.5"><StatusSwitch list="employees" id={e.id} name={e.name} active={e.is_active} off={t("Inactive")} /></td>
             </RowLink>
           ))}
         </Table>
-      ) : <EmptyState title="No employees yet">Add your cashiers so each sale and shift is recorded under their name.</EmptyState>}
+      ) : <EmptyState title={t("No employees yet")}>{t("Add your cashiers so each sale and shift is recorded under their name.")}</EmptyState>}
 
       {(sp.new || editing) && (
-        <Panel title={editing ? "Edit employee" : "Add employee"} closeHref={BASE}>
+        <Panel title={editing ? t("Edit employee") : t("Add employee")} closeHref={BASE}>
           <EditorForm action={saveEmployee} deleteAction={editing ? deleteEmployee : undefined} closeHref={BASE} hidden={{ id: editing?.id }}
-            confirmDelete={`Remove ${editing?.name}? Their past sales keep their name.`}>
-            <Field label="Name" name="name" defaultValue={editing?.name} required autoFocus maxLength={80} />
-            <Field label="Phone (optional)" name="phone" type="tel" defaultValue={editing?.phone ?? ""} maxLength={40} />
-            <Field label="Email (for backoffice sign-in)" name="email" type="email" defaultValue={editing?.email ?? ""} maxLength={120}
-              hint="Only needed when the role has backoffice permissions. The employee then creates their login on the sign-in page with this email." />
-            {editing && <p className="-mt-2 text-sm">{backoffice(editing)}</p>}
-            <Select label="Role" name="role_id" defaultValue={editing?.role_id ?? roles?.find((r) => r.name === "Cashier")?.id}
-              options={(roles ?? []).map((r) => ({ value: r.id, label: r.name, hint: r.backoffice_pages.length ? "POS & backoffice" : "POS only" }))} />
+            confirmDelete={t("Remove {name}? Their past sales keep their name.", { name: editing?.name ?? "" })}>
+            <Field label={t("Name")} name="name" defaultValue={editing?.name} required autoFocus maxLength={80} />
+            <Field label={t("Phone (optional)")} name="phone" type="tel" defaultValue={editing?.phone ?? ""} maxLength={40} />
+            <Field label={t("Email (for backoffice sign-in)")} name="email" type="email" defaultValue={editing?.email ?? ""} maxLength={120}
+              hint={t("Only needed when the role has backoffice permissions. The employee then creates their login on the sign-in page with this email.")} />
+            {editing && <p className="-mt-2 text-sm">{backoffice(editing, t)}</p>}
+            <Select label={t("Role")} name="role_id" defaultValue={editing?.role_id ?? roles?.find((r) => r.name === "Cashier")?.id}
+              options={(roles ?? []).map((r) => ({ value: r.id, label: r.name, hint: r.backoffice_pages.length ? t("POS & backoffice") : t("POS only") }))} />
             <fieldset>
-              <legend className="mb-1.5 text-sm font-medium text-ink-2">Works at</legend>
+              <legend className="mb-1.5 text-sm font-medium text-ink-2">{t("Works at")}</legend>
               <div className="flex flex-wrap gap-x-5 gap-y-2">
                 {allLocations.map((l) => (
                   <Checkbox key={l.id} name="location" value={l.id} defaultChecked={assigned.has(l.id)} label={l.name} className="text-sm" />
@@ -69,14 +72,14 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
               </div>
             </fieldset>
             <div>
-              <Field label={editing?.has_pin ? "New PIN (leave empty to keep current)" : "PIN"} name="pin" inputMode="numeric"
-                pattern="\d{4}" title="use exactly 4 digits." maxLength={4} autoComplete="off" placeholder="4 digits" required={!editing}
-                hint="Must be different from every other employee's PIN." />
+              <Field label={editing?.has_pin ? t("New PIN (leave empty to keep current)") : "PIN"} name="pin" inputMode="numeric"
+                pattern="\d{4}" title={t("use exactly 4 digits.")} maxLength={4} autoComplete="off" placeholder={t("4 digits")} required={!editing}
+                hint={t("Must be different from every other employee's PIN.")} />
               {editing?.has_pin && (
-                <Checkbox name="clear_pin" label="Remove PIN (employee can’t unlock the POS)" className="mt-2 text-sm text-ink-2" />
+                <Checkbox name="clear_pin" label={t("Remove PIN (employee can’t unlock the POS)")} className="mt-2 text-sm text-ink-2" />
               )}
             </div>
-            <Toggle label="Active" name="is_active" defaultChecked={editing?.is_active ?? true} />
+            <Toggle label={t("Active")} name="is_active" defaultChecked={editing?.is_active ?? true} />
           </EditorForm>
         </Panel>
       )}

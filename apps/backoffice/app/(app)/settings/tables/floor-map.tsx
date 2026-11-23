@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { FLOOR_COLS, floorLayout, moveOnFloor, usedCells, firstFreeCell } from "@pos/core";
 import { saveLayout } from "./actions";
+import { useT } from "@/components/lang";
 
 export type MapTable = { id: string; name: string; seats: number; shape: string; is_active: boolean; pos_x: number | null; pos_y: number | null; busy: boolean };
 
@@ -12,6 +13,7 @@ export type MapTable = { id: string; name: string; seats: number; shape: string;
  */
 export function FloorMap({ tables, editHref }: { tables: MapTable[]; editHref: string }) {
   const router = useRouter();
+  const tr = useT();
   const [items, setItems] = useState(tables);
   // Pointer events (mouse, pen and touch alike). A press that moves < 6px is a click → edit.
   const [drag, setDrag] = useState<{ id: string; x0: number; y0: number; dx: number; dy: number; moved: boolean } | null>(null);
@@ -77,13 +79,13 @@ export function FloorMap({ tables, editHref }: { tables: MapTable[]; editHref: s
                     onPointerCancel={() => { setDrag(null); setOver(null); }}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`${editHref}${t.id}`, { scroll: false }); } }}
                     style={dragId === t.id ? { transform: `translate(${drag!.dx}px, ${drag!.dy}px) scale(1.05)`, zIndex: 10, position: "relative" } : undefined}
-                    title={`Table ${t.name}: drag to move, click to edit`}
+                    title={tr("Table {name}: drag to move, click to edit", { name: t.name })}
                     className={`flex h-full w-full cursor-grab flex-col items-center justify-center border bg-surface transition hover:border-accent active:cursor-grabbing
                       ${t.shape === "round" ? "rounded-full" : "rounded-xl"} ${t.busy ? "border-accent bg-accent-soft" : "border-line"}
                       touch-none select-none ${t.is_active ? "" : "opacity-50"} ${dragId === t.id ? "shadow-xl" : ""}`}>
                     <span className="text-lg font-bold leading-tight">{t.name}</span>
-                    <span className="text-xs text-ink-2">{t.seats} seats</span>
-                    {t.busy && <span className="text-[11px] font-semibold text-accent">in use</span>}
+                    <span className="text-xs text-ink-2">{tr("{n} seats", { n: t.seats })}</span>
+                    {t.busy && <span className="text-[11px] font-semibold text-accent">{tr("in use")}</span>}
                   </button>
                 )}
               </div>
@@ -92,7 +94,7 @@ export function FloorMap({ tables, editHref }: { tables: MapTable[]; editHref: s
         </div>
       </div>
       <p className="mt-2 text-xs text-ink-2" role={error ? "alert" : undefined}>
-        {error ? <span className="text-danger">{error}</span> : pending ? "Saving…" : "Drag a table to move it; drop it on another table to swap. Click a table to edit it."}
+        {error ? <span className="text-danger">{error}</span> : pending ? tr("Saving…") : tr("Drag a table to move it; drop it on another table to swap. Click a table to edit it.")}
       </p>
     </div>
   );

@@ -3,8 +3,10 @@ import { PageHeader } from "@/components/ui";
 import { SettingsForm } from "@/components/settings-form";
 import { saveReceipt } from "./actions";
 import { ReceiptEditor } from "./receipt-editor";
+import { getT } from "@/lib/prefs";
 
 export default async function ReceiptPage() {
+  const t = await getT();
   const { supabase, location, isOwner } = await requireManage();
   const [{ data, error }, { data: loc }, { data: s }, { data: disc }] = await Promise.all([
     supabase.from("receipt_profiles")
@@ -19,7 +21,7 @@ export default async function ReceiptPage() {
   if (error) throw error;
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title="Receipt" description={<>What customers see on printed receipts from <b>{location.name}</b>.</>} />
+      <PageHeader title={t("Receipt")} description={<>{t("What customers see on printed receipts from")} <b>{location.name}</b>.</>} />
       <SettingsForm action={saveReceipt}>
         <ReceiptEditor key={location.id} initial={data} logo={loc?.logo ?? null} receiptLogo={data.logo} canEditLogo={isOwner} settings={s ?? null} discount={disc?.[0] ?? null} />
       </SettingsForm>

@@ -9,6 +9,14 @@ import {
   type InputHTMLAttributes, type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { dateLocale, isLang, translate } from "@/lib/i18n";
+import { useLang, useT } from "./lang";
+
+/** Translator outside React (form checks): reads the page language from <html lang>. */
+const docT = (en: string, vars?: Record<string, string | number>) => {
+  const l = typeof document !== "undefined" ? document.documentElement.lang : "en";
+  return translate(isLang(l) ? l : "en", en, vars);
+};
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 
@@ -87,6 +95,7 @@ export function Select({
   const id = useId();
   const pos = usePopover(open, btn);
   const typed = useRef({ text: "", at: 0 });
+  const t = useT();
   const close = useCallback(() => setOpen(false), []);
   useOutside(open, [btn, list], close);
 
@@ -141,14 +150,14 @@ export function Select({
           "hover:border-ink-2/40 focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent/15 disabled:opacity-60",
           open ? "border-accent ring-3 ring-accent/15" : "border-line", h, className)}
       >
-        <span className="truncate">{chosen?.label ?? "Choose…"}</span>
+        <span className="truncate">{chosen?.label ?? t("Choose…")}</span>
         <Chevron className={cx("shrink-0 text-ink-2 transition-transform duration-200", open && "rotate-180")} />
       </button>
       {open && pos && createPortal(
         <ul
           ref={list} id={id} role="listbox" aria-label={ariaLabel ?? label}
           style={{ left: pos.left, top: pos.top, bottom: pos.bottom, minWidth: Math.max(pos.width, 200), maxHeight: pos.maxHeight }}
-          className={cx("anim-pop fixed z-[70] overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-[0_12px_32px_-8px_rgba(1,33,51,0.22)]",
+          className={cx("anim-pop fixed z-[70] overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-[0_12px_32px_-8px_rgb(var(--shadow)/0.28)]",
             pos.bottom !== undefined && "origin-bottom")}
         >
           {options.map((o, i) => {
@@ -246,6 +255,7 @@ export const toast = (text: string, tone: Toast["tone"] = "ok") => push?.({ text
 
 export function Toaster() {
   const [items, setItems] = useState<Toast[]>([]);
+  const tt = useT();
   useEffect(() => {
     let n = 0;
     push = (t) => {
@@ -260,9 +270,9 @@ export function Toaster() {
       {items.map((t) => (
         <div key={t.id} role={t.tone === "error" ? "alert" : "status"}
           className={cx("anim-toast pointer-events-auto flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-lg",
-            t.tone === "error" ? "bg-danger text-white" : "bg-ink text-white")}>
+            t.tone === "error" ? "bg-danger text-white" : "bg-ink text-bg")}>
           {t.tone === "ok" && <Check className="text-[#8fd3ae]" />}
-          {t.text}
+          {tt(t.text)}
         </div>
       ))}
     </div>
@@ -279,6 +289,7 @@ export const useConfirm = () => useContext(ConfirmCtx);
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [req, setReq] = useState<(ConfirmOpts & { resolve: (v: boolean) => void }) | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const t = useT();
   const ask = useCallback((o: ConfirmOpts) => new Promise<boolean>((resolve) => setReq({ ...o, resolve })), []);
   const done = (v: boolean) => { req?.resolve(v); setReq(null); };
   useEffect(() => {
@@ -293,17 +304,17 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       {children}
       {req && createPortal(
         <div className="fixed inset-0 z-[90] grid place-items-center p-4">
-          <div className="anim-fade absolute inset-0 bg-ink/35 backdrop-blur-[2px]" onClick={() => done(false)} />
+          <div className="anim-fade absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => done(false)} />
           <div role="alertdialog" aria-modal aria-labelledby="confirm-title"
             className="anim-dialog relative w-full max-w-sm rounded-2xl bg-surface p-6 shadow-2xl">
             <h2 id="confirm-title" className="text-lg font-semibold">{req.title}</h2>
             {req.body && <div className="mt-1.5 text-[15px] text-ink-2">{req.body}</div>}
             <div className="mt-6 flex justify-end gap-2">
               <button ref={cancelRef} type="button" onClick={() => done(false)}
-                className="h-10 rounded-lg border border-line px-4 text-sm font-semibold transition hover:bg-surface-2 active:scale-[0.98]">Cancel</button>
+                className="h-10 rounded-lg border border-line px-4 text-sm font-semibold transition hover:bg-surface-2 active:scale-[0.98]">{t("Cancel")}</button>
               <button type="button" onClick={() => done(true)}
                 className={cx("h-10 rounded-lg px-4 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98]",
-                  req.danger ? "bg-danger" : "bg-accent")}>{req.confirmLabel ?? "Confirm"}</button>
+                  req.danger ? "bg-danger" : "bg-accent !text-accent-ink")}>{req.confirmLabel ?? t("Confirm")}</button>
             </div>
           </div>
         </div>,
@@ -317,7 +328,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
 const fieldName = (el: Field) =>
-  el.getAttribute("aria-label") ?? el.closest("label")?.querySelector("span")?.textContent?.trim() ?? "This field";
+  el.getAttribute("aria-label") ?? el.closest("label")?.querySelector("span")?.textContent?.trim() ?? docT("This field");
 
 /**
  * Checks a form ourselves (forms use noValidate, so the browser shows no bubbles). Marks bad
@@ -331,15 +342,15 @@ export function checkForm(form: HTMLFormElement): string | null {
     const v = el.value.trim();
     const name = fieldName(el);
     let err: string | null = null;
-    if (el.required && !v && !(el instanceof HTMLInputElement && el.type === "checkbox")) err = `${name} is required.`;
-    else if (v && el.validity.typeMismatch && el.type === "email") err = `${name}: enter a valid email address.`;
-    else if (v && el.validity.patternMismatch) err = `${name}: ${el.title || "check the format."}`;
-    else if (v && el.validity.tooShort) err = `${name}: use at least ${(el as HTMLInputElement).minLength} characters.`;
+    if (el.required && !v && !(el instanceof HTMLInputElement && el.type === "checkbox")) err = docT("{name} is required.", { name });
+    else if (v && el.validity.typeMismatch && el.type === "email") err = `${name}: ${docT("enter a valid email address.")}`;
+    else if (v && el.validity.patternMismatch) err = `${name}: ${el.title || docT("check the format.")}`;
+    else if (v && el.validity.tooShort) err = `${name}: ${docT("use at least {n} characters.", { n: (el as HTMLInputElement).minLength })}`;
     else if (v && el.dataset.number !== undefined) {
       const n = Number(v);
-      if (!Number.isFinite(n)) err = `${name}: enter a number.`;
-      else if (el.dataset.min !== undefined && n < Number(el.dataset.min)) err = `${name}: must be ${el.dataset.min} or more.`;
-      else if (el.dataset.max !== undefined && n > Number(el.dataset.max)) err = `${name}: must be ${el.dataset.max} or less.`;
+      if (!Number.isFinite(n)) err = `${name}: ${docT("enter a number.")}`;
+      else if (el.dataset.min !== undefined && n < Number(el.dataset.min)) err = `${name}: ${docT("must be {n} or more.", { n: el.dataset.min })}`;
+      else if (el.dataset.max !== undefined && n > Number(el.dataset.max)) err = `${name}: ${docT("must be {n} or less.", { n: el.dataset.max })}`;
     }
     if (err) {
       el.setAttribute("aria-invalid", "true");
@@ -370,11 +381,14 @@ export function Disclosure({ summary, children }: { summary: string; children: R
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const parse = (s: string) => { const [y, m, d] = s.split("-").map(Number); return new Date(y!, (m ?? 1) - 1, d ?? 1); };
-const nice = (s: string) => parse(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const niceIn = (loc: string) => (s: string) => parse(s).toLocaleDateString(loc, { day: "numeric", month: "short", year: "numeric" });
 
 /** Calendar pop-over: tap a start day, then an end day, then Apply. */
 export function DateRangePicker({ from, to, onApply, max }: { from: string; to: string; onApply: (from: string, to: string) => void; max?: string }) {
   const [open, setOpen] = useState(false);
+  const t = useT();
+  const loc = dateLocale(useLang());
+  const nice = niceIn(loc);
   const [start, setStart] = useState(from);
   const [end, setEnd] = useState<string | null>(to);
   const [month, setMonth] = useState(() => { const d = parse(to); return new Date(d.getFullYear(), d.getMonth(), 1); });
@@ -407,15 +421,15 @@ export function DateRangePicker({ from, to, onApply, max }: { from: string; to: 
         {nice(from)} – {nice(to)}
       </button>
       {open && pos && createPortal(
-        <div ref={pop} role="dialog" aria-label="Choose dates" style={{ left: pos.left, top: pos.top, bottom: pos.bottom, maxHeight: pos.maxHeight }}
-          className="anim-pop fixed z-[70] w-[300px] overflow-y-auto rounded-2xl border border-line bg-surface p-4 shadow-[0_12px_32px_-8px_rgba(1,33,51,0.22)]">
+        <div ref={pop} role="dialog" data-popover aria-label={t("Choose dates")} style={{ left: pos.left, top: pos.top, bottom: pos.bottom, maxHeight: pos.maxHeight }}
+          className="anim-pop fixed z-[70] w-[300px] overflow-y-auto rounded-2xl border border-line bg-surface p-4 shadow-[0_12px_32px_-8px_rgb(var(--shadow)/0.28)]">
           <div className="mb-3 flex items-center justify-between">
-            <button type="button" onClick={() => shift(-1)} aria-label="Previous month" className="grid h-8 w-8 place-items-center rounded-lg hover:bg-surface-2"><Chevron className="rotate-90" /></button>
-            <p className="text-sm font-semibold">{month.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</p>
-            <button type="button" onClick={() => shift(1)} aria-label="Next month" className="grid h-8 w-8 place-items-center rounded-lg hover:bg-surface-2"><Chevron className="-rotate-90" /></button>
+            <button type="button" onClick={() => shift(-1)} aria-label={t("Previous month")} className="grid h-8 w-8 place-items-center rounded-lg hover:bg-surface-2"><Chevron className="rotate-90" /></button>
+            <p className="text-sm font-semibold">{month.toLocaleDateString(loc, { month: "long", year: "numeric" })}</p>
+            <button type="button" onClick={() => shift(1)} aria-label={t("Next month")} className="grid h-8 w-8 place-items-center rounded-lg hover:bg-surface-2"><Chevron className="-rotate-90" /></button>
           </div>
           <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-ink-2">
-            {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => <span key={d} className="py-1">{d}</span>)}
+            {[0, 1, 2, 3, 4, 5, 6].map((i) => <span key={i} className="py-1">{new Date(2024, 0, 1 + i).toLocaleDateString(loc, { weekday: "short" }).slice(0, 2)}</span>)}
           </div>
           <div className="grid grid-cols-7 gap-y-0.5 text-sm">
             {cells.map((d, i) => {
@@ -436,9 +450,9 @@ export function DateRangePicker({ from, to, onApply, max }: { from: string; to: 
             })}
           </div>
           <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3">
-            <p className="text-xs text-ink-2">{end ? `${nice(start)} – ${nice(end)}` : "Now tap the last day"}</p>
+            <p className="text-xs text-ink-2">{end ? `${nice(start)} – ${nice(end)}` : t("Now tap the last day")}</p>
             <button type="button" disabled={!end} onClick={() => { if (end) { onApply(start, end); setOpen(false); } }}
-              className="h-8 rounded-lg bg-accent px-3 text-sm font-semibold text-accent-ink transition hover:brightness-110 disabled:opacity-40">Apply</button>
+              className="h-8 rounded-lg bg-accent px-3 text-sm font-semibold text-accent-ink transition hover:brightness-110 disabled:opacity-40">{t("Apply")}</button>
           </div>
         </div>,
         document.body,

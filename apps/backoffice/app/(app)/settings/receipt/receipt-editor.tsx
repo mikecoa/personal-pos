@@ -3,6 +3,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { NO_TAX, priceCart, type PricingSettings } from "@pos/core";
 import { Card, Field, TextArea, Toggle } from "@/components/ui";
 import { LogoInput } from "../locations/logo-input";
+import { useT } from "@/components/lang";
 
 type Profile = { header_name: string; address: string | null; phone: string | null; instagram: string | null; website: string | null; tiktok: string | null; footer: string | null; show_server: boolean; show_cashier: boolean };
 type Settings = {
@@ -24,6 +25,7 @@ const pct = (bp: number) => `${(bp / 100).toLocaleString("id-ID")} %`;
 export function ReceiptEditor({ initial, logo: initialLogo, receiptLogo: initialReceiptLogo, canEditLogo, settings, discount }: {
   initial: Profile; logo: string | null; receiptLogo: string | null; canEditLogo: boolean; settings: Settings | null; discount: Discount | null;
 }) {
+  const t = useT();
   const [logo, setLogo] = useState(initialLogo ?? "");
   const [receiptLogo, setReceiptLogo] = useState(initialReceiptLogo ?? "");
   const [own, setOwn] = useState(!!initialReceiptLogo);
@@ -48,13 +50,13 @@ export function ReceiptEditor({ initial, logo: initialLogo, receiptLogo: initial
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-      <Card title="Receipt details">
+      <Card title={t("Receipt details")}>
         <div className="space-y-4">
           <div>
-            <span className="mb-1.5 block text-sm font-medium text-ink">Logo on receipt</span>
+            <span className="mb-1.5 block text-sm font-medium text-ink">{t("Logo on receipt")}</span>
             <input type="hidden" name="logo_mode" value={own ? "own" : "location"} />
-            <div role="radiogroup" aria-label="Logo on receipt" className="mb-3 inline-flex rounded-lg border border-line bg-surface p-1">
-              {([[false, "Same as location"], [true, "Different logo"]] as const).map(([v, label]) => (
+            <div role="radiogroup" aria-label={t("Logo on receipt")} className="mb-3 inline-flex rounded-lg border border-line bg-surface p-1">
+              {([[false, t("Same as location")], [true, t("Different logo")]] as const).map(([v, label]) => (
                 <button key={label} type="button" role="radio" aria-checked={own === v} onClick={() => setOwn(v)}
                   className={`rounded-md px-3.5 py-1.5 text-sm font-semibold transition-colors duration-150 ${own === v ? "bg-accent text-accent-ink" : "text-ink-2 hover:text-ink"}`}>
                   {label}
@@ -62,45 +64,45 @@ export function ReceiptEditor({ initial, logo: initialLogo, receiptLogo: initial
               ))}
             </div>
             {own ? (
-              <LogoInput key="own" name="receipt_logo" initial={initialReceiptLogo} onChange={setReceiptLogo} label="Receipt logo"
-                hint="Used on receipts only. The location keeps its own logo on the tablets." />
+              <LogoInput key="own" name="receipt_logo" initial={initialReceiptLogo} onChange={setReceiptLogo} label={t("Receipt logo")}
+                hint={t("Used on receipts only. The location keeps its own logo on the tablets.")} />
             ) : canEditLogo ? (
-              <LogoInput key="loc" initial={initialLogo} onChange={setLogo} label="Location logo"
-                hint="Shown on the POS tablets and on receipts. Changing it here changes it in Locations too." />
+              <LogoInput key="loc" initial={initialLogo} onChange={setLogo} label={t("Location logo")}
+                hint={t("Shown on the POS tablets and on receipts. Changing it here changes it in Locations too.")} />
             ) : (
               <div className="flex items-center gap-4 rounded-xl border border-line bg-surface-2/50 p-4">
                 <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-white">
-                  {logo ? <img src={logo} alt="Location logo" className="h-full w-full object-contain p-1.5" /> : <span className="text-xs text-ink-2">No logo</span>}
+                  {logo ? <img src={logo} alt={t("Location logo")} className="h-full w-full object-contain p-1.5" /> : <span className="text-xs text-ink-2">{t("No logo")}</span>}
                 </div>
-                <p className="text-sm text-ink-2">The location&apos;s logo. Only the owner can change it, or pick “Different logo” to use another one on receipts.</p>
+                <p className="text-sm text-ink-2">{t("The location’s logo. Only the owner can change it, or pick “Different logo” to use another one on receipts.")}</p>
               </div>
             )}
-            <p className="mt-2 text-xs text-ink-2">Paper receipts print text only for now; the logo shows in the preview and will print once logo printing is added.</p>
+            <p className="mt-2 text-xs text-ink-2">{t("Paper receipts print text only for now; the logo shows in the preview and will print once logo printing is added.")}</p>
           </div>
-          <Field label="Business name on receipt" name="header_name" value={p.header_name} onChange={set("header_name")} required maxLength={60} />
-          <TextArea label="Address" name="address" value={p.address ?? ""} onChange={set("address")} maxLength={200} />
-          <Field label="Phone" name="phone" value={p.phone ?? ""} onChange={set("phone")} maxLength={40} />
+          <Field label={t("Business name on receipt")} name="header_name" value={p.header_name} onChange={set("header_name")} required maxLength={60} />
+          <TextArea label={t("Address")} name="address" value={p.address ?? ""} onChange={set("address")} maxLength={200} />
+          <Field label={t("Phone")} name="phone" value={p.phone ?? ""} onChange={set("phone")} maxLength={40} />
           <fieldset className="space-y-3">
-            <legend className="mb-1.5 text-sm font-medium text-ink">Links <span className="font-normal text-ink-2">(optional)</span></legend>
-            <LinkField icon={<IgIcon />} label="Instagram" name="instagram" prefix="@" value={p.instagram ?? ""} onChange={set("instagram")} placeholder="djoeragankopitiam" />
-            <LinkField icon={<TikTokIcon />} label="TikTok" name="tiktok" prefix="@" value={p.tiktok ?? ""} onChange={set("tiktok")} placeholder="djoeragankopitiam" />
-            <LinkField icon={<WebIcon />} label="Website" name="website" value={p.website ?? ""} onChange={set("website")} placeholder="djoeragankopitiam.com" />
+            <legend className="mb-1.5 text-sm font-medium text-ink">{t("Links")} <span className="font-normal text-ink-2">{t("(optional)")}</span></legend>
+            <LinkField icon={<IgIcon />} label={t("Instagram")} name="instagram" prefix="@" value={p.instagram ?? ""} onChange={set("instagram")} placeholder={t("djoeragankopitiam")} />
+            <LinkField icon={<TikTokIcon />} label={t("TikTok")} name="tiktok" prefix="@" value={p.tiktok ?? ""} onChange={set("tiktok")} placeholder={t("djoeragankopitiam")} />
+            <LinkField icon={<WebIcon />} label={t("Website")} name="website" value={p.website ?? ""} onChange={set("website")} placeholder={t("djoeragankopitiam.com")} />
           </fieldset>
-          <TextArea label="Note at the bottom" name="footer" value={p.footer ?? ""} onChange={set("footer")} maxLength={200} />
-          <Toggle label="Show who served" name="show_server" checked={p.show_server} onChange={set("show_server")} />
-          <Toggle label="Show who collected payment" name="show_cashier" checked={p.show_cashier} onChange={set("show_cashier")} />
-          <p className="text-sm text-ink-2">Tax, service charge and rounding come from <a href="/settings/checkout" className="font-medium text-accent hover:underline">Checkout</a>.</p>
+          <TextArea label={t("Note at the bottom")} name="footer" value={p.footer ?? ""} onChange={set("footer")} maxLength={200} />
+          <Toggle label={t("Show who served")} name="show_server" checked={p.show_server} onChange={set("show_server")} />
+          <Toggle label={t("Show who collected payment")} name="show_cashier" checked={p.show_cashier} onChange={set("show_cashier")} />
+          <p className="text-sm text-ink-2">{t("Tax, service charge and rounding come from")} <a href="/settings/checkout" className="font-medium text-accent hover:underline">{t("Checkout")}</a>.</p>
         </div>
       </Card>
 
       {/* Preview, laid out like the receipt Moka shows. */}
       <div className="lg:sticky lg:top-6 lg:self-start">
-        <p className="mb-2 text-xs font-semibold tracking-[0.06em] text-ink-2">RECEIPT PREVIEW</p>
+        <p className="mb-2 text-xs font-semibold tracking-[0.06em] text-ink-2">{t("RECEIPT PREVIEW")}</p>
         <div className="rounded-2xl bg-surface-2 p-4 sm:p-5">
-          <div aria-label="Receipt preview" className="anim-fade rounded-lg bg-white px-6 py-7 text-[13px] leading-snug text-[#2b2b2b] shadow-[0_1px_3px_rgba(1,33,51,0.08)]">
+          <div aria-label={t("Receipt preview")} className="anim-fade rounded-lg bg-white px-6 py-7 text-[13px] leading-snug text-[#2b2b2b] shadow-[0_1px_3px_rgba(1,33,51,0.08)]">
             <header className="text-center">
               {shownLogo && <img src={shownLogo} alt="" className="anim-fade mx-auto mb-3 h-24 w-24 rounded-full object-contain" />}
-              <p className="text-[20px] font-bold leading-tight text-[#222]">{p.header_name || "Business name"}</p>
+              <p className="text-[20px] font-bold leading-tight text-[#222]">{p.header_name || t("Business name")}</p>
               {p.address && <p className="mt-2 whitespace-pre-line text-[12.5px] text-[#555]">{p.address}</p>}
               {p.phone && (
                 <p className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] text-[#555]">
@@ -140,16 +142,16 @@ export function ReceiptEditor({ initial, logo: initialLogo, receiptLogo: initial
             {s.gratuityEnabled && <Row l={`${settings?.gratuity_name || "Service"} (${pct(s.gratuityRateBp)})`} r={rp(bill.gratuity)} />}
             {s.taxEnabled && <Row l={`${settings?.tax_name || "Tax"} (${pct(s.taxRateBp)})`} r={rp(bill.tax)} />}
             {bill.rounding !== 0 && <Row l="Rounding" r={`${bill.rounding < 0 ? "-" : ""}${rp(bill.rounding)}`} />}
-            {s.pricesIncludeTax && (s.taxEnabled || s.gratuityEnabled) && <p className="text-[11.5px] text-[#999]">Prices include tax & service</p>}
+            {s.pricesIncludeTax && (s.taxEnabled || s.gratuityEnabled) && <p className="text-[11.5px] text-[#999]">{t("Prices include tax & service")}</p>}
             <Rule />
-            <div className="flex items-baseline justify-between text-[18px] font-bold text-[#222]"><span>Total</span><span className="tabular-nums">{rp(bill.total)}</span></div>
+            <div className="flex items-baseline justify-between text-[18px] font-bold text-[#222]"><span>{t("Total")}</span><span className="tabular-nums">{rp(bill.total)}</span></div>
             <Row l="Cash" r={rp(cash)} />
             <Row l="Change" r={rp(cash - bill.total)} />
 
             {(p.instagram || p.tiktok || p.website) && (
               <>
                 <Rule />
-                <p className="mb-2 text-[11px] font-semibold tracking-[0.04em] text-[#555]">LINKS</p>
+                <p className="mb-2 text-[11px] font-semibold tracking-[0.04em] text-[#555]">{t("LINKS")}</p>
                 <div className="space-y-2">
                   {p.website && <PreviewLink bg="#8a9199" icon={<WebIcon />} text={p.website.replace(/^https?:\/\//i, "").replace(/\/$/, "")} />}
                   {p.instagram && <PreviewLink bg="#3b5b98" icon={<IgIcon />} text={p.instagram.replace(/^@/, "")} />}
@@ -160,7 +162,7 @@ export function ReceiptEditor({ initial, logo: initialLogo, receiptLogo: initial
             {p.footer && (
               <>
                 <Rule />
-                <p className="mb-1.5 text-[11px] font-semibold tracking-[0.04em] text-[#555]">NOTE</p>
+                <p className="mb-1.5 text-[11px] font-semibold tracking-[0.04em] text-[#555]">{t("NOTE")}</p>
                 <p className="whitespace-pre-line">{p.footer}</p>
               </>
             )}
