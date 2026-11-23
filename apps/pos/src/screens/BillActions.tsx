@@ -252,9 +252,11 @@ export function SplitBillSheet({ onClose }: { onClose: () => void }) {
             </View>
           );
         })}
-        <Pressable onPress={addBill} accessibilityRole="button" style={({ pressed }) => [st.splitAdd, pressed && { backgroundColor: c.surface2 }]}>
-          <Text style={{ color: c.accent, fontWeight: "800", fontSize: 14 }}>+ {t("New bill")}</Text>
-        </Pressable>
+        {!editing && (
+          <Pressable onPress={addBill} accessibilityRole="button" style={({ pressed }) => [st.splitAdd, pressed && { backgroundColor: c.surface2 }]}>
+            <Text style={{ color: c.accent, fontWeight: "800", fontSize: 14 }}>+ {t("New bill")}</Text>
+          </Pressable>
+        )}
       </ScrollView>
       {error && <Text style={{ color: c.danger, marginTop: 8 }}>{error}</Text>}
     </Sheet>

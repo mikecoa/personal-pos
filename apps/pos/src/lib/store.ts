@@ -548,7 +548,17 @@ export function splitParts(o: OrderDoc): OrderDoc[] {
   return parts.length ? parts : [o];
 }
 /** True when `o` is one part of a split bill ("… (2/3)"). */
-export const isSplitPart = (o: Pick<OrderDoc, "bill_name">) => / \(\d+\/\d+\)$/.test(o.bill_name ?? "");
+const hasPartSuffix = (o: Pick<OrderDoc, "bill_name">) => / \(\d+(?:\/\d+)?\)$/.test(o.bill_name ?? "");
+/**
+ * True when `o` belongs to a split bill: it's numbered ("(2/4)", or "(2)" from older splits), or it's
+ * the first bill of a split whose other parts are numbered (older splits left the first unnumbered).
+ */
+export function isSplitPart(o: OrderDoc): boolean {
+  if (hasPartSuffix(o)) return true;
+  if (!o.table_id || !o.version) return false;
+  const parts = splitParts(o);
+  return parts.length > 1 && parts.some(hasPartSuffix);
+}
 
 /**
  * Undo a split: put every part's items back on the first bill (same items are added together),
