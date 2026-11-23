@@ -28,7 +28,7 @@ import { printerSettings } from "../lib/store";
 import { t } from "../lib/i18n";
 
 type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "note"; id: string }
-  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "billPreview" | "ticketPreview" | "split" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
+  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "billPreview" | "ticketPreview" | "split" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "move" | "seating" } | null;
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
@@ -37,7 +37,6 @@ export function Sell() {
   const openCount = useStore((s) => s.openOrders.length);
   const notice = useStore((s) => s.notice);
   const shift = useStore((s) => s.shift);
-  const hasTables = useStore((s) => (s.catalog?.tables?.length ?? 0) > 0) || can("tables_manage");
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [modal, setModal] = useState<Modal>(null);
@@ -164,9 +163,8 @@ export function Sell() {
                 <InfoTile icon="swap-horizontal" text={t("Move")} accent
                   onPress={() => guard("open_bills_manage", "Move the bill to another table", () => setModal({ kind: "move" }))} a11y="Move table" />
               </>
-            ) : hasTables && (!order || order.version === 0) ? (
-              <InfoTile icon="table-chair" text={t("Pick table")} dashed onPress={() => setModal({ kind: "tables" })} a11y="Pick a table" />
             ) : null}
+            {/* No "Pick table" here: the table is chosen in Save bill, or by starting the bill from the Tables page. */}
             <CustomerTile onPress={() => setModal({ kind: "customers" })} />
             {/* Split: a saved bill with more than one item can be split into two bills. */}
             {!!order?.version && (isSplitPart(order) || order.lines.reduce((s, l) => s + l.qty, 0) > 1) && (
@@ -438,7 +436,6 @@ export function Sell() {
       {modal?.kind === "discount" && <BillDiscountSheet onClose={() => setModal(null)} />}
       {modal?.kind === "cancel" && <CancelBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "custom" && <CustomAmount onClose={() => setModal(null)} />}
-      {modal?.kind === "tables" && <TablesSheet mode="seat" onClose={() => setModal(null)} />}
       {modal?.kind === "move" && <TablesSheet mode="move" onClose={() => setModal(null)} />}
       {modal?.kind === "split" && order && <SplitBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "seating" && <SeatingSheet onClose={() => setModal(null)} />}
