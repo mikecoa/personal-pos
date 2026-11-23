@@ -8,7 +8,7 @@ import { lineLabel, lineSalesType, mixedSalesTypes, printedQty, variantPrice } f
 import type { Item } from "../lib/types";
 import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
-import { BillDiscountSheet, CancelBillSheet, SaveBillSheet } from "./BillActions";
+import { BillDiscountSheet, CancelBillSheet, SaveBillSheet, SplitBillSheet } from "./BillActions";
 import { BillsSheet } from "./BillsSheet";
 import { ChargeSheet } from "./ChargeSheet";
 import { ItemSheet } from "./ItemSheet";
@@ -28,7 +28,7 @@ import { printerSettings } from "../lib/store";
 import { t } from "../lib/i18n";
 
 type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "note"; id: string }
-  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "billPreview" | "ticketPreview" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
+  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "billPreview" | "ticketPreview" | "split" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
@@ -168,6 +168,11 @@ export function Sell() {
               <InfoTile icon="table-chair" text={t("Pick table")} dashed onPress={() => setModal({ kind: "tables" })} a11y="Pick a table" />
             ) : null}
             <CustomerTile onPress={() => setModal({ kind: "customers" })} />
+            {/* Split: a saved bill with more than one item can be split into two bills. */}
+            {!!order?.version && order.lines.reduce((s, l) => s + l.qty, 0) > 1 && (
+              <InfoTile icon="call-split" text={t("Split")} accent
+                onPress={() => guard("open_bills_manage", t("Split the bill"), () => setModal({ kind: "split" }))} a11y={t("Split bill")} />
+            )}
           </View>
           {/* Sales type for the items added next: one dropdown, however many types there are. */}
           {catalog.sales_types.length > 0 && (
@@ -433,6 +438,7 @@ export function Sell() {
       {modal?.kind === "custom" && <CustomAmount onClose={() => setModal(null)} />}
       {modal?.kind === "tables" && <TablesSheet mode="seat" onClose={() => setModal(null)} />}
       {modal?.kind === "move" && <TablesSheet mode="move" onClose={() => setModal(null)} />}
+      {modal?.kind === "split" && order && <SplitBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "seating" && <SeatingSheet onClose={() => setModal(null)} />}
       {modal?.kind === "editItem" && <ItemEditor item={modal.item} categoryId={cat} onClose={() => setModal(null)} />}
       {modal?.kind === "editCategory" && <CategoryEditor category={modal.category} onClose={() => setModal(null)} onSaved={(deleted) => { if (deleted) setCat(null); }} />}

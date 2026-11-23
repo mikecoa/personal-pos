@@ -5,6 +5,9 @@ import { lineWidth, printLines } from "../lib/printer";
 import { notify, printerSettings, type Slip } from "../lib/store";
 import { t } from "../lib/i18n";
 
+/** " (2)" for split bills, so the printouts of the two bills at one table differ. */
+const splitPart = (o: OrderDoc) => o.bill_name?.match(/ \(\d+\)$/)?.[0] ?? "";
+
 export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string, width = 32): string[] {
   // Mixed bill (e.g. Dine In + Take Away): items grouped by type, each showing its type.
   const mixed = mixedSalesTypes(o);
@@ -12,7 +15,7 @@ export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string, width = 
   const lines = mixed ? [...o.lines].sort((a, b) => order.indexOf(lineSalesType(a, o) ?? "") - order.indexOf(lineSalesType(b, o) ?? "")) : o.lines;
   const r: ReceiptOrder = {
     number: o.number, at: new Date(o.completed_at ?? o.opened_at), salesType: mixed ? order.filter(Boolean).join(" + ") : o.sales_type_name,
-    billName: o.table_name ? `Table ${o.table_name}${o.guests ? ` (${o.guests} pax)` : ""}${o.customer_name ? ` · ${o.customer_name}` : ""}` : o.bill_name,
+    billName: o.table_name ? `Table ${o.table_name}${splitPart(o)}${o.guests ? ` (${o.guests} pax)` : ""}${o.customer_name ? ` · ${o.customer_name}` : ""}` : o.bill_name,
     servedBy: o.served_by_name, cashier: o.closed_by_name ?? o.opened_by_name,
     lines: lines.map((l) => ({
       name: lineLabel(l), qty: l.qty, unitPrice: l.unit_price + l.modifiers_price,
@@ -86,7 +89,7 @@ export function ticketLines(o: OrderDoc, items: TicketItem[], width = 32, added 
   const center = (x: string) => " ".repeat(Math.max(0, Math.floor((width - x.length) / 2))) + x;
   const pair = (a: string, b: string) => a + " ".repeat(Math.max(1, width - a.length - b.length)) + b;
   const at = new Date();
-  const who = o.table_name ? `TABLE ${o.table_name}${o.guests ? ` (${o.guests} pax)` : ""}` : o.bill_name ?? null;
+  const who = o.table_name ? `TABLE ${o.table_name}${splitPart(o)}${o.guests ? ` (${o.guests} pax)` : ""}` : o.bill_name ?? null;
   const mixed = new Set(items.map((i) => i.salesType)).size > 1;
   return [
     center(added ? "*** ADDITIONAL ORDER ***" : "*** ORDER ***"),

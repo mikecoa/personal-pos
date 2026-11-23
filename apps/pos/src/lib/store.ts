@@ -477,6 +477,49 @@ export function openBill(id: string) {
   // closed or crashed mid-change, so nothing on it can be taken off without a void.
   if (o) set({ order: reprice(o.version > 0 ? { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) } : o, state.catalog!), billChanged: false });
 }
+/**
+ * Split bill: move the picked quantities of the bill on screen to a new bill at the same table
+ * (charged separately). Nothing is voided: locked and printed counts move with the items.
+ * Bill discounts stay on the original bill. Returns the new bill.
+ */
+export function splitBill(picks: Record<string, number>): OrderDoc {
+  const o = state.order!;
+  if (o.version === 0) throw new Error(t("Save the bill first, then split it."));
+  const moving = o.lines.filter((l) => (picks[l.id] ?? 0) > 0);
+  const total = o.lines.reduce((s, l) => s + l.qty, 0), moved = moving.reduce((s, l) => s + Math.min(l.qty, picks[l.id]!), 0);
+  if (moved === 0 || moved >= total) throw new Error(t("Pick some items to move, but not all of them."));
+  saveOpenBill(false);
+  const src = state.order!;
+  const base = newOrder(state.catalog!, formatOrderNumber(state.device!.receipt_prefix, db.nextCounter()), state.employee!);
+  // Number split bills at the table: (2), (3)…
+  const parts = state.openOrders.filter((b) => b.table_id && b.table_id === src.table_id).map((b) => Number(b.bill_name?.match(/ \((\d+)\)$/)?.[1] ?? 1));
+  const baseName = (src.bill_name ?? src.number).replace(/ \(\d+\)$/, "");
+  const name = `${baseName} (${Math.max(1, ...parts) + 1})`;
+  const newLines: OrderDoc["lines"] = [];
+  const keptLines: OrderDoc["lines"] = [];
+  for (const l of src.lines) {
+    const n = Math.min(l.qty, picks[l.id] ?? 0);
+    if (n <= 0) { keptLines.push(l); continue; }
+    const saved = l.saved_qty ?? 0, printed = printedQty(l);
+    const mSaved = Math.min(n, saved), mPrinted = Math.min(n, printed);
+    newLines.push({ ...l, id: randomUUID(), qty: n, saved_qty: mSaved, printed_qty: mPrinted });
+    if (l.qty - n > 0) keptLines.push({ ...l, qty: l.qty - n, saved_qty: saved - mSaved, printed_qty: printed - mPrinted });
+  }
+  const created: OrderDoc = reprice({
+    ...base, status: "open", version: 1, bill_name: name, table_id: src.table_id, table_name: src.table_name, guests: null,
+    customer_name: src.customer_name, sales_type_id: src.sales_type_id, sales_type_name: src.sales_type_name,
+    served_by: src.served_by, served_by_name: src.served_by_name,
+    tax_name: src.tax_name, tax_rate_bp: src.tax_rate_bp, gratuity_name: src.gratuity_name, gratuity_rate_bp: src.gratuity_rate_bp,
+    prices_include_tax: src.prices_include_tax, tax_after_discount: src.tax_after_discount, lines: newLines,
+  }, state.catalog!);
+  const kept: OrderDoc = reprice({ ...src, version: src.version + 1, lines: keptLines }, state.catalog!);
+  db.saveOrder(created);
+  db.saveOrder(kept);
+  set({ order: kept, billChanged: false });
+  refreshLocal();
+  void syncNow();
+  return created;
+}
 export function cancelBill(reason: string) {
   const o = state.order!;
   const next: OrderDoc = {
@@ -518,8 +561,12 @@ export type FloorChange =
 export const byTableName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
 
 /** The table's current name (it may have been renamed since the bill was seated). */
-export const tableLabel = (o: Pick<OrderDoc, "table_id" | "table_name">) =>
-  state.catalog?.tables?.find((t) => t.id === o.table_id)?.name ?? o.table_name ?? "";
+/** Table name for a bill; split bills keep their "(2)", "(3)"… so they can be told apart. */
+export const tableLabel = (o: Pick<OrderDoc, "table_id" | "table_name"> & { bill_name?: string | null }) => {
+  const name = state.catalog?.tables?.find((t) => t.id === o.table_id)?.name ?? o.table_name ?? "";
+  const part = o.bill_name?.match(/ \((\d+)\)$/)?.[0] ?? "";
+  return name + part;
+};
 
 /**
  * Change the floor plan (needs a connection: every tablet shares it). The server returns the new

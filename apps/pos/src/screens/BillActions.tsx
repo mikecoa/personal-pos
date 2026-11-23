@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { AppliedDiscount } from "@pos/core";
-import { billsAt, byTableName, can, cancelBill, getState, markSent, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, useStore } from "../lib/store";
+import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, splitBill, useStore } from "../lib/store";
+import { lineLabel } from "../lib/order";
 import { autoTicket, newItems } from "./receipt";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
@@ -105,6 +106,7 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
 }
 
 const st = StyleSheet.create({
+  splitRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   tableBtn: { minWidth: 64, height: 52, paddingHorizontal: 12, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   tableOn: { backgroundColor: c.accent, borderColor: c.accent },
   tableText: { fontSize: 16, fontWeight: "800", color: c.ink },
@@ -142,6 +144,51 @@ export function CancelBillSheet({ onClose }: { onClose: () => void }) {
         disabled={!reason.trim()} onPress={() => { cancelBill(reason.trim()); onClose(); }} /></>}>
       <Text style={{ color: c.ink }}>{t("The bill is closed without payment. Its items and this reason are kept in the report.")}</Text>
       <Field label={t("Reason")} value={reason} onChangeText={setReason} autoFocus placeholder={t("e.g. Customer left")} maxLength={120} />
+    </Sheet>
+  );
+}
+
+/**
+ * Split bill: choose how many of each item go to a new bill (same table). Each bill is then
+ * charged on its own. Nothing is voided; bill discounts stay on this bill.
+ */
+export function SplitBillSheet({ onClose }: { onClose: () => void }) {
+  const order = useStore((s) => s.order)!;
+  const [picks, setPicks] = useState<Record<string, number>>({});
+  const [error, setError] = useState<string | null>(null);
+  const total = order.lines.reduce((s, l) => s + l.qty, 0);
+  const moved = order.lines.reduce((s, l) => s + (picks[l.id] ?? 0), 0);
+  const movedAmount = order.lines.reduce((s, l) => s + Math.round((l.line_total / l.qty) * (picks[l.id] ?? 0)), 0);
+  const ok = moved > 0 && moved < total;
+  const set = (id: string, n: number) => setPicks((p) => ({ ...p, [id]: n }));
+  const split = () => {
+    try {
+      const created = splitBill(picks);
+      notify(t("Split into a new bill: {name}", { name: created.bill_name ?? created.number }));
+      onClose();
+    } catch (e) { setError((e as Error).message); }
+  };
+  return (
+    <Sheet visible onClose={onClose} title={t("Split bill")} width={600}
+      footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
+        <Btn style={{ flex: 1 }} title={ok ? t("Move {n} to a new bill · {amount}", { n: moved, amount: money(movedAmount) }) : t("Move to a new bill")} disabled={!ok} onPress={split} /></>}>
+      <Muted style={{ fontSize: 13, marginBottom: 10 }}>{t("Choose the items for the new bill. Both bills stay at the same table and are charged separately.")}</Muted>
+      <View style={{ gap: 8 }}>
+        {order.lines.map((l) => (
+          <View key={l.id} style={st.splitRow}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontWeight: "600", color: c.ink, fontSize: 14 }} numberOfLines={2}>{lineLabel(l)}</Text>
+              <Text style={{ color: c.ink2, fontSize: 12 }}>{t("{n} on this bill", { n: l.qty })} · {money(l.line_total)}</Text>
+            </View>
+            <Pressable onPress={() => set(l.id, l.qty)} hitSlop={6} accessibilityRole="button" accessibilityLabel={t("Move all of {name}", { name: lineLabel(l) })}>
+              <Text style={{ color: c.accent, fontWeight: "700", fontSize: 12, marginRight: 4 }}>{t("All")}</Text>
+            </Pressable>
+            <Stepper value={picks[l.id] ?? 0} min={0} onChange={(n) => set(l.id, Math.min(l.qty, n))} />
+          </View>
+        ))}
+      </View>
+      {order.discounts.length > 0 && <Muted style={{ fontSize: 12, marginTop: 10 }}>{t("Bill discounts stay on this bill.")}</Muted>}
+      {error && <Text style={{ color: c.danger, marginTop: 8 }}>{error}</Text>}
     </Sheet>
   );
 }
