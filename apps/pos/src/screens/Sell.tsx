@@ -57,7 +57,7 @@ export function Sell() {
       (!term || i.name.toLowerCase().includes(term) || byInitials(i.name, term) || i.variants.some((v) => v.sku?.toLowerCase() === term)));
   }, [catalog.items, cat, q]);
   const cols = Math.max(1, Math.floor(gridW / 230));          // list rows: 1 column on phones, 2+ beside the order
-  const tileW = (gridW - 8 * (cols - 1)) / cols;
+  const tileW = Math.floor((gridW - 8 * (cols - 1)) / cols);    // rounded down so the last tile's right border is never clipped
   const catName = cat ? catalog.categories.find((k) => k.id === cat)?.name ?? t("Category") : t("All items");
 
   // Grid rows: a header per category (in "All items"), then the items in rows of `cols`.
@@ -333,7 +333,7 @@ export function Sell() {
           <Muted style={{ fontSize: 13 }}>{t("Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.")}</Muted>
         )}
         <View style={{ flex: 1, opacity: measured ? 1 : 0 }} onLayout={(e) => {
-          const w = Math.round(e.nativeEvent.layout.width);
+          const w = Math.floor(e.nativeEvent.layout.width);
           lastGridW = w; setMeasured(true);
           if (Math.abs(w - gridW) > 1) setGridW(w);
         }}>

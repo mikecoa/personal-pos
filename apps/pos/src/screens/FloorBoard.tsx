@@ -82,7 +82,7 @@ export function FloorBoard({ list, tables, size = floorSize(null), mode, current
 
   if (list || tooNarrow) {
     const per = avail >= 420 ? 4 : 3, gap = 10;
-    const tileW = avail ? (avail - gap * (per - 1)) / per : 0;
+    const tileW = avail ? Math.floor((avail - gap * (per - 1)) / per) : 0;   // rounded down so the last tile isn't clipped
     const sorted = [...tables].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
     return (
       <View onLayout={(e: LayoutChangeEvent) => setAvail(e.nativeEvent.layout.width)} style={{ flexDirection: "row", flexWrap: "wrap", gap }}>
