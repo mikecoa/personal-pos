@@ -553,6 +553,15 @@ const hasPartSuffix = (o: Pick<OrderDoc, "bill_name">) => / \(\d+(?:\/\d+)?\)$/.
  * True when `o` belongs to a split bill: it's numbered ("(2/4)", or "(2)" from older splits), or it's
  * the first bill of a split whose other parts are numbered (older splits left the first unnumbered).
  */
+/** Lock everything on a saved bill (as when it's closed), e.g. before it's printed for the customer. */
+export function lockBill(id: string) {
+  const o = state.order?.id === id ? state.order : db.getOrder(id);
+  if (!o || o.version === 0 || o.lines.every((l) => (l.saved_qty ?? 0) >= l.qty)) return;
+  const next: OrderDoc = { ...o, version: o.version + 1, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) };
+  db.saveOrder(next);
+  if (state.order?.id === id) set({ order: next });
+  refreshLocal();
+}
 export function isSplitPart(o: OrderDoc): boolean {
   if (hasPartSuffix(o)) return true;
   if (!o.table_id || !o.version) return false;
@@ -584,11 +593,11 @@ export function mergeSplit(o: OrderDoc): OrderDoc {
   }, state.catalog!);
   db.saveOrder(merged);
   for (const b of rest) {
-    db.saveOrder({
+    db.saveOrder(reprice({
       ...b, status: "cancelled", version: b.version + 1, lines: [], discounts: [], cancelled_at: now(),
       cancel_reason: `Split undone (merged into ${merged.number})`,
       closed_by: state.employee!.id, closed_by_name: state.employee!.name,
-    });
+    }, state.catalog!));                    // nothing left on it: totals become 0, so nothing is counted twice
   }
   if (state.order && parts.some((p) => p.id === state.order!.id)) set({ order: merged, billChanged: false });
   refreshLocal();
@@ -627,8 +636,8 @@ export function resplit(parts: OrderDoc[], entries: { line: OrderDoc["lines"][nu
     const part = fresh[b];
     if (part) {
       if (!lines.length) {
-        db.saveOrder({ ...part, status: "cancelled", version: part.version + 1, lines: [], discounts: [], cancelled_at: now(),
-          cancel_reason: "Split changed (items moved to the other bills)", closed_by: state.employee!.id, closed_by_name: state.employee!.name });
+        db.saveOrder(reprice({ ...part, status: "cancelled", version: part.version + 1, lines: [], discounts: [], cancelled_at: now(),
+          cancel_reason: "Split changed (items moved to the other bills)", closed_by: state.employee!.id, closed_by_name: state.employee!.name }, state.catalog!));
         return;
       }
       const next = reprice({ ...part, version: part.version + 1, lines }, state.catalog!);

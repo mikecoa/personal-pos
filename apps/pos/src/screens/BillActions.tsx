@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { AppliedDiscount } from "@pos/core";
-import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, isSplitPart, mergeSplit, resplit, splitBillMany, splitParts, tableLabel, useStore } from "../lib/store";
+import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, isSplitPart, lockBill, mergeSplit, resplit, splitBillMany, splitParts, tableLabel, useStore } from "../lib/store";
 import { lineLabel } from "../lib/order";
 import type { OrderDoc } from "../lib/types";
 import { autoTicket, newItems, printReceipt, toReceipt } from "./receipt";
@@ -285,7 +285,7 @@ export function SplitPrintSheet({ bills, onClose, focusId }: { bills: OrderDoc[]
     setBusy(true);
     for (const b of bills.filter((x) => picked.has(x.id))) {
       setFocus(b.id);
-      try { await printReceipt(b, catalog); setPrinted((s) => new Set(s).add(b.id)); }
+      try { lockBill(b.id); await printReceipt(b, catalog); setPrinted((s) => new Set(s).add(b.id)); }
       catch (e) { notify((e as Error).message); break; }
     }
     setBusy(false);

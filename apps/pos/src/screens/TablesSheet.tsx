@@ -256,13 +256,16 @@ function BillsPanel({ table, bills, onPick, onCancel }: { table: DiningTable; bi
   const [printing, setPrinting] = useState(false);
   const [undo, setUndo] = useState(false);           // first tap asks, second tap merges
   const split = bills.some(isSplitPart);
+  // A bill at this table is on screen with changes not confirmed yet: nothing can be printed,
+  // merged or rearranged until Done (otherwise unconfirmed items could leave without a void).
+  const pending = useStore((s) => s.billChanged && !!s.order && bills.some((b) => b.id === s.order!.id));
   const sorted = [...bills].sort((a, b) => tableLabel(a).localeCompare(tableLabel(b), undefined, { numeric: true }) || a.opened_at.localeCompare(b.opened_at));
   const total = bills.reduce((s, b) => s + b.total, 0);
   return (
     <PanelShell title={t("Table {name}", { name: table.name })} sub={t("{length} open bills", { length: bills.length })}
       footer={<><Btn kind="secondary" title={t("Back")} onPress={onCancel} />
         {split && can("open_bills_manage") && (
-          <Btn kind={undo ? "danger" : "secondary"} title={undo ? t("Tap again to merge") : t("Undo split")}
+          <Btn kind={undo ? "danger" : "secondary"} disabled={pending} title={undo ? t("Tap again to merge") : t("Undo split")}
             onPress={() => {
               if (!undo) return setUndo(true);
               const m = mergeSplit(sorted.find(isSplitPart)!);
@@ -270,7 +273,8 @@ function BillsPanel({ table, bills, onPick, onCancel }: { table: DiningTable; bi
               onPick(m.id);
             }} />
         )}
-        {can("bill_print") && <Btn style={{ flex: 1 }} title={t("Print bills")} onPress={() => setPrinting(true)} />}</>}>
+        {can("bill_print") && <Btn style={{ flex: 1 }} title={t("Print bills")} disabled={pending} onPress={() => setPrinting(true)} />}</>}>
+      {pending && <Muted style={{ fontSize: 12, marginBottom: 6 }}>{t("A bill here has changes that aren't confirmed. Open it and press Done first.")}</Muted>}
       <View style={st.tableTotal}>
         <Text style={{ color: c.ink2, fontSize: 12 }}>{t("Whole table · {n} bills", { n: bills.length })}</Text>
         <Text style={{ color: c.ink, fontSize: 18, fontWeight: "800" }}>{money(total)}</Text>

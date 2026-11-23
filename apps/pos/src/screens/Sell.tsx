@@ -170,7 +170,7 @@ export function Sell() {
             <CustomerTile onPress={() => setModal({ kind: "customers" })} />
             {/* Split: a saved bill with more than one item can be split into two bills. */}
             {!!order?.version && (isSplitPart(order) || order.lines.reduce((s, l) => s + l.qty, 0) > 1) && (
-              <InfoTile icon="call-split" text={isSplitPart(order) ? t("Edit split") : t("Split")} accent
+              <InfoTile icon="call-split" text={isSplitPart(order) ? t("Edit split") : t("Split")} accent disabled={billChanged}
                 onPress={() => guard("open_bills_manage", t("Split the bill"), () => setModal({ kind: "split" }))} a11y={t("Split bill")} />
             )}
           </View>
@@ -249,7 +249,7 @@ export function Sell() {
         <View style={{ padding: short ? 10 : 16, paddingTop: short ? 8 : 12, gap: 8, borderTopWidth: 1, borderColor: c.line }}>
           {hasLines && !printable && (
             <Text style={{ color: c.ink2, fontSize: 12, textAlign: "center" }}>
-              {order?.version ? t("Press Done to confirm the changes, then you can print.") : t("Save the bill to print the order or the bill.")}
+              {order?.version ? t("Press Done to confirm the changes, then you can print or split.") : t("Save the bill to print the order or the bill.")}
             </Text>
           )}
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -511,13 +511,13 @@ const ADD_TILE = { id: "__add__" } as Item;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 /** Equal-width tile in the order header (guests, move, table, customer). Dashed = nothing set yet. */
-function InfoTile({ icon, text, onPress, a11y, dashed, accent }: {
-  icon: IconName; text: string; onPress: () => void; a11y: string; dashed?: boolean; accent?: boolean;
+function InfoTile({ icon, text, onPress, a11y, dashed, accent, disabled }: {
+  icon: IconName; text: string; onPress: () => void; a11y: string; dashed?: boolean; accent?: boolean; disabled?: boolean;
 }) {
   const tone = dashed || accent ? c.accent : c.ink;
   return (
-    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} scaleTo={0.97}
-      style={[tile.box, dashed && { borderStyle: "dashed" }]}>
+    <Tap onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={a11y} accessibilityState={{ disabled }} scaleTo={0.97}
+      style={[tile.box, dashed && { borderStyle: "dashed" }, disabled && { opacity: 0.4 }]}>
       <MaterialCommunityIcons name={icon} size={22} color={tone} />
       <Text style={[tile.text, { color: tone }]} numberOfLines={1}>{text}</Text>
     </Tap>

@@ -683,4 +683,6 @@ export const ID: Record<string, string> = {
   "Will be removed": "Akan dihapus",
   "Save changes": "Simpan perubahan",
   "Edit split": "Ubah pisah",
+  "Press Done to confirm the changes, then you can print or split.": "Tekan Selesai untuk mengonfirmasi perubahan, lalu bisa dicetak atau dipisah.",
+  "A bill here has changes that aren't confirmed. Open it and press Done first.": "Ada bill di sini dengan perubahan yang belum dikonfirmasi. Buka dan tekan Selesai dulu.",
 };
