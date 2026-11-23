@@ -580,4 +580,6 @@ export const ID: Record<string, string> = {
   "Everything is up to date · last sync {time}": "Semua sudah terkini · sinkron terakhir {time}",
   "Details": "Detail",
   "Couldn't connect to the Bluetooth printer. Make sure it's on, and that no other app (like Moka) is connected to it, then try again.": "Tidak bisa terhubung ke printer Bluetooth. Pastikan printer menyala dan tidak sedang terhubung ke aplikasi lain (seperti Moka), lalu coba lagi.",
+  "Print bill": "Cetak bill",
+  "Bill printed.": "Bill dicetak.",
 };

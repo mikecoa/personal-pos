@@ -21,6 +21,7 @@ import { CategoryEditor, CategoryPicker, ItemEditor } from "./MenuEditor";
 import { CustomerSheet } from "./CustomerSheet";
 import { NoteSheet } from "./NoteSheet";
 import { addCustom, addItem } from "../lib/store";
+import { printReceipt } from "./receipt";
 import { t } from "../lib/i18n";
 
 type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "note"; id: string }
@@ -50,7 +51,7 @@ export function Sell() {
     return catalog.items.filter((i) => (!cat || i.category_id === cat) &&
       (!term || i.name.toLowerCase().includes(term) || i.variants.some((v) => v.sku?.toLowerCase() === term)));
   }, [catalog.items, cat, q]);
-  const cols = Math.max(compact ? 2 : 3, Math.floor(gridW / (compact ? 150 : 170)));
+  const cols = Math.max(compact ? 2 : 3, Math.floor(gridW / (compact ? 150 : short ? 118 : 150)));
   const tileW = (gridW - 10 * (cols - 1)) / cols;
   const catName = cat ? catalog.categories.find((k) => k.id === cat)?.name ?? t("Category") : t("All items");
 
@@ -114,9 +115,9 @@ export function Sell() {
   // The order panel's content; shown beside the menu, or full screen on phones.
   const cartBody = (
     <>
-        <View style={{ padding: 16, gap: 12, borderBottomWidth: 1, borderColor: c.line }}>
+        <View style={{ padding: short ? 12 : 16, gap: short ? 8 : 12, borderBottomWidth: 1, borderColor: c.line }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-            <Text style={{ fontSize: 22, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
+            <Text style={{ fontSize: short ? 19 : 22, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
               {order?.table_id ? t("Table {v0}", { v0: tableLabel(order) }) : order?.bill_name ?? t("New order")}
             </Text>
             <Text style={{ color: c.ink2, fontSize: 14 }}>{order?.number ?? ""}</Text>
@@ -153,32 +154,35 @@ export function Sell() {
           keyExtractor={(l) => l.id}
           ListEmptyComponent={<View style={{ padding: 24 }}><Muted>{t("Tap items to add them.")}</Muted></View>}
           renderItem={({ item: l }) => (
-            <FadeIn from={0} duration={220} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 16, paddingRight: 10, paddingVertical: 8, borderBottomWidth: 1, borderColor: c.line }}>
+            <FadeIn from={0} duration={220} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 14, paddingRight: 8, paddingVertical: 4, borderBottomWidth: 1, borderColor: c.line }}>
               <Pressable onPress={() => setModal({ kind: "line", id: l.id })} accessibilityRole="button" accessibilityLabel={`${l.qty} ${lineLabel(l)}, ${money(l.line_total)}. Tap to edit`}
-                style={({ pressed }) => ({ flex: 1, gap: 2, paddingVertical: 4, opacity: pressed ? 0.6 : 1 })}>
-                <Text style={{ fontWeight: "600", color: c.ink, fontSize: 16 }} numberOfLines={2}>{lineLabel(l)}</Text>
+                style={({ pressed }) => ({ flex: 1, gap: 1, paddingVertical: 2, opacity: pressed ? 0.6 : 1 })}>
+                <Text style={{ fontWeight: "600", color: c.ink, fontSize: 15 }} numberOfLines={2}>{lineLabel(l)}</Text>
                 {mixed && (
                   <View style={typeTag.box}><Text style={typeTag.text} numberOfLines={1}>{lineSalesType(l, order!)}</Text></View>
                 )}
-                {l.modifiers.length > 0 && <Text style={{ color: c.ink2 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
+                {l.modifiers.length > 0 && <Text style={{ color: c.ink2, fontSize: 13 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
                 {l.discount_amount > 0 && <Text style={{ color: c.accent }}>{l.discount!.name} −{money(l.discount_amount)}</Text>}
-                <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }}>{money(l.line_total)}</Text>
+                {/* Price and the note link share one row to keep each line short. */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <Text style={{ fontWeight: "700", color: c.ink, fontSize: 14 }}>{money(l.line_total)}</Text>
                 <Pressable onPress={() => setModal({ kind: "note", id: l.id })} accessibilityRole="button" hitSlop={6}
                   accessibilityLabel={l.note ? t("Note: {note}. Change", { note: l.note }) : t("Add a note to {v0}", { v0: lineLabel(l) })}
                   style={({ pressed }) => [noteBtn, l.note && { borderColor: c.warn, borderStyle: "solid" }, pressed && { backgroundColor: c.surface2 }]}>
-                  <MaterialCommunityIcons name={l.note ? "note-text-outline" : "note-plus-outline"} size={18} color={l.note ? c.warn : c.accent} />
-                  <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", fontSize: 15, flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : t("Add note")}</Text>
+                  <MaterialCommunityIcons name={l.note ? "note-text-outline" : "note-plus-outline"} size={16} color={l.note ? c.warn : c.accent} />
+                  <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", fontSize: 13, flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : t("Add note")}</Text>
                 </Pressable>
+                </View>
               </Pressable>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                 <Pressable onPress={() => step(l.id, -1)} accessibilityRole="button" accessibilityLabel={`One less ${lineLabel(l)}`} hitSlop={4}
                   style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
-                  <MaterialCommunityIcons name={l.qty === 1 && !(l.saved_qty ?? 0) ? "trash-can-outline" : "minus"} size={22} color={c.ink} />
+                  <MaterialCommunityIcons name={l.qty === 1 && !(l.saved_qty ?? 0) ? "trash-can-outline" : "minus"} size={20} color={c.ink} />
                 </Pressable>
-                <Pop value={l.qty}><Text style={{ minWidth: 32, textAlign: "center", fontSize: 20, fontWeight: "800", color: c.ink }}>{l.qty}</Text></Pop>
+                <Pop value={l.qty}><Text style={{ minWidth: 28, textAlign: "center", fontSize: 18, fontWeight: "800", color: c.ink }}>{l.qty}</Text></Pop>
                 <Pressable onPress={() => step(l.id, 1)} accessibilityRole="button" accessibilityLabel={`One more ${lineLabel(l)}`} hitSlop={4}
                   style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
-                  <MaterialCommunityIcons name="plus" size={22} color={c.ink} />
+                  <MaterialCommunityIcons name="plus" size={20} color={c.ink} />
                 </Pressable>
               </View>
             </FadeIn>
@@ -202,6 +206,10 @@ export function Sell() {
             {catalog.settings.save_bill_enabled && (
               <ToolButton icon="content-save-outline" label={order?.version ? t("Update bill") : t("Save bill")} disabled={!hasLines}
                 onPress={() => guard("open_bills_manage", order?.version ? t("Update the bill") : t("Save the bill"), () => setModal({ kind: "save" }))} />
+            )}
+            {can("bill_print") && (
+              <ToolButton icon="printer-outline" label={t("Print bill")} disabled={!hasLines}
+                onPress={() => void printReceipt(order!, catalog).then(() => notify(t("Bill printed."))).catch((e: Error) => notify(e.message))} />
             )}
             {order?.version
               ? <ToolButton icon="close-octagon-outline" label={t("Cancel bill")} danger onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
@@ -291,9 +299,9 @@ export function Sell() {
                       accessibilityLabel={editingMenu ? t("Edit {name}", { name: item.name }) : `${item.name}, ${priceLabel(item)}`} scaleTo={0.95}
                       style={{ width: tileW, borderRadius: r.md, overflow: "hidden", backgroundColor: c.surface,
                         borderWidth: 1, borderColor: c.line, opacity: out ? 0.55 : 1 }}>
-                      {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: short ? 60 : 88 }} /> : (
-                        <View style={{ height: short ? 60 : 88, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
-                          <Text style={{ fontSize: short ? 24 : 30, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
+                      {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: short ? 48 : 72 }} /> : (
+                        <View style={{ height: short ? 48 : 72, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ fontSize: short ? 20 : 26, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
                         </View>
                       )}
                       {!editingMenu && (inCart.get(item.id) ?? 0) > 0 && (
@@ -309,8 +317,8 @@ export function Sell() {
                           <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink} />
                         </View>
                       )}
-                      <View style={{ padding: 10, gap: 2 }}>
-                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }} numberOfLines={tight ? 3 : 2}>{item.name}</Text>
+                      <View style={{ padding: short ? 8 : 10, gap: 2 }}>
+                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: short ? 14 : 15 }} numberOfLines={tight ? 3 : 2}>{item.name}</Text>
                         <Text style={{ color: c.ink2 }}>{out ? t("Out of stock") : priceLabel(item)}</Text>
                       </View>
                     </Tap>
@@ -425,9 +433,9 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
 /** Width of the menu grid the last time it was measured (the layout doesn't change between visits). */
 let lastGridW: number | null = null;
 
-const noteBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, alignSelf: "flex-start" as const, minHeight: 40, marginTop: 4,
-  paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderStyle: "dashed" as const, borderColor: c.line };
-const qtyBtn = { width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: c.line, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: c.surface };
+const noteBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 4, alignSelf: "flex-start" as const, minHeight: 30,
+  paddingHorizontal: 8, borderRadius: 15, borderWidth: 1, borderStyle: "dashed" as const, borderColor: c.line };
+const qtyBtn = { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: c.line, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: c.surface };
 type GridRow = { kind: "header"; key: string; name: string; count: number } | { kind: "row"; key: string; items: Item[] };
 const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 52, paddingHorizontal: 16, borderRadius: 26,
   borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
@@ -470,15 +478,15 @@ function ToolButton({ icon, label, onPress, disabled, danger }: { icon: IconName
     <Tap onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} scaleTo={0.95}
       style={[tile.tool, danger && { borderColor: c.danger }, disabled && { opacity: 0.4 }]}>
       <MaterialCommunityIcons name={icon} size={22} color={tone} />
-      <Text style={{ fontSize: 14, fontWeight: "700", color: tone }} numberOfLines={1}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: "700", color: tone }} numberOfLines={1}>{label}</Text>
     </Tap>
   );
 }
 
 const tile = StyleSheet.create({
-  box: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", gap: 3, height: 60, paddingHorizontal: 8, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  box: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", gap: 2, height: 52, paddingHorizontal: 8, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   text: { fontSize: 14, fontWeight: "700" },
-  tool: { flex: 1, minWidth: 0, height: 64, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  tool: { flex: 1, minWidth: 0, height: 56, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
 });
 /** Square icon button (phones), with the full label for screen readers. */
 function IconBtn({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
@@ -502,7 +510,7 @@ const typeTag = StyleSheet.create({
   text: { color: c.accent, fontSize: 12, fontWeight: "800" },
 });
 const drop = StyleSheet.create({
-  box: { flexDirection: "row", alignItems: "center", gap: 10, height: 52, paddingHorizontal: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  box: { flexDirection: "row", alignItems: "center", gap: 10, height: 46, paddingHorizontal: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   label: { color: c.ink2, fontSize: 15, fontWeight: "600" },
   value: { flex: 1, textAlign: "right", color: c.ink, fontSize: 17, fontWeight: "800" },
   row: { flexDirection: "row", alignItems: "center", minHeight: 60, paddingHorizontal: 18, borderRadius: r.md, borderWidth: 2, borderColor: c.line, backgroundColor: c.surface },
