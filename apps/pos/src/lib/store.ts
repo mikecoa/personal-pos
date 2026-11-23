@@ -6,7 +6,7 @@ import * as db from "./db";
 import { currentLang, setLangValue, t, type Lang } from "./i18n";
 import Constants from "expo-constants";
 import { supabase } from "./supabase";
-import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice } from "./order";
+import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice, printedQty } from "./order";
 import type { Catalog, Customer, QuickNote, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
 
 type Phase = "loading" | "setup" | "locked" | "selling";
@@ -257,6 +257,8 @@ function update(fn: (o: OrderDoc) => OrderDoc) {
 }
 /** "Done": the cashier confirms the bill's changes; printing is allowed again. */
 export function confirmBill() {
+  const o = state.order;
+  if (o && o.version > 0) set({ order: { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) } });
   saveOpenBill(false);
   set({ billChanged: false });
 }
@@ -311,7 +313,7 @@ export function setQty(lineId: string, qty: number, voidReason?: string) {
     }] : o.voids;
     const lines = qty <= 0
       ? o.lines.filter((l) => l.id !== lineId)
-      : o.lines.map((l) => (l.id === lineId ? { ...l, qty, saved_qty: Math.min(saved, qty) } : l));
+      : o.lines.map((l) => (l.id === lineId ? { ...l, qty, saved_qty: Math.min(saved, qty), printed_qty: Math.min(printedQty(l), qty) } : l));
     if (voided > 0) {
       const v = voids[voids.length - 1]!;
       set({ slip: { kind: "void", order: o, items: [{ name: v.item_name, qty: v.qty, amount: v.amount }], reason: v.reason, by: v.employee_name, at: v.voided_at } });
@@ -324,7 +326,7 @@ export const closeSlip = () => set({ slip: null });
 export function markSent() {
   const o = state.order;
   if (!o || o.version === 0) return;
-  set({ order: { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) }, billChanged: false });
+  set({ order: { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty, printed_qty: l.qty })) }, billChanged: false });
   saveOpenBill(false);
 }
 /** Show a slip again (reprint from the billing list). */
@@ -370,12 +372,13 @@ export function setLineNote(lineId: string, note: string | null, all: boolean) {
     if (all || line.qty <= 1) return { ...o, lines: o.lines.map((l) => (l.id === lineId ? { ...l, note } : l)) };
     const saved = line.saved_qty ?? 0;
     const movedSaved = saved > 0 ? 1 : 0;          // keep the saved count the same overall
-    const one = { ...line, id: randomUUID(), qty: 1, note, saved_qty: movedSaved };
+    const printed = printedQty(line), movedPrinted = printed > 0 ? 1 : 0;
+    const one = { ...line, id: randomUUID(), qty: 1, note, saved_qty: movedSaved, printed_qty: movedPrinted };
     const target = o.lines.find((l) => l.id !== lineId && sameLine(l, one));
-    const rest = { ...line, qty: line.qty - 1, saved_qty: saved - movedSaved };
+    const rest = { ...line, qty: line.qty - 1, saved_qty: saved - movedSaved, printed_qty: printed - movedPrinted };
     const lines = o.lines.flatMap((l) => {
       if (l.id === lineId) return target ? [rest] : [rest, one];
-      if (target && l.id === target.id) return [{ ...l, qty: l.qty + 1, saved_qty: (l.saved_qty ?? 0) + movedSaved }];
+      if (target && l.id === target.id) return [{ ...l, qty: l.qty + 1, saved_qty: (l.saved_qty ?? 0) + movedSaved, printed_qty: printedQty(l) + movedPrinted }];
       return [l];
     });
     return { ...o, lines };
@@ -446,8 +449,8 @@ export function clearOrder() {
 // ───────────────────────────────────────────── bills
 export function saveBill(name: string) {
   const o = state.order!;
-  // Items count as sent once the order is printed, or when the bill is closed / another one opened.
-  const next: OrderDoc = { ...o, bill_name: name, status: "open", version: o.version + 1 };
+  // Saving locks the items (taking them off later is a void); printing for the kitchen is tracked separately.
+  const next: OrderDoc = { ...o, bill_name: name, status: "open", version: o.version + 1, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) };
   db.saveOrder(next);
   set({ order: next, billChanged: false }); // stay on the bill, ready to print the order or the bill
   refreshLocal();

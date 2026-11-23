@@ -1,5 +1,5 @@
 import { receiptLines, type ReceiptOrder } from "@pos/core";
-import { lineLabel, lineSalesType, mixedSalesTypes } from "../lib/order";
+import { lineLabel, lineSalesType, mixedSalesTypes, printedQty } from "../lib/order";
 import type { Catalog, OrderDoc } from "../lib/types";
 import { lineWidth, printLines } from "../lib/printer";
 import { notify, printerSettings, type Slip } from "../lib/store";
@@ -70,10 +70,10 @@ export async function printSlip(sl: Slip, catalog: Catalog) {
 // ───────────────────────────── order tickets (kitchen, checker…)
 export type TicketItem = { name: string; qty: number; modifiers: string[]; note: string | null; salesType: string | null };
 
-/** Items not sent yet: everything on a new order, only what was added since on a saved bill. */
+/** Items the kitchen hasn't had yet: everything on a new order, only what was added since the last ticket on a saved bill. */
 export function newItems(o: OrderDoc): TicketItem[] {
   return o.lines
-    .map((l) => ({ l, qty: l.qty - (l.saved_qty ?? 0) }))
+    .map((l) => ({ l, qty: l.qty - printedQty(l) }))
     .filter((x) => x.qty > 0)
     .map(({ l, qty }) => ({ name: lineLabel(l), qty, modifiers: l.modifiers.map((m) => m.option), note: l.note, salesType: lineSalesType(l, o) ?? null }));
 }

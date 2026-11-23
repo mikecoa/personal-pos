@@ -4,7 +4,7 @@ import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, T
 import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { can, clearOrder, confirmBill, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
-import { lineLabel, lineSalesType, mixedSalesTypes, variantPrice } from "../lib/order";
+import { lineLabel, lineSalesType, mixedSalesTypes, printedQty, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
@@ -229,7 +229,7 @@ export function Sell() {
                   // Save and stay on the bill (to print the order or the bill next). With auto-print on,
                   // the new items go to the kitchen now and count as sent.
                   const o = order!; const items = newItems(o);
-                  if (printerSettings().autoTicket && items.length) { autoTicket(o, items, o.lines.some((l) => (l.saved_qty ?? 0) > 0)); markSent(); }
+                  if (printerSettings().autoTicket && items.length) { autoTicket(o, items, o.lines.some((l) => printedQty(l) > 0)); markSent(); }
                   else confirmBill();
                   notify(t("Bill saved."));
                 }} />
@@ -575,7 +575,7 @@ function BillPreviewSheet({ onClose, ticket }: { onClose: () => void; ticket?: b
   // retry after a failed print prints the same items.
   const [tk] = useState(() => {
     const fresh = newItems(order);
-    const anySent = order.lines.some((l) => (l.saved_qty ?? 0) > 0);
+    const anySent = order.lines.some((l) => printedQty(l) > 0);
     return { items: fresh.length ? fresh : allItems(order), added: fresh.length > 0 && anySent, reprint: fresh.length === 0 };
   });
   const lines = ticket ? ticketLines(order, tk.items, lineWidth(p.paper), tk.added, tk.reprint) : toReceipt(order, catalog, undefined, lineWidth(p.paper));
