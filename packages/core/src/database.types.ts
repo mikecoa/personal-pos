@@ -820,11 +820,17 @@ isOneToOne: false
             "claim_employee_access":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"close_shift":
+{ Args: { "p_counted": number,"p_shift": string }; Returns: undefined
+                           },
 "copy_items_to_locations":
 { Args: { "p_item_ids": (string)[],"p_target_locations": (string)[] }; Returns: number
                            },
 "create_account":
 { Args: { "p_first_location": string,"p_name": string }; Returns: string
+                           },
+"delete_shifts":
+{ Args: { "p_ids": (string)[] }; Returns: number
                            },
 "delete_transactions":
 { Args: { "p_ids": (string)[],"p_kind": string }; Returns: number

@@ -8,6 +8,7 @@ import { Badge, ButtonLink, PageHeader, Panel } from "@/components/ui";
 import { getPrefs, getT } from "@/lib/prefs";
 import { dateLocale, type T } from "@/lib/i18n";
 import { tx } from "@/lib/i18n";
+import { ShiftActions } from "./shift-actions";
 
 const m = (n: number) => formatRupiah(rp(n));
 const whenIn = (loc: string) => (iso: string | null) => (iso ? new Date(iso).toLocaleString(loc, { timeZone: TZ, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
@@ -25,7 +26,7 @@ const diffBadge = (d: number | null, t: T) =>
 export default async function ShiftsReportPage({ searchParams }: { searchParams: Promise<SP> }) {
   const t = await getT();
   const when = whenIn(dateLocale((await getPrefs()).lang));
-  await requireManage();
+  const { isOwner } = await requireManage();
   const sp = await searchParams;
   const range = await resolveRange(sp);
   const { supabase, scope, locations } = await reportScope(sp);
@@ -56,7 +57,7 @@ export default async function ShiftsReportPage({ searchParams }: { searchParams:
       ]} empty={t("No shifts in this period.")} />
 
       {sel && (
-        <Panel title={`Shift · ${when(sel.opened_at)}`} closeHref={close}>
+        <Panel title={`${t("Shift")} · ${when(sel.opened_at)}`} closeHref={close}>
           <dl className="space-y-1.5 text-sm">
             {([[t("Location"), sel.location], [t("Tablet"), sel.device], [t("Opened"), `${when(sel.opened_at)} · ${sel.opened_by ?? ""}`], [t("Closed"), sel.closed_at ? `${when(sel.closed_at)} · ${sel.closed_by ?? ""}` : t("Still open")],
               [t("Sales"), `${sel.sales} · ${m(sel.takings)}`]] as const).map(([k, v]) => (
@@ -96,6 +97,7 @@ export default async function ShiftsReportPage({ searchParams }: { searchParams:
               ))}
             </ul>
           ) : <p className="text-sm text-ink-2">{t("None.")}</p>}
+          <ShiftActions id={sel.id} open={sel.status === "open"} isOwner={isOwner} closeHref={close} />
         </Panel>
       )}
     </div>
