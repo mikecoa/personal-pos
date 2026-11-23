@@ -99,8 +99,8 @@ export function FloorBoard({ list, tables, mode, currentTableId, isSelected, onP
       {width > 0 && addCell && (
         <Pressable accessibilityRole="button" accessibilityLabel="Add table" onPress={onAdd}
           style={({ pressed }) => [st.add, box(addCell), addActive && { borderWidth: 2.5 }, pressed && { opacity: 0.7 }]}>
-          <Text style={{ fontSize: 26 * scale, color: c.accent }}>+</Text>
-          <Text style={{ color: c.accent, fontWeight: "700", fontSize: 13 * scale }}>{t("Add table")}</Text>
+          <Text style={{ fontSize: 22 * scale, color: c.accent }}>+</Text>
+          <Text style={{ color: c.accent, fontWeight: "700", fontSize: 12 * scale }}>{t("Add table")}</Text>
         </Pressable>
       )}
     </View>
@@ -160,8 +160,8 @@ function MapTile({ table, mode, scale, current, selected, onPress, onPressOut, o
         mode === "edit" && selected && { backgroundColor: c.accentSoft },
         (current || selected) && { borderColor: ring, borderWidth: 2.5 },
         { opacity: dim ? 0.35 : pressed ? 0.8 : 1 }]}>
-      <Text style={{ fontSize: 24 * scale, fontWeight: "800", color: fg }} numberOfLines={1} adjustsFontSizeToFit>{table.name}</Text>
-      {busy && <Text style={{ fontSize: 14 * scale, fontWeight: "700", color: fg }} numberOfLines={1}>{money(total)}</Text>}
+      <Text style={{ fontSize: 21 * scale, fontWeight: "800", color: fg }} numberOfLines={1} adjustsFontSizeToFit>{table.name}</Text>
+      {busy && <Text style={{ fontSize: 13 * scale, fontWeight: "700", color: fg }} numberOfLines={1}>{money(total)}</Text>}
       <Text style={{ fontSize: 12 * scale, color: sub, opacity: busy ? 0.85 : 1 }} numberOfLines={1}>
         {`${t("{n}/{seats} pax", { n: busy ? guests : 0, seats: table.seats })}${bills.length > 1 && busy ? ` · ${t("{n} bills", { n: bills.length })}` : ""}`}
       </Text>

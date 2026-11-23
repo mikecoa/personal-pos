@@ -108,19 +108,19 @@ export function ShiftReport({ shift, showExpected = true }: { shift: ShiftDoc; s
             {(list === "sold" ? items.sold : items.refunded).map((x, i) => (
               <View key={x.name} style={[st.listRow, i > 0 && { borderTopWidth: 1, borderColor: c.line }]}>
                 <Text style={{ width: 44, fontWeight: "800", color: c.ink }}>{x.qty}×</Text>
-                <Text style={{ flex: 1, color: c.ink, fontSize: 16 }} numberOfLines={2}>{x.name}</Text>
+                <Text style={{ flex: 1, color: c.ink, fontSize: 14 }} numberOfLines={2}>{x.name}</Text>
                 <Text style={{ color: c.ink2 }}>{money(x.amount)}</Text>
               </View>
             ))}
           </View>
-          <Muted style={{ fontSize: 13 }}>{t("Items sold on this tablet in this shift.")}</Muted>
+          <Muted style={{ fontSize: 12 }}>{t("Items sold on this tablet in this shift.")}</Muted>
         </Sheet>
       )}
       {print && (
         <Sheet visible onClose={() => setPrint(false)} title={t("Shift report")} width={460}>
           <ReceiptView lines={shiftReportLines({ location, device: device.name, openedBy: shift.opened_by_name ?? "", openedAt: new Date(shift.opened_at),
             closedBy: shift.closed_by_name, closedAt: shift.closed_at ? new Date(shift.closed_at) : new Date(), startingCash: shift.starting_cash, actualCash: shift.actual_cash }, s)} />
-          <Muted style={{ fontSize: 13, textAlign: "center" }}>{t("Preview: printing starts once the receipt printer is set up.")}</Muted>
+          <Muted style={{ fontSize: 12, textAlign: "center" }}>{t("Preview: printing starts once the receipt printer is set up.")}</Muted>
         </Sheet>
       )}
     </View>
@@ -143,7 +143,7 @@ function Row({ label, value, onPress, strong, tone, note, small }: {
     <>
       <View style={{ flex: 1, minWidth: 110 }}>
         <Text style={{ fontSize: small ? 15 : 17, color: strong ? c.ink : c.ink2, fontWeight: strong ? "700" : "400" }} numberOfLines={2}>{label}</Text>
-        {note ? <Text style={{ fontSize: 13, color: tone ?? c.ink2 }}>{note}</Text> : null}
+        {note ? <Text style={{ fontSize: 12, color: tone ?? c.ink2 }}>{note}</Text> : null}
       </View>
       <Text style={{ flexShrink: 1, textAlign: "right", fontSize: small ? 15 : 17, color: tone ?? c.ink, fontWeight: strong ? "800" : "500" }}>{value}</Text>
       {onPress && <MaterialCommunityIcons name="chevron-right" size={22} color={c.accent} />}
@@ -156,7 +156,7 @@ function Row({ label, value, onPress, strong, tone, note, small }: {
 }
 
 const st = StyleSheet.create({
-  section: { fontSize: 13, fontWeight: "800", color: c.ink, letterSpacing: 0.4, paddingHorizontal: 4, paddingBottom: 6 },
+  section: { fontSize: 12, fontWeight: "800", color: c.ink, letterSpacing: 0.4, paddingHorizontal: 4, paddingBottom: 6 },
   box: { borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: c.line },
   listBox: { borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },

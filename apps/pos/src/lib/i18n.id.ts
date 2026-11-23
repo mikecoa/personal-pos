@@ -626,4 +626,6 @@ export const ID: Record<string, string> = {
   "Close bill and start a new order": "Tutup bill dan mulai pesanan baru",
   "Press Done to confirm the changes, then you can print.": "Tekan Selesai untuk mengonfirmasi perubahan, lalu bisa dicetak.",
   "Save the bill to print the order or the bill.": "Simpan bill untuk mencetak pesanan atau bill.",
+  "Printed": "Dicetak",
+  "{n} of {m} printed": "{n} dari {m} dicetak",
 };

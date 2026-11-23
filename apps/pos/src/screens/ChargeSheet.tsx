@@ -101,7 +101,7 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
         <View style={{ width: compact ? "100%" : 300, gap: compact ? 12 : 16 }}>
           <View style={{ gap: 4 }}>
             <Label>{tenders.length ? t("Still to pay") : t("Total")}</Label>
-            <Text style={{ fontSize: 40, fontWeight: "800", color: c.ink }} testID="amount-due">{money(st.remaining)}</Text>
+            <Text style={{ fontSize: 34, fontWeight: "800", color: c.ink }} testID="amount-due">{money(st.remaining)}</Text>
             {tenders.length > 0 && <Muted>of {money(total)}</Muted>}
           </View>
           {tenders.map((t, i) => (
@@ -122,8 +122,8 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
                     compact && { width: "48.6%", minHeight: 56, gap: 8, paddingHorizontal: 10 }]}>
                   <MaterialCommunityIcons name={KIND_ICON[m.kind]} size={28} color={on ? c.accent : c.ink2} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontSize: 18, fontWeight: "700", color: c.ink }} numberOfLines={1}>{m.name}</Text>
-                    {m.name !== KIND_LABEL[m.kind] && <Text style={{ color: c.ink2, fontSize: 13 }}>{t(KIND_LABEL[m.kind])}</Text>}
+                    <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink }} numberOfLines={1}>{m.name}</Text>
+                    {m.name !== KIND_LABEL[m.kind] && <Text style={{ color: c.ink2, fontSize: 12 }}>{t(KIND_LABEL[m.kind])}</Text>}
                   </View>
                   {on && <FadeIn from={0} scale={0.5} duration={150}><MaterialCommunityIcons name="check-circle" size={24} color={c.accent} /></FadeIn>}
                 </Tap>
@@ -148,7 +148,7 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
                 <Keypad compact fill={compact} onKey={(k) => setEntry((e) => (k === "⌫" ? e.slice(0, -1) : (e + k).replace(/^0+/, "").slice(0, 10)))} />
                 <View style={{ flex: 1, minWidth: 200, gap: 10 }}>
                   <Label>{t("Other amount")}</Label>
-                  <Text style={{ fontSize: 26, fontWeight: "700", color: c.ink }}>{money(amountEntered)}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: "700", color: c.ink }}>{money(amountEntered)}</Text>
                   <Btn big title={!amountEntered ? t("Type the amount") : amountEntered >= st.remaining ? t("Change {v0}", { v0: money(amountEntered - st.remaining) }) : split ? t("Pay {v0} now", { v0: money(amountEntered) }) : t("Not enough")}
                     disabled={!amountEntered || (!split && amountEntered < st.remaining)} onPress={() => payCash(amountEntered)} />
                 </View>
@@ -169,7 +169,7 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
                     <Keypad compact fill={compact} onKey={(k) => setEntry((e) => (k === "⌫" ? e.slice(0, -1) : (e + k).replace(/^0+/, "").slice(0, 10)))} />
                     <View style={{ flex: 1, minWidth: 200, gap: 10 }}>
                       <Label>{t("Amount (for split payment)")}</Label>
-                      <Text style={{ fontSize: 26, fontWeight: "700", color: c.ink }}>{money(amt)}</Text>
+                      <Text style={{ fontSize: 22, fontWeight: "700", color: c.ink }}>{money(amt)}</Text>
                       {confirm}
                     </View>
                   </View>

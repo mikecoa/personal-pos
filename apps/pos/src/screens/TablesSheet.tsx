@@ -116,7 +116,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
             )}
             {!page && (
               <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12} style={{ paddingLeft: 8 }}>
-                <Text style={{ fontSize: 22, color: c.ink2 }}>✕</Text>
+                <Text style={{ fontSize: 19, color: c.ink2 }}>✕</Text>
               </Pressable>
             )}
           </View>
@@ -150,10 +150,10 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
                   onAdd={editing ? () => { setSelection([]); setPanel({ kind: "new" }); } : undefined} addActive={panel?.kind === "new"}
                   onLayoutChange={(cells) => { setNotice(null); saveLayout(cells).catch((e) => setNotice((e as Error).message)); }} />
               )}
-              {editing && shown.length > 1 && <Muted style={{ fontSize: 13 }}>{t("Drag a table to move it on the map. Drop it on another table to swap them.")}</Muted>}
+              {editing && shown.length > 1 && <Muted style={{ fontSize: 12 }}>{t("Drag a table to move it on the map. Drop it on another table to swap them.")}</Muted>}
               {!shown.length && !editing && (
                 <View style={st.empty}>
-                  <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }}>{t("No tables here yet")}</Text>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{t("No tables here yet")}</Text>
                   <Muted>{canEdit ? t("Tap Edit tables to add some.") : t("A manager can add tables from this screen or the backoffice.")}</Muted>
                 </View>
               )}
@@ -204,7 +204,7 @@ function Tab({ label, count = 0, active, muted, hint, onPress, onLongPress }: {
       style={[st.tab, active && st.tabActive]}>
       <Text style={[st.tabText, active && { color: c.ink }, muted && { color: c.accent }]}>{label}</Text>
       {count > 0 && <View style={st.badge}><Text style={st.badgeText}>{count}</Text></View>}
-      {hint && <Text style={{ color: c.ink2, fontSize: 13 }}>{hint}</Text>}
+      {hint && <Text style={{ color: c.ink2, fontSize: 12 }}>{hint}</Text>}
     </Pressable>
   );
 }
@@ -214,7 +214,7 @@ function PanelShell({ title, sub, children, footer }: { title: string; sub?: str
     <>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }} keyboardShouldPersistTaps="handled">
         <View>
-          <Text style={{ fontSize: 22, fontWeight: "800", color: c.ink }}>{title}</Text>
+          <Text style={{ fontSize: 19, fontWeight: "800", color: c.ink }}>{title}</Text>
           {sub && <Muted>{sub}</Muted>}
         </View>
         {children}
@@ -239,7 +239,7 @@ function SeatPanel({ table, onCancel, onDone }: { table: DiningTable; onCancel: 
         <Label>{t("Guests")}</Label>
         <Stepper value={guests} min={1} onChange={setGuests} />
       </View>
-      {guests > table.seats && <Muted style={{ fontSize: 13 }}>{t("More than the {seats} seats here.", { seats: table.seats })}</Muted>}
+      {guests > table.seats && <Muted style={{ fontSize: 12 }}>{t("More than the {seats} seats here.", { seats: table.seats })}</Muted>}
       <Field label={t("Customer name (optional)")} value={name} onChangeText={setName} placeholder={t("e.g. Pak Budi")} maxLength={40} />
       <Err msg={error} />
     </PanelShell>
@@ -254,7 +254,7 @@ function BillsPanel({ table, bills, onPick, onCancel }: { table: DiningTable; bi
           style={({ pressed }) => [st.billRow, pressed && { backgroundColor: c.surface2 }]}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: "700", color: c.ink }}>{b.customer_name ?? b.number}</Text>
-            <Muted style={{ fontSize: 13 }}>{`${b.guests ? `${t("{n} guests", { n: b.guests })} · ` : ""}${ago(b.opened_at)}`}</Muted>
+            <Muted style={{ fontSize: 12 }}>{`${b.guests ? `${t("{n} guests", { n: b.guests })} · ` : ""}${ago(b.opened_at)}`}</Muted>
           </View>
           <Text style={{ fontWeight: "700", color: c.ink }}>{money(b.total)}</Text>
         </Pressable>
@@ -316,7 +316,7 @@ function TableEditor({ table, areaId, suggest, onDone }: {
           </View>
         </View>
       )}
-      {inUse && <Muted style={{ fontSize: 13 }}>{t("A table with an open bill can be renamed but not deleted.")}</Muted>}
+      {inUse && <Muted style={{ fontSize: 12 }}>{t("A table with an open bill can be renamed but not deleted.")}</Muted>}
       <Err msg={error} />
     </PanelShell>
   );
@@ -372,7 +372,7 @@ function BulkEditor({ tables, onDone }: { tables: DiningTable[]; onDone: (delete
           </View>
         </View>
       )}
-      {inUse.length > 0 && <Muted style={{ fontSize: 13 }}>{t("In use: {v0}. Tables with an open bill can't be deleted.", { v0: inUse.join(", ") })}</Muted>}
+      {inUse.length > 0 && <Muted style={{ fontSize: 12 }}>{t("In use: {v0}. Tables with an open bill can't be deleted.", { v0: inUse.join(", ") })}</Muted>}
       {saved && <Text style={{ color: c.accent, fontWeight: "600" }}>{t("Saved")}</Text>}
       <Err msg={error} />
     </PanelShell>
@@ -410,7 +410,7 @@ function AreaEditor({ id, onSaved, onDeleted }: { id: string | null; onSaved: (n
         <Btn style={{ flex: 1 }} title={area ? t("Save") : t("Add area")} loading={busy} disabled={!name.trim()} onPress={save} />
       </>}>
       <Field label={t("Area name")} value={name} onChangeText={(v) => { setName(v); setConfirmDelete(false); }} maxLength={40} autoFocus={!area} />
-      {area && confirmDelete && <Muted style={{ fontSize: 13 }}>{count ? (count === 1 ? t("Its 1 table will stay, under \"No area\".") : t("Its {n} tables will stay, under \"No area\".", { n: count })) : t("The area is empty.")}</Muted>}
+      {area && confirmDelete && <Muted style={{ fontSize: 12 }}>{count ? (count === 1 ? t("Its 1 table will stay, under \"No area\".") : t("Its {n} tables will stay, under \"No area\".", { n: count })) : t("The area is empty.")}</Muted>}
       <Err msg={error} />
     </PanelShell>
   );
@@ -438,17 +438,17 @@ const st = StyleSheet.create({
   card: { width: "100%", maxWidth: 1120, height: "94%", backgroundColor: c.bg, borderRadius: r.lg, overflow: "hidden" },
   cardPage: { flex: 1, maxWidth: undefined, height: undefined, borderRadius: 0 },
   head: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
-  title: { fontSize: 22, fontWeight: "800", color: c.ink },
-  sub: { color: c.ink2, fontSize: 14, marginTop: 2 },
+  title: { fontSize: 19, fontWeight: "800", color: c.ink },
+  sub: { color: c.ink2, fontSize: 13, marginTop: 2 },
   tabsBar: { borderBottomWidth: 1, borderColor: c.line },
   tab: { flexDirection: "row", alignItems: "center", gap: 6, height: 52, paddingHorizontal: 18, borderBottomWidth: 3, borderColor: "transparent" },
   tabActive: { borderColor: c.accent },
-  tabText: { fontSize: 16, fontWeight: "700", color: c.ink2 },
+  tabText: { fontSize: 14, fontWeight: "700", color: c.ink2 },
   badge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" },
   badgeText: { color: c.accentInk, fontSize: 12, fontWeight: "800" },
   notice: { color: c.danger, fontWeight: "600" },
   tile: { width: 132, height: 104, padding: 12, borderRadius: 6, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, justifyContent: "space-between" },
-  tileName: { fontSize: 24, fontWeight: "800", flexShrink: 1 },
+  tileName: { fontSize: 21, fontWeight: "800", flexShrink: 1 },
   addTile: { borderStyle: "dashed", borderColor: c.accent, backgroundColor: "transparent", alignItems: "center", justifyContent: "center", gap: 2 },
   empty: { padding: 32, alignItems: "center", gap: 6 },
   side: { width: 360, borderLeftWidth: 1, borderColor: c.line, backgroundColor: c.surface },

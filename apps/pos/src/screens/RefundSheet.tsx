@@ -51,7 +51,7 @@ export function RefundSheet({ order, onClose }: { order: OrderDoc; onClose: () =
             return (
               <View key={l.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, opacity: max > 0 ? 1 : 0.4 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: "600", color: c.ink, fontSize: 16 }}>{lineLabel(l)}</Text>
+                  <Text style={{ fontWeight: "600", color: c.ink, fontSize: 14 }}>{lineLabel(l)}</Text>
                   <Muted>{l.qty} sold{max < l.qty ? t(" · {v0} already refunded", { v0: l.qty - max }) : ""}</Muted>
                 </View>
                 {max > 0 && <Stepper value={picks[l.id] ?? 0} onChange={(n) => setPicks({ ...picks, [l.id]: Math.min(n, max) })} />}

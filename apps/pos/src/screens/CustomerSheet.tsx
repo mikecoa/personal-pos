@@ -44,11 +44,11 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
       <View style={st.search}>
         <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
         <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Search name or phone")} placeholderTextColor="#98a29c" accessibilityLabel="Search customers"
-          autoFocus style={{ flex: 1, fontSize: 17, color: c.ink, height: 48 }} />
+          autoFocus style={{ flex: 1, fontSize: 15, color: c.ink, height: 48 }} />
       </View>
       {customers.length === 0 ? (
         <View style={{ padding: 24, alignItems: "center", gap: 6 }}>
-          <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }}>{t("No customers yet")}</Text>
+          <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{t("No customers yet")}</Text>
           <Muted style={{ textAlign: "center" }}>{t("Save owners and regulars with their phone number and a discount, then add them to a bill in one tap.")}</Muted>
         </View>
       ) : (
@@ -64,7 +64,7 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
                     style={({ pressed }) => [{ flex: 1, flexDirection: "row", alignItems: "center", gap: 14 }, pressed && { opacity: 0.7 }]}>
                     <View style={st.avatar}><Text style={st.avatarText}>{cu.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()}</Text></View>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }} numberOfLines={1}>{cu.name}</Text>
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }} numberOfLines={1}>{cu.name}</Text>
                       <Text style={{ color: c.ink2 }} numberOfLines={1}>{[cu.phone, cu.note].filter(Boolean).join(" · ") || "—"}</Text>
                     </View>
                     {d && <View style={st.badge}><Text style={st.badgeText}>{discountLabel(d)}</Text></View>}
@@ -127,9 +127,9 @@ function CustomerForm({ customer, initialName, onBack, onSaved }: {
           <Chip label={t("None")} active={!discount} onPress={() => setDiscount(null)} />
           {billDiscounts.map((d) => <Chip key={d.id} label={discountLabel(d)} active={discount === d.id} onPress={() => setDiscount(d.id)} />)}
         </View>
-        <Muted style={{ fontSize: 13 }}>{t("Added to the bill when this customer is picked. Discounts are set up in the backoffice.")}</Muted>
+        <Muted style={{ fontSize: 12 }}>{t("Added to the bill when this customer is picked. Discounts are set up in the backoffice.")}</Muted>
       </View>
-      {confirmDelete && <Muted style={{ fontSize: 13 }}>{t("Past bills keep the customer's name.")}</Muted>}
+      {confirmDelete && <Muted style={{ fontSize: 12 }}>{t("Past bills keep the customer's name.")}</Muted>}
       {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
@@ -142,6 +142,6 @@ const st = StyleSheet.create({
   avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" },
   avatarText: { fontWeight: "800", color: c.ink2 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: c.accentSoft },
-  badgeText: { color: c.accent, fontWeight: "700", fontSize: 13 },
+  badgeText: { color: c.accent, fontWeight: "700", fontSize: 12 },
   edit: { width: 52, height: 52, alignItems: "center", justifyContent: "center" },
 });

@@ -125,11 +125,11 @@ export function Sell() {
     <>
         <View style={{ padding: short ? 12 : 16, gap: short ? 8 : 12, borderBottomWidth: 1, borderColor: c.line }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-            <Text style={{ fontSize: short ? 19 : 22, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
+            <Text style={{ fontSize: short ? 17 : 19, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
               {order?.table_id ? t("Table {v0}", { v0: tableLabel(order) }) : order?.bill_name ?? t("New order")}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ color: c.ink2, fontSize: 14 }}>{order?.number ?? ""}</Text>
+              <Text style={{ color: c.ink2, fontSize: 13 }}>{order?.number ?? ""}</Text>
               {order?.version ? (
                 <Tap onPress={() => saveOpenBill(true)} accessibilityRole="button" accessibilityLabel={t("Close bill and start a new order")} hitSlop={8} scaleTo={0.9}
                   style={{ width: 34, height: 34, borderRadius: r.md, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface }}>
@@ -173,21 +173,28 @@ export function Sell() {
             <FadeIn from={0} duration={220} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 14, paddingRight: 8, paddingVertical: 4, borderBottomWidth: 1, borderColor: c.line }}>
               <Pressable onPress={() => setModal({ kind: "line", id: l.id })} accessibilityRole="button" accessibilityLabel={`${l.qty} ${lineLabel(l)}, ${money(l.line_total)}. Tap to edit`}
                 style={({ pressed }) => ({ flex: 1, gap: 1, paddingVertical: 2, opacity: pressed ? 0.6 : 1 })}>
-                <Text style={{ fontWeight: "600", color: c.ink, fontSize: 15 }} numberOfLines={2}>{lineLabel(l)}</Text>
+                <Text style={{ fontWeight: "600", color: c.ink, fontSize: 14 }} numberOfLines={2}>{lineLabel(l)}</Text>
                 {mixed && (
                   <View style={typeTag.box}><Text style={typeTag.text} numberOfLines={1}>{lineSalesType(l, order!)}</Text></View>
                 )}
-                {l.modifiers.length > 0 && <Text style={{ color: c.ink2, fontSize: 13 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
+                {l.modifiers.length > 0 && <Text style={{ color: c.ink2, fontSize: 12 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
                 {l.discount_amount > 0 && <Text style={{ color: c.accent }}>{l.discount!.name} −{money(l.discount_amount)}</Text>}
                 {/* Price and the note link share one row to keep each line short. */}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <Text style={{ fontWeight: "700", color: c.ink, fontSize: 14 }}>{money(l.line_total)}</Text>
+                <Text style={{ fontWeight: "700", color: c.ink, fontSize: 13 }}>{money(l.line_total)}</Text>
                 <Pressable onPress={() => setModal({ kind: "note", id: l.id })} accessibilityRole="button" hitSlop={6}
                   accessibilityLabel={l.note ? t("Note: {note}. Change", { note: l.note }) : t("Add a note to {v0}", { v0: lineLabel(l) })}
                   style={({ pressed }) => [noteBtn, l.note && { borderColor: c.warn, borderStyle: "solid" }, pressed && { backgroundColor: c.surface2 }]}>
                   <MaterialCommunityIcons name={l.note ? "note-text-outline" : "note-plus-outline"} size={16} color={l.note ? c.warn : c.accent} />
-                  <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", fontSize: 13, flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : t("Add note")}</Text>
+                  <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", fontSize: 12, flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : t("Add note")}</Text>
                 </Pressable>
+                {/* Printed for the kitchen: all of it, or part (when more were added since). */}
+                {order!.version > 0 && printedQty(l) > 0 && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }} accessibilityLabel={printedQty(l) >= l.qty ? t("Printed") : t("{n} of {m} printed", { n: printedQty(l), m: l.qty })}>
+                    <MaterialCommunityIcons name="printer-check" size={14} color={c.ink2} />
+                    <Text style={{ color: c.ink2, fontSize: 11, fontWeight: "600" }}>{printedQty(l) >= l.qty ? t("Printed") : t("{n} of {m} printed", { n: printedQty(l), m: l.qty })}</Text>
+                  </View>
+                )}
                 </View>
               </Pressable>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
@@ -195,7 +202,7 @@ export function Sell() {
                   style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
                   <MaterialCommunityIcons name={l.qty === 1 && !(l.saved_qty ?? 0) ? "trash-can-outline" : "minus"} size={20} color={c.ink} />
                 </Pressable>
-                <Pop value={l.qty}><Text style={{ minWidth: 28, textAlign: "center", fontSize: 18, fontWeight: "800", color: c.ink }}>{l.qty}</Text></Pop>
+                <Pop value={l.qty}><Text style={{ minWidth: 28, textAlign: "center", fontSize: 16, fontWeight: "800", color: c.ink }}>{l.qty}</Text></Pop>
                 <Pressable onPress={() => step(l.id, 1)} accessibilityRole="button" accessibilityLabel={`One more ${lineLabel(l)}`} hitSlop={4}
                   style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
                   <MaterialCommunityIcons name="plus" size={20} color={c.ink} />
@@ -263,7 +270,7 @@ export function Sell() {
           <View style={{ flex: 1, flexDirection: "row", alignItems: "center", height: bh, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingLeft: 14 }}>
             <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
             <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={tight && !compact ? t("Search") : t("Search item or scan SKU…")} placeholderTextColor="#98a29c" accessibilityLabel="Search items"
-              style={{ flex: 1, height: bh - 2, paddingHorizontal: 8, fontSize: 16, color: c.ink }} />
+              style={{ flex: 1, height: bh - 2, paddingHorizontal: 8, fontSize: 14, color: c.ink }} />
             {q ? (
               <Pressable onPress={() => setQ("")} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search" style={{ paddingHorizontal: 12, height: bh - 2, justifyContent: "center" }}>
                 <MaterialCommunityIcons name="close-circle" size={22} color={c.ink2} />
@@ -278,14 +285,14 @@ export function Sell() {
           <Pressable onPress={() => setModal({ kind: "categories" })} accessibilityRole="button" accessibilityLabel={`Category: ${catName}. Change`}
             style={({ pressed }) => [catBtn, { height: bh, paddingHorizontal: 12 }, pressed && { backgroundColor: c.surface2 }]}>
             <MaterialCommunityIcons name="shape-outline" size={18} color={c.ink2} />
-            <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink, maxWidth: tight ? 120 : 220 }} numberOfLines={1}>{catName}</Text>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: c.ink, maxWidth: tight ? 120 : 220 }} numberOfLines={1}>{catName}</Text>
             <MaterialCommunityIcons name="chevron-down" size={22} color={c.ink2} />
           </Pressable>
           {cat && (
             <Pressable onPress={() => setCat(null)} accessibilityRole="button" accessibilityLabel="Show all items"
               style={({ pressed }) => [catBtn, { height: bh, paddingHorizontal: 12 }, pressed && { backgroundColor: c.surface2 }]}>
               <MaterialCommunityIcons name="close" size={20} color={c.accent} />
-              {!tight && <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>{t("Show all")}</Text>}
+              {!tight && <Text style={{ color: c.accent, fontWeight: "700", fontSize: 14 }}>{t("Show all")}</Text>}
             </Pressable>
           )}
           {compact && <View style={{ flex: 1 }} />}
@@ -299,7 +306,7 @@ export function Sell() {
         </View>
         </View>
         {editingMenu && (
-          <Muted style={{ fontSize: 14 }}>{t("Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.")}</Muted>
+          <Muted style={{ fontSize: 13 }}>{t("Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.")}</Muted>
         )}
         <View style={{ flex: 1, opacity: measured ? 1 : 0 }} onLayout={(e) => {
           const w = Math.round(e.nativeEvent.layout.width);
@@ -316,8 +323,8 @@ export function Sell() {
             ListEmptyComponent={<Muted>{q ? t("No items match “{q}”.", { q }) : t("No items in this category.")}</Muted>}
             renderItem={({ item: row }) => row.kind === "header" ? (
               <View style={{ backgroundColor: c.bg, paddingTop: 10, paddingBottom: 8, flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-                <Text style={{ fontSize: 15, fontWeight: "800", color: c.ink, letterSpacing: 0.3 }}>{row.name.toUpperCase()}</Text>
-                <Text style={{ color: c.ink2, fontSize: 13 }}>{row.count === 1 ? t("1 item") : t("{n} items", { n: row.count })}</Text>
+                <Text style={{ fontSize: 14, fontWeight: "800", color: c.ink, letterSpacing: 0.3 }}>{row.name.toUpperCase()}</Text>
+                <Text style={{ color: c.ink2, fontSize: 12 }}>{row.count === 1 ? t("1 item") : t("{n} items", { n: row.count })}</Text>
               </View>
             ) : (
               <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
@@ -337,15 +344,15 @@ export function Sell() {
                         borderRadius: r.sm, backgroundColor: (inCart.get(item.id) ?? 0) > 0 && !editingMenu ? c.accentSoft : c.surface, borderWidth: 1, borderColor: (inCart.get(item.id) ?? 0) > 0 && !editingMenu ? c.accent : c.line, opacity: out ? 0.55 : 1 }}>
                       {/* Compact menu row: name on the left, price on the right, how many are on the order. */}
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }} numberOfLines={2}>{item.name}</Text>
+                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: 14 }} numberOfLines={2}>{item.name}</Text>
                         {out && <Text style={{ color: c.danger, fontSize: 12 }}>{t("Out of stock")}</Text>}
                       </View>
-                      <Text style={{ color: c.ink2, fontSize: 14 }} numberOfLines={1}>{priceLabel(item)}</Text>
+                      <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={1}>{priceLabel(item)}</Text>
                       {editingMenu ? <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink2} />
                         : (inCart.get(item.id) ?? 0) > 0 && (
                         <Pop value={inCart.get(item.id)}>
                           <View style={{ minWidth: 26, height: 26, borderRadius: 6, paddingHorizontal: 7, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
-                            <Text style={{ color: c.accentInk, fontWeight: "800", fontSize: 13 }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>{inCart.get(item.id)}</Text>
+                            <Text style={{ color: c.accentInk, fontWeight: "800", fontSize: 12 }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>{inCart.get(item.id)}</Text>
                           </View>
                         </Pop>
                       )}
@@ -381,7 +388,7 @@ export function Sell() {
           <SafeAreaView style={{ flex: 1, backgroundColor: c.surface }} edges={["top", "bottom", "left", "right"]}>
             <Tap onPress={() => setCartOpen(false)} accessibilityRole="button" scaleTo={0.98} style={phone.back}>
               <MaterialCommunityIcons name="chevron-left" size={26} color={c.accent} />
-              <Text style={{ color: c.accent, fontWeight: "800", fontSize: 16 }}>{t("Back to menu")}</Text>
+              <Text style={{ color: c.accent, fontWeight: "800", fontSize: 14 }}>{t("Back to menu")}</Text>
             </Tap>
             {cartBody}
           </SafeAreaView>
@@ -413,14 +420,14 @@ export function Sell() {
       {modal?.kind === "customers" && <CustomerSheet onClose={() => setModal(null)} />}
       {modal?.kind === "salesType" && (
         <Sheet visible onClose={() => setModal(null)} title={t("Sales type")} width={460}>
-          <Muted style={{ fontSize: 14 }}>{hasLines ? t("For the items you add next. Items already on the order keep theirs; tap an item to change it.") : t("For the items on this order.")}</Muted>
+          <Muted style={{ fontSize: 13 }}>{hasLines ? t("For the items you add next. Items already on the order keep theirs; tap an item to change it.") : t("For the items on this order.")}</Muted>
           <View style={{ gap: 8 }}>
             {catalog.sales_types.map((s) => {
               const on = s.id === salesTypeId;
               return (
                 <Tap key={s.id} onPress={() => { setSalesType(s.id); setModal(null); }} accessibilityRole="radio" accessibilityState={{ selected: on }} scaleTo={0.98}
                   style={[drop.row, on && { borderColor: c.accent, backgroundColor: c.accentSoft }]}>
-                  <Text style={{ flex: 1, fontSize: 18, fontWeight: "700", color: c.ink }} numberOfLines={1}>{s.name}</Text>
+                  <Text style={{ flex: 1, fontSize: 16, fontWeight: "700", color: c.ink }} numberOfLines={1}>{s.name}</Text>
                   {on && <MaterialCommunityIcons name="check-circle" size={24} color={c.accent} />}
                 </Tap>
               );
@@ -451,7 +458,7 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
   return (
     <Sheet visible onClose={onClose} title={t("Custom amount")} width={420}
       footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} /><Btn style={{ flex: 1 }} title={t("Add {v0}", { v0: money(amount) })} disabled={!amount} onPress={() => { addCustom(amount); onClose(); }} /></>}>
-      <Text style={{ fontSize: 34, fontWeight: "800", color: c.ink, textAlign: "center" }}>{money(amount)}</Text>
+      <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink, textAlign: "center" }}>{money(amount)}</Text>
       <View style={{ alignItems: "center" }}>
         <Keypad onKey={(k) => setDigits((d) => (k === "⌫" ? d.slice(0, -1) : (d + k).replace(/^0+/, "").slice(0, 10)))} />
       </View>
@@ -515,7 +522,7 @@ function ToolButton({ icon, label, onPress, disabled, danger }: { icon: IconName
 
 const tile = StyleSheet.create({
   box: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", gap: 2, height: 52, paddingHorizontal: 8, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
-  text: { fontSize: 14, fontWeight: "700" },
+  text: { fontSize: 13, fontWeight: "700" },
   tool: { flex: 1, minWidth: 0, height: 48, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
 });
 /** Square icon button (phones), with the full label for screen readers. */
@@ -530,9 +537,9 @@ function IconBtn({ icon, label, onPress, size = 52 }: { icon: IconName; label: s
 const phone = StyleSheet.create({
   icon: { width: 52, height: 52, borderRadius: 6, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   bar: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingHorizontal: 16, borderRadius: r.md, backgroundColor: c.accent },
-  barTitle: { color: c.accentInk, fontSize: 16, fontWeight: "800" },
-  barSub: { color: c.accentInk, opacity: 0.85, fontSize: 13, fontWeight: "600" },
-  barTotal: { color: c.accentInk, fontSize: 18, fontWeight: "800" },
+  barTitle: { color: c.accentInk, fontSize: 14, fontWeight: "800" },
+  barSub: { color: c.accentInk, opacity: 0.85, fontSize: 12, fontWeight: "600" },
+  barTotal: { color: c.accentInk, fontSize: 16, fontWeight: "800" },
   back: { flexDirection: "row", alignItems: "center", gap: 2, height: 52, paddingHorizontal: 8, borderBottomWidth: 1, borderColor: c.line },
 });
 const typeTag = StyleSheet.create({
@@ -541,8 +548,8 @@ const typeTag = StyleSheet.create({
 });
 const drop = StyleSheet.create({
   box: { flexDirection: "row", alignItems: "center", gap: 10, height: 46, paddingHorizontal: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
-  label: { color: c.ink2, fontSize: 15, fontWeight: "600" },
-  value: { flex: 1, textAlign: "right", color: c.ink, fontSize: 17, fontWeight: "800" },
+  label: { color: c.ink2, fontSize: 14, fontWeight: "600" },
+  value: { flex: 1, textAlign: "right", color: c.ink, fontSize: 15, fontWeight: "800" },
   row: { flexDirection: "row", alignItems: "center", minHeight: 60, paddingHorizontal: 18, borderRadius: r.md, borderWidth: 2, borderColor: c.line, backgroundColor: c.surface },
 });
 

@@ -22,8 +22,8 @@ export function StartShiftPanel() {
           <MaterialCommunityIcons name="cash-register" size={32} color={c.accent} />
         </View>
         <H>{t("Start a shift")}</H>
-        <Muted style={{ textAlign: "center", fontSize: 16 }}>{name ? t("Hi {name}. Count the cash in the drawer and enter the total to open the menu.", { name }) : t("Count the cash in the drawer and enter the total to open the menu.")}</Muted>
-        <Text style={{ fontSize: 36, fontWeight: "800", color: c.ink }} testID="starting-cash" accessibilityLabel={`Starting cash ${money(Number(digits || 0))}`}>{money(Number(digits || 0))}</Text>
+        <Muted style={{ textAlign: "center", fontSize: 14 }}>{name ? t("Hi {name}. Count the cash in the drawer and enter the total to open the menu.", { name }) : t("Count the cash in the drawer and enter the total to open the menu.")}</Muted>
+        <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink }} testID="starting-cash" accessibilityLabel={`Starting cash ${money(Number(digits || 0))}`}>{money(Number(digits || 0))}</Text>
         <Keypad onKey={keyInto(setDigits)} />
         <Btn big style={{ alignSelf: "stretch" }} title={t("Start shift")} onPress={() => startShift(Number(digits || 0))} />
       </View>
@@ -42,7 +42,7 @@ export function CashMoveForm({ onDone }: { onDone: () => void }) {
           <Chip label={t("Cash out (expense)")} active={kind === "out"} onPress={() => setKind("out")} />
           <Chip label={t("Cash in")} active={kind === "in"} onPress={() => setKind("in")} />
         </View>
-        <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink }}>{money(Number(digits || 0))}</Text>
+        <Text style={{ fontSize: 26, fontWeight: "800", color: c.ink }}>{money(Number(digits || 0))}</Text>
         <Field label={t("What for?")} value={desc} onChangeText={setDesc} placeholder={kind === "out" ? t("e.g. Beli es batu") : t("e.g. Tambah uang kecil")} maxLength={120} />
         <Btn big title={t("Record cash {kind}", { kind })} disabled={!Number(digits) || !desc.trim()}
           onPress={() => { cashMove(kind, Number(digits), desc.trim()); onDone(); }} />
@@ -64,7 +64,7 @@ export function CloseForm({ shift, onClosed }: { shift: ShiftDoc; onClosed: (s: 
         <Text style={{ color: c.ink }}>{t("Count all the cash in the drawer and enter the total.")}</Text>
         {pending > 0 && <Text style={{ color: c.warn, fontWeight: "600" }}>{pending} open bill(s) are still unpaid. They stay open for the next shift.</Text>}
         <Label>{t("Counted cash")}</Label>
-        <Text style={{ fontSize: 34, fontWeight: "800", color: c.ink }}>{money(counted)}</Text>
+        <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink }}>{money(counted)}</Text>
         {showExpected && digits !== "" && (
           <Muted>Expected {money(expected)} · difference {counted - expected >= 0 ? "+" : "−"}{money(Math.abs(counted - expected))}</Muted>
         )}

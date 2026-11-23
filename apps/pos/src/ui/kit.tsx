@@ -17,7 +17,7 @@ export function Btn({ title, onPress, kind = "primary", disabled, big, style, lo
   return (
     <Tap testID={testID} accessibilityRole="button" accessibilityLabel={title} disabled={disabled || loading} onPress={onPress} scaleTo={big ? 0.98 : 0.96}
       style={[s.btn, big && s.btnBig, { backgroundColor: bg, borderColor: border, opacity: disabled ? 0.45 : 1 }, style]}>
-      {loading ? <ActivityIndicator color={fg} /> : <Text style={[s.btnText, big && { fontSize: 20 }, { color: fg }]}>{title}</Text>}
+      {loading ? <ActivityIndicator color={fg} /> : <Text style={[s.btnText, big && { fontSize: 18 }, { color: fg }]}>{title}</Text>}
     </Tap>
   );
 }
@@ -42,15 +42,15 @@ export function Field(props: TextInputProps & { label?: string }) {
 
 export function Label({ children }: { children: ReactNode }) { return <Text style={s.label}>{children}</Text>; }
 export function H({ children, size = 22 }: { children: ReactNode; size?: number }) { return <Text style={{ fontSize: size, fontWeight: "700", color: c.ink }}>{children}</Text>; }
-export function Muted({ children, style }: { children: ReactNode; style?: object }) { return <Text style={[{ color: c.ink2, fontSize: 15 }, style]}>{children}</Text>; }
+export function Muted({ children, style }: { children: ReactNode; style?: object }) { return <Text style={[{ color: c.ink2, fontSize: 14 }, style]}>{children}</Text>; }
 
 /** Title bar for a full page in the side menu (same height as the selling screen's top bar). */
 export function PageTop({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderColor: c.line }}>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 22, fontWeight: "800", color: c.ink }}>{title}</Text>
-        {subtitle ? <Text style={{ color: c.ink2, fontSize: 14, marginTop: 2 }}>{subtitle}</Text> : null}
+        <Text style={{ fontSize: 19, fontWeight: "800", color: c.ink }}>{title}</Text>
+        {subtitle ? <Text style={{ color: c.ink2, fontSize: 13, marginTop: 2 }}>{subtitle}</Text> : null}
       </View>
       {right}
     </View>
@@ -72,7 +72,7 @@ export function Sheet({ visible, onClose, title, children, footer, width = 560, 
           <View style={s.sheetHead}>
             <H size={20}>{title}</H>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}
-              style={({ pressed }) => [s.close, pressed && { backgroundColor: c.surface2 }]}><Text style={{ fontSize: 22, color: c.ink2 }}>✕</Text></Pressable>
+              style={({ pressed }) => [s.close, pressed && { backgroundColor: c.surface2 }]}><Text style={{ fontSize: 19, color: c.ink2 }}>✕</Text></Pressable>
           </View>
           <ScrollView contentContainerStyle={{ padding: compact ? 14 : 20, gap: compact ? 14 : 18 }} keyboardShouldPersistTaps="handled">{children}</ScrollView>
           {footer && <View style={s.sheetFoot}>{footer}</View>}
@@ -86,7 +86,7 @@ export function Stepper({ value, onChange, min = 0 }: { value: number; onChange:
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Pressable accessibilityLabel="Decrease" onPress={() => onChange(Math.max(min, value - 1))} style={s.step}><Text style={s.stepText}>−</Text></Pressable>
-      <Text style={{ fontSize: 22, fontWeight: "700", minWidth: 36, textAlign: "center", color: c.ink }}>{value}</Text>
+      <Text style={{ fontSize: 19, fontWeight: "700", minWidth: 36, textAlign: "center", color: c.ink }}>{value}</Text>
       <Pressable accessibilityLabel="Increase" onPress={() => onChange(value + 1)} style={s.step}><Text style={s.stepText}>+</Text></Pressable>
     </View>
   );
@@ -114,17 +114,17 @@ export function Keypad({ onKey, extra = "00", compact: small, fill }: { onKey: (
 const s = StyleSheet.create({
   btn: { minHeight: 54, paddingHorizontal: 20, borderRadius: r.md, alignItems: "center", justifyContent: "center", borderWidth: 1 },
   btnBig: { minHeight: 68 },
-  btnText: { fontSize: 16, fontWeight: "700", letterSpacing: 0.1 },
+  btnText: { fontSize: 14, fontWeight: "700", letterSpacing: 0.1 },
   chip: { paddingHorizontal: 18, minHeight: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, justifyContent: "center" },
-  chipText: { fontSize: 16, fontWeight: "600", color: c.ink },
-  label: { fontSize: 15, fontWeight: "600", color: c.ink2 },
-  input: { height: 54, borderWidth: 1, borderColor: c.line, borderRadius: r.md, paddingHorizontal: 14, fontSize: 17, backgroundColor: c.surface, color: c.ink },
+  chipText: { fontSize: 14, fontWeight: "600", color: c.ink },
+  label: { fontSize: 14, fontWeight: "600", color: c.ink2 },
+  input: { height: 54, borderWidth: 1, borderColor: c.line, borderRadius: r.md, paddingHorizontal: 14, fontSize: 15, backgroundColor: c.surface, color: c.ink },
   overlay: { flex: 1, backgroundColor: "rgba(16,24,20,0.45)", alignItems: "center", justifyContent: "center", padding: 24 },
   sheet: { backgroundColor: c.bg, borderRadius: r.lg, maxHeight: "92%", overflow: "hidden", elevation: 16, shadowColor: "#0b1a12", shadowOpacity: 0.2, shadowRadius: 30, shadowOffset: { width: 0, height: 12 } },
   close: { width: 48, height: 48, borderRadius: r.md, alignItems: "center", justifyContent: "center", marginRight: -8 },
   sheetHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   sheetFoot: { padding: 16, borderTopWidth: 1, borderColor: c.line, flexDirection: "row", gap: 12, backgroundColor: c.surface },
   step: { width: 56, height: 56, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
-  stepText: { fontSize: 24, color: c.ink, fontWeight: "600" },
+  stepText: { fontSize: 21, color: c.ink, fontWeight: "600" },
   key: { width: 96, height: 72, borderRadius: r.md, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" },
 });

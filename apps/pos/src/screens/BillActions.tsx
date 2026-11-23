@@ -53,7 +53,7 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
           <Label>{t("Table")}</Label>
           {groups.map((g) => (
             <View key={g.key} style={{ gap: 6 }}>
-              {!!g.name && <Text style={{ color: c.ink2, fontSize: 13, fontWeight: "600" }}>{g.name}</Text>}
+              {!!g.name && <Text style={{ color: c.ink2, fontSize: 12, fontWeight: "600" }}>{g.name}</Text>}
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {g.list.map((tb) => {
                   const taken = busy(tb.id);
@@ -73,7 +73,7 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
           ))}
           <Pressable onPress={() => setTableId(null)} accessibilityRole="radio" accessibilityState={{ selected: !tableId }}
             style={[st.tableBtn, { alignSelf: "flex-start", paddingHorizontal: 16 }, !tableId && st.tableOn]}>
-            <Text style={[st.tableText, { fontSize: 15 }, !tableId && { color: c.accentInk }]}>{t("No table (takeaway, bar…)")}</Text>
+            <Text style={[st.tableText, { fontSize: 14 }, !tableId && { color: c.accentInk }]}>{t("No table (takeaway, bar…)")}</Text>
           </Pressable>
         </View>
       )}
@@ -107,7 +107,7 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
 const st = StyleSheet.create({
   tableBtn: { minWidth: 64, height: 52, paddingHorizontal: 12, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   tableOn: { backgroundColor: c.accent, borderColor: c.accent },
-  tableText: { fontSize: 18, fontWeight: "800", color: c.ink },
+  tableText: { fontSize: 16, fontWeight: "800", color: c.ink },
 });
 
 export function BillDiscountSheet({ onClose }: { onClose: () => void }) {

@@ -70,9 +70,9 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
                 accessibilityLabel="Variant name" maxLength={40} style={[st.input, { flex: 1, flexBasis: 0 }]} />
             )}
             <View style={[st.input, st.money, multi ? { flex: 1, flexBasis: 0 } : { width: 240 }]}>
-              <Text style={{ color: c.ink2, fontSize: 17 }}>{t("Rp")}</Text>
+              <Text style={{ color: c.ink2, fontSize: 15 }}>{t("Rp")}</Text>
               <TextInput disableFullscreenUI value={fmt(x.price)} onChangeText={(v) => patchRow(x.key, { price: digits(v) })} keyboardType="number-pad" placeholder="0"
-                placeholderTextColor="#98a29c" accessibilityLabel={multi ? t("Price for {v0}", { v0: x.name || "variant" }) : t("Price")} style={{ flex: 1, fontSize: 17, color: c.ink }} />
+                placeholderTextColor="#98a29c" accessibilityLabel={multi ? t("Price for {v0}", { v0: x.name || "variant" }) : t("Price")} style={{ flex: 1, fontSize: 15, color: c.ink }} />
             </View>
             {multi && (
               <Pressable onPress={() => setRows((rs) => rs.filter((y) => y.key !== x.key))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Remove variant">
@@ -86,7 +86,7 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
           <Text style={{ color: c.accent, fontWeight: "700" }}>{t("+ Add size / variant")}</Text>
         </Pressable>
         {rows.some((x) => Object.keys(x.prices).length > 0) && (
-          <Muted style={{ fontSize: 13 }}>{t("Different prices per sales type (e.g. GoFood) are kept; change them in the backoffice.")}</Muted>
+          <Muted style={{ fontSize: 12 }}>{t("Different prices per sales type (e.g. GoFood) are kept; change them in the backoffice.")}</Muted>
         )}
       </View>
 
@@ -103,14 +103,14 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
 
       <View style={st.toggle}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{t("Track stock")}</Text>
-          <Muted style={{ fontSize: 13 }}>{item?.track_stock ? t("{stock} in stock now. Stock counts are adjusted in the backoffice.", { stock: item.stock }) : t("Count how many are left after each sale.")}</Muted>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>{t("Track stock")}</Text>
+          <Muted style={{ fontSize: 12 }}>{item?.track_stock ? t("{stock} in stock now. Stock counts are adjusted in the backoffice.", { stock: item.stock }) : t("Count how many are left after each sale.")}</Muted>
         </View>
         <Switch value={track} onValueChange={setTrack} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface} accessibilityLabel="Track stock" />
       </View>
       {track && !item && <Field label={t("Starting stock")} value={stock} onChangeText={(v) => setStock(digits(v))} keyboardType="number-pad" placeholder="0" />}
 
-      {confirmRemove && <Muted style={{ fontSize: 13 }}>{t("It disappears from the menu on every tablet. Past sales keep it, and it can be brought back in the backoffice.")}</Muted>}
+      {confirmRemove && <Muted style={{ fontSize: 12 }}>{t("It disappears from the menu on every tablet. Past sales keep it, and it can be brought back in the backoffice.")}</Muted>}
       {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
@@ -138,7 +138,7 @@ export function CategoryEditor({ category, onClose, onSaved }: { category: { id:
         <Btn title={category ? t("Save") : t("Add category")} loading={busy} disabled={!name.trim()} onPress={() => run(() => saveCategory({ id: category?.id, name: name.trim() }), false)} />
       </>}>
       <Field label={t("Name")} value={name} onChangeText={(v) => { setName(v); setConfirmDelete(false); }} placeholder={t("e.g. Minuman, Makanan, Snack")} maxLength={40} autoFocus />
-      {category && <Muted style={{ fontSize: 14 }}>{count === 1 ? t("1 item") : t("{n} items", { n: count })}{confirmDelete && count ? ` ${t("will stay on the menu without a category.")}` : "."}</Muted>}
+      {category && <Muted style={{ fontSize: 13 }}>{count === 1 ? t("1 item") : t("{n} items", { n: count })}{confirmDelete && count ? ` ${t("will stay on the menu without a category.")}` : "."}</Muted>}
       {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
@@ -163,7 +163,7 @@ export function CategoryPicker({ current, editing, onPick, onEdit, onClose }: {
       <View style={[pk.row, on && { backgroundColor: c.accentSoft }]}>
         <Pressable onPress={() => onPick(id)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`${name}, ${count(id)} items`}
           style={({ pressed }) => [{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14 }, pressed && { opacity: 0.7 }]}>
-          <Text style={{ flex: 1, fontSize: 17, fontWeight: on ? "800" : "600", color: c.ink }} numberOfLines={1}>{name}</Text>
+          <Text style={{ flex: 1, fontSize: 15, fontWeight: on ? "800" : "600", color: c.ink }} numberOfLines={1}>{name}</Text>
           <Text style={{ color: c.ink2 }}>{count(id)}</Text>
           {on && <MaterialCommunityIcons name="check" size={22} color={c.accent} />}
         </Pressable>
@@ -182,7 +182,7 @@ export function CategoryPicker({ current, editing, onPick, onEdit, onClose }: {
         <View style={pk.search}>
           <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
           <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Find a category")} placeholderTextColor="#98a29c" accessibilityLabel="Find a category"
-            style={{ flex: 1, fontSize: 17, color: c.ink, height: 46 }} />
+            style={{ flex: 1, fontSize: 15, color: c.ink, height: 46 }} />
         </View>
       )}
       <View style={pk.list}>
@@ -208,7 +208,7 @@ export const priceSummary = (i: Item) => {
 
 const st = StyleSheet.create({
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  input: { height: 48, borderWidth: 1, borderColor: c.line, borderRadius: r.md, paddingHorizontal: 14, fontSize: 17, backgroundColor: c.surface, color: c.ink },
+  input: { height: 48, borderWidth: 1, borderColor: c.line, borderRadius: r.md, paddingHorizontal: 14, fontSize: 15, backgroundColor: c.surface, color: c.ink },
   money: { flexDirection: "row", alignItems: "center", gap: 8 },
   toggle: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
 });

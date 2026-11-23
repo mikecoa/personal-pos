@@ -36,8 +36,8 @@ export function NoteSheet({ lineId, onClose }: { lineId: string; onClose: () => 
         <Btn big style={{ minWidth: 180 }} title={line.qty > 1 && !all ? t("Save for 1") : t("Save")} disabled={!text.trim()} onPress={() => save(text.trim(), all)} />
       </>}>
       <View style={{ gap: 4 }}>
-        <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }} numberOfLines={2}>{what}</Text>
-        {line.note ? <Muted style={{ fontSize: 14 }}>{t("Now: “{note}”", { note: line.note })}</Muted> : null}
+        <Text style={{ fontSize: 16, fontWeight: "800", color: c.ink }} numberOfLines={2}>{what}</Text>
+        {line.note ? <Muted style={{ fontSize: 13 }}>{t("Now: “{note}”", { note: line.note })}</Muted> : null}
       </View>
 
       {line.qty > 1 && (
@@ -51,7 +51,7 @@ export function NoteSheet({ lineId, onClose }: { lineId: string; onClose: () => 
               </Pressable>
             ))}
           </View>
-          {!all && <Muted style={{ fontSize: 13 }}>{t("That one moves to its own line on the order.")}</Muted>}
+          {!all && <Muted style={{ fontSize: 12 }}>{t("That one moves to its own line on the order.")}</Muted>}
         </View>
       )}
 
@@ -66,7 +66,7 @@ export function NoteSheet({ lineId, onClose }: { lineId: string; onClose: () => 
             </Pressable>
           )}
         </View>
-        {notes.length === 0 && <Muted style={{ fontSize: 14 }}>{can("items_manage") ? t("No quick notes yet. Tap Edit notes to add some.") : t("No quick notes yet.")}</Muted>}
+        {notes.length === 0 && <Muted style={{ fontSize: 13 }}>{can("items_manage") ? t("No quick notes yet. Tap Edit notes to add some.") : t("No quick notes yet.")}</Muted>}
         <View style={st.wrap}>
           {notes.map((n) => (
             <Pressable key={n} onPress={() => toggle(n)} accessibilityRole="checkbox" accessibilityState={{ checked: has(n) }} accessibilityLabel={n}
@@ -107,7 +107,7 @@ function QuickNotesEditor({ onClose }: { onClose: () => void }) {
     <Sheet visible onClose={onClose} title={t("Quick notes")} width={620}
       footer={<><Btn kind="secondary" title={t("Back")} onPress={onClose} /><View style={{ flex: 1 }} />
         <Btn big style={{ minWidth: 160 }} title={t("Save")} loading={busy} disabled={!valid} onPress={save} /></>}>
-      <Muted style={{ fontSize: 14 }}>{t("The same buttons show on every tablet here. The first ones are the quickest to reach. Which categories a note shows for is set in the backoffice (Library → Quick notes).")}</Muted>
+      <Muted style={{ fontSize: 13 }}>{t("The same buttons show on every tablet here. The first ones are the quickest to reach. Which categories a note shows for is set in the backoffice (Library → Quick notes).")}</Muted>
       <View style={{ gap: 8 }}>
         {rows.map((x, i) => (
           <View key={x.key} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -130,10 +130,10 @@ function QuickNotesEditor({ onClose }: { onClose: () => void }) {
           </View>
         ))}
         <Pressable onPress={() => setRows((rs) => [...rs, { key: String(rowKey++), text: "" }])} accessibilityRole="button" style={{ alignSelf: "flex-start", paddingVertical: 6 }}>
-          <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>{t("+ Add note")}</Text>
+          <Text style={{ color: c.accent, fontWeight: "700", fontSize: 14 }}>{t("+ Add note")}</Text>
         </Pressable>
       </View>
-      {!valid && rows.length > 0 && <Muted style={{ fontSize: 13 }}>{t("Each note needs text and must be different.")}</Muted>}
+      {!valid && rows.length > 0 && <Muted style={{ fontSize: 12 }}>{t("Each note needs text and must be different.")}</Muted>}
       {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
@@ -144,10 +144,10 @@ const st = StyleSheet.create({
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   chip: { paddingHorizontal: 18, height: 48, borderRadius: 6, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface, justifyContent: "center" },
   chipOn: { backgroundColor: c.accent, borderColor: c.accent },
-  chipText: { fontSize: 16, fontWeight: "700", color: c.ink },
+  chipText: { fontSize: 14, fontWeight: "700", color: c.ink },
   seg: { flexDirection: "row", borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, overflow: "hidden", alignSelf: "flex-start" },
   segBtn: { paddingHorizontal: 22, height: 46, justifyContent: "center", backgroundColor: c.surface },
   segOn: { backgroundColor: c.accent },
-  segText: { fontSize: 16, fontWeight: "700", color: c.ink },
-  input: { height: 50, borderWidth: 1, borderColor: c.line, borderRadius: r.md, paddingHorizontal: 14, fontSize: 17, backgroundColor: c.surface, color: c.ink },
+  segText: { fontSize: 14, fontWeight: "700", color: c.ink },
+  input: { height: 50, borderWidth: 1, borderColor: c.line, borderRadius: r.md, paddingHorizontal: 14, fontSize: 15, backgroundColor: c.surface, color: c.ink },
 });

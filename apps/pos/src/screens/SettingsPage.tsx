@@ -71,9 +71,9 @@ function Language() {
           return (
             <Tap key={l.code} onPress={() => setLanguage(l.code)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={l.label}
               scaleTo={0.98} style={[st.langRow, on && { borderColor: c.accent, backgroundColor: c.accentSoft }]}>
-              <Text style={{ fontSize: 22 }}>{l.code === "id" ? "🇮🇩" : "🇬🇧"}</Text>
+              <Text style={{ fontSize: 19 }}>{l.code === "id" ? "🇮🇩" : "🇬🇧"}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 18, fontWeight: "700", color: c.ink }}>{l.label}</Text>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink }}>{l.label}</Text>
                 <Text style={{ color: c.ink2 }}>{l.code === "id" ? "Contoh: Mulai shift, Tagih, Simpan bill" : "e.g. Start shift, Charge, Save bill"}</Text>
               </View>
               {on && <FadeIn from={0} scale={0.5} duration={150}><MaterialCommunityIcons name="check-circle" size={26} color={c.accent} /></FadeIn>}
@@ -88,7 +88,7 @@ function Language() {
 function Pane({ title, children }: { title: string; children: ReactNode }) {
   return (
     <ScrollView contentContainerStyle={{ padding: 24, gap: 16, maxWidth: 820 }} keyboardShouldPersistTaps="handled">
-      <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }}>{title}</Text>
+      <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }}>{title}</Text>
       {children}
     </ScrollView>
   );
@@ -136,7 +136,7 @@ function Account() {
       <SyncStatus />
       <Label>{t("Employee")}</Label>
       <Info rows={[["Signed in", employee.name], ["Role", employee.role]]} />
-      <Muted style={{ fontSize: 14 }}>{t("Business details, employees and roles are changed in the backoffice.")}</Muted>
+      <Muted style={{ fontSize: 13 }}>{t("Business details, employees and roles are changed in the backoffice.")}</Muted>
     </Pane>
   );
 }
@@ -151,7 +151,7 @@ function SyncStatus() {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
       <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: trouble ? c.danger : c.accent }} />
-      <Text style={{ flex: 1, minWidth: 180, color: trouble ? c.danger : c.ink, fontSize: 15, fontWeight: "600" }}>{text}</Text>
+      <Text style={{ flex: 1, minWidth: 180, color: trouble ? c.danger : c.ink, fontSize: 14, fontWeight: "600" }}>{text}</Text>
       <Btn kind="secondary" title={t("Details")} onPress={() => setOpen(true)} />
       <Btn kind="secondary" title={t("Sync now")} onPress={() => void syncNow({ catalog: true })} />
       {open && <SyncSheet onClose={() => setOpen(false)} />}
@@ -168,7 +168,7 @@ function UpdateCheck() {
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
       <Btn kind="secondary" title={t("Check for updates")} loading={busy}
         onPress={async () => { setBusy(true); setNote(null); const found = await checkNow(); setBusy(false); if (!found) setNote(t("Orda is up to date.")); }} />
-      {note ? <Muted style={{ fontSize: 14 }}>{note}</Muted> : null}
+      {note ? <Muted style={{ fontSize: 13 }}>{note}</Muted> : null}
     </View>
   );
 }
@@ -214,14 +214,14 @@ function Printer() {
 
   return (
     <Pane title={t("Printer")}>
-      {!printingAvailable() && <Muted style={{ fontSize: 14, color: c.warn }}>{t("Printing needs the POS app (not Expo Go).")}</Muted>}
+      {!printingAvailable() && <Muted style={{ fontSize: 13, color: c.warn }}>{t("Printing needs the POS app (not Expo Go).")}</Muted>}
 
       {p.connection !== "none" && p.address ? (
         <View style={st.printerCard}>
           <View style={st.printerIcon}><MaterialCommunityIcons name={KIND_ICON[p.connection]} size={26} color={c.accent} /></View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }} numberOfLines={1}>{p.name || t("Printer")}</Text>
-            <Muted style={{ fontSize: 14 }}>{`${KIND_NAME[p.connection]} · ${p.connection === "usb" ? "USB" : p.address}`}</Muted>
+            <Text style={{ fontSize: 16, fontWeight: "800", color: c.ink }} numberOfLines={1}>{p.name || t("Printer")}</Text>
+            <Muted style={{ fontSize: 13 }}>{`${KIND_NAME[p.connection]} · ${p.connection === "usb" ? "USB" : p.address}`}</Muted>
           </View>
           <Btn kind="secondary" title={t("Test print")} loading={testing} onPress={() => void test()} />
           <Btn kind="ghost" title={t("Remove")} onPress={() => { change({ connection: "none", address: "", name: "" }); setMsg(null); }} />
@@ -238,23 +238,23 @@ function Printer() {
         <View style={{ gap: 8 }}>
           {found.length === 0 ? (
             <View style={[st.card, { padding: 16, gap: 6 }]}>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink }}>{t("No printers found")}</Text>
-              <Muted style={{ fontSize: 14 }}>{t("Wi-Fi: the printer must be on the same network as this tablet.")}</Muted>
-              <Muted style={{ fontSize: 14 }}>{t("Bluetooth: pair the printer once in the tablet's Bluetooth settings.")}</Muted>
-              <Muted style={{ fontSize: 14 }}>{t("USB: plug the printer into the tablet.")}</Muted>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: c.ink }}>{t("No printers found")}</Text>
+              <Muted style={{ fontSize: 13 }}>{t("Wi-Fi: the printer must be on the same network as this tablet.")}</Muted>
+              <Muted style={{ fontSize: 13 }}>{t("Bluetooth: pair the printer once in the tablet's Bluetooth settings.")}</Muted>
+              <Muted style={{ fontSize: 13 }}>{t("USB: plug the printer into the tablet.")}</Muted>
             </View>
           ) : found.map((f) => (
             <Tap key={`${f.kind}-${f.address}`} onPress={() => void pick(f)} accessibilityRole="button" accessibilityLabel={`${f.name}, ${KIND_NAME[f.kind]}`}
               scaleTo={0.98} style={st.foundRow}>
               <MaterialCommunityIcons name={KIND_ICON[f.kind]} size={24} color={c.ink2} />
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }} numberOfLines={1}>{f.name}</Text>
-                <Muted style={{ fontSize: 13 }}>{`${KIND_NAME[f.kind]} · ${f.detail}${f.isPrinter ? "" : ` · ${t("may not be a printer")}`}`}</Muted>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }} numberOfLines={1}>{f.name}</Text>
+                <Muted style={{ fontSize: 12 }}>{`${KIND_NAME[f.kind]} · ${f.detail}${f.isPrinter ? "" : ` · ${t("may not be a printer")}`}`}</Muted>
               </View>
               <Text style={{ color: c.accent, fontWeight: "800" }}>{t("Use")}</Text>
             </Tap>
           ))}
-          {notes.map((n) => <Muted key={n} style={{ fontSize: 14, color: c.warn }}>{n}</Muted>)}
+          {notes.map((n) => <Muted key={n} style={{ fontSize: 13, color: c.warn }}>{n}</Muted>)}
           <Btn kind="ghost" title={t("Open Bluetooth settings to pair a printer")} onPress={() => void openBluetoothSettings()} />
         </View>
       )}
@@ -268,42 +268,42 @@ function Printer() {
       </View>
       <View style={st.toggleRow}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Print receipt after every sale")}</Text>
-          <Muted style={{ fontSize: 13 }}>{t("Otherwise staff print from the payment screen when a customer asks.")}</Muted>
+          <Text style={{ fontSize: 14, color: c.ink, fontWeight: "600" }}>{t("Print receipt after every sale")}</Text>
+          <Muted style={{ fontSize: 12 }}>{t("Otherwise staff print from the payment screen when a customer asks.")}</Muted>
         </View>
         <Switch value={p.autoPrint} onValueChange={(v) => change({ autoPrint: v })} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface}
           accessibilityLabel="Print receipt after every sale" />
       </View>
       <View style={st.toggleRow}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Bill & receipt copies")}</Text>
-          <Muted style={{ fontSize: 13 }}>{t("For the customer: the bill before paying and the receipt after.")}</Muted>
+          <Text style={{ fontSize: 14, color: c.ink, fontWeight: "600" }}>{t("Bill & receipt copies")}</Text>
+          <Muted style={{ fontSize: 12 }}>{t("For the customer: the bill before paying and the receipt after.")}</Muted>
         </View>
         <Stepper value={p.copies} min={1} onChange={(n) => change({ copies: Math.min(3, n) })} />
       </View>
       <View style={st.toggleRow}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Order ticket copies")}</Text>
-          <Muted style={{ fontSize: 13 }}>{t("Item list without prices for the kitchen, checker and so on. Each copy is cut separately.")}</Muted>
+          <Text style={{ fontSize: 14, color: c.ink, fontWeight: "600" }}>{t("Order ticket copies")}</Text>
+          <Muted style={{ fontSize: 12 }}>{t("Item list without prices for the kitchen, checker and so on. Each copy is cut separately.")}</Muted>
         </View>
         <Stepper value={p.ticketCopies ?? 3} min={1} onChange={(n) => change({ ticketCopies: Math.min(5, n) })} />
       </View>
       <View style={st.toggleRow}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Print order tickets automatically")}</Text>
-          <Muted style={{ fontSize: 13 }}>{t("When a bill is saved, when items are added to a saved bill (only the new items), and when an order is charged without saving.")}</Muted>
+          <Text style={{ fontSize: 14, color: c.ink, fontWeight: "600" }}>{t("Print order tickets automatically")}</Text>
+          <Muted style={{ fontSize: 12 }}>{t("When a bill is saved, when items are added to a saved bill (only the new items), and when an order is charged without saving.")}</Muted>
         </View>
         <Switch value={p.autoTicket ?? false} onValueChange={(v) => change({ autoTicket: v })} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface}
           accessibilityLabel="Print order tickets automatically" />
       </View>
       <View style={st.toggleRow}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Void / refund slip copies")}</Text>
-          <Muted style={{ fontSize: 13 }}>{t("Printed after removing items from a saved bill or giving a refund.")}</Muted>
+          <Text style={{ fontSize: 14, color: c.ink, fontWeight: "600" }}>{t("Void / refund slip copies")}</Text>
+          <Muted style={{ fontSize: 12 }}>{t("Printed after removing items from a saved bill or giving a refund.")}</Muted>
         </View>
         <Stepper value={p.slipCopies ?? 1} min={1} onChange={(n) => change({ slipCopies: Math.min(3, n) })} />
       </View>
-      <Muted style={{ fontSize: 14 }}>{t("Printer settings belong to this tablet only and save automatically.")}</Muted>
+      <Muted style={{ fontSize: 13 }}>{t("Printer settings belong to this tablet only and save automatically.")}</Muted>
     </Pane>
   );
 }
@@ -326,14 +326,14 @@ function LogOut() {
     <Pane title={t("Log out")}>
       <View style={st.card}>
         <View style={{ padding: 20, gap: 10 }}>
-          <Text style={{ fontSize: 17, fontWeight: "800", color: c.ink }}>{t("Switch employee")}</Text>
+          <Text style={{ fontSize: 15, fontWeight: "800", color: c.ink }}>{t("Switch employee")}</Text>
           <Muted>{t("Locks the tablet so the next person can enter their PIN. Sales, bills and the shift stay as they are.")}</Muted>
           <Btn title={t("Lock ({name})", { name: employee.name })} onPress={lock} style={{ alignSelf: "flex-start" }} />
         </View>
       </View>
       <View style={[st.card, { borderColor: c.danger }]}>
         <View style={{ padding: 20, gap: 10 }}>
-          <Text style={{ fontSize: 17, fontWeight: "800", color: c.danger }}>{t("Sign out this tablet")}</Text>
+          <Text style={{ fontSize: 15, fontWeight: "800", color: c.danger }}>{t("Sign out this tablet")}</Text>
           <Muted>{t("Removes the tablet's set-up and data. Use it when the tablet is replaced or moves to another location.")}</Muted>
           <Text style={{ color: unsent ? c.danger : c.accent, fontWeight: "600" }}>
             {unsent ? t("{unsent} record(s) are not uploaded yet.", { unsent }) : t("Everything is uploaded.")}
@@ -352,7 +352,7 @@ const st = StyleSheet.create({
   langRow: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 76, paddingHorizontal: 18, borderRadius: r.md, borderWidth: 2, borderColor: c.line, backgroundColor: c.surface },
   nav: { width: 260, borderRightWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingTop: 8 },
   navItem: { flexDirection: "row", alignItems: "center", gap: 12, height: 56, paddingHorizontal: 20 },
-  navText: { flex: 1, fontSize: 17, color: c.ink, fontWeight: "600" },
+  navText: { flex: 1, fontSize: 15, color: c.ink, fontWeight: "600" },
   card: { borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   infoRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 },
   toggleRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },

@@ -26,7 +26,7 @@ export function Setup() {
       <View style={{ width: "100%", maxWidth: 460, gap: 18 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Image source={require("../../assets/icon.png")} style={{ width: 52, height: 52, borderRadius: 13 }} accessibilityLabel="Orda" />
-          <Text style={{ color: c.accent, fontSize: 30, fontWeight: "700", letterSpacing: -0.5 }}>orda</Text>
+          <Text style={{ color: c.accent, fontSize: 26, fontWeight: "700", letterSpacing: -0.5 }}>orda</Text>
         </View>
         <H size={28}>{step === "login" ? t("Set up this tablet") : t("Which location is this tablet at?")}</H>
         <Muted>{step === "login"
@@ -46,7 +46,7 @@ export function Setup() {
               {locations.map((l) => (
                 <Pressable key={l.id} onPress={() => setChosen(l.id)} accessibilityRole="radio" accessibilityState={{ checked: chosen === l.id }}
                   style={{ padding: 16, borderRadius: r.md, borderWidth: 2, borderColor: chosen === l.id ? c.accent : c.line, backgroundColor: c.surface }}>
-                  <Text style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>{l.name}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{l.name}</Text>
                 </Pressable>
               ))}
             </View>

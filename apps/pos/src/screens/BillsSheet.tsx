@@ -76,9 +76,9 @@ function OpenBills({ bills, onClose }: { bills: OrderDoc[]; onClose: () => void 
           <Pressable key={b.id} disabled={blocked} onPress={() => { openBill(b.id); onClose(); }}
             accessibilityRole="button" accessibilityLabel={`Open bill ${billTitle(b)}, ${money(b.total)}`}
             style={({ pressed }) => [st.card, current?.id === b.id && { borderColor: c.accent, borderWidth: 2 }, pressed && { backgroundColor: c.surface2 }, blocked && { opacity: 0.5 }]}>
-            <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }} numberOfLines={1}>{billTitle(b)}</Text>
-            <Text style={{ color: c.ink, fontWeight: "700", fontSize: 16 }}>{money(b.total)}</Text>
-            <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={1}>
+            <Text style={{ fontSize: 16, fontWeight: "800", color: c.ink }} numberOfLines={1}>{billTitle(b)}</Text>
+            <Text style={{ color: c.ink, fontWeight: "700", fontSize: 14 }}>{money(b.total)}</Text>
+            <Text style={{ color: c.ink2, fontSize: 12 }} numberOfLines={1}>
               {(() => { const n = b.lines.reduce((s, l) => s + l.qty, 0); return n === 1 ? t("1 item") : t("{n} items", { n }); })()} · {age(b.opened_at)}{b.guests ? t(" · {guests} pax", { guests: b.guests }) : ""}{b.sales_type_name ? ` · ${b.sales_type_name}` : ""}
             </Text>
             <Text style={{ color: c.ink2, fontSize: 12 }}>{b.number} · {b.opened_by_name ?? ""}</Text>
@@ -100,7 +100,7 @@ function Cancelled({ list, onPick }: { list: OrderDoc[]; onPick: (o: OrderDoc) =
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <Text style={{ fontWeight: "700", color: c.ink }} numberOfLines={1}>{b.number} · {billTitle(b)}</Text>
             <Text style={{ color: c.ink2 }} numberOfLines={1}>{b.lines.map((l) => `${l.qty}× ${l.item_name}`).join(", ") || t("No items")}</Text>
-            <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={2}>
+            <Text style={{ color: c.ink2, fontSize: 12 }} numberOfLines={2}>
               {t("Reason")}: <Text style={{ color: c.ink }}>{b.cancel_reason ? t(b.cancel_reason) : "—"}</Text>{b.closed_by_name ? ` · ${t("by {name}", { name: b.closed_by_name })}` : ""}
             </Text>
           </View>
@@ -117,7 +117,7 @@ function Voids({ list, onPick }: { list: ReturnType<typeof voidLog>; onPick: (o:
   const total = list.reduce((s, v) => s + v.amount, 0);
   return (
     <View style={{ gap: 10 }}>
-      <Muted style={{ fontSize: 14 }}>{list.length === 1 ? t("1 void") : t("{n} voids", { n: list.length })} · {money(total)}</Muted>
+      <Muted style={{ fontSize: 13 }}>{list.length === 1 ? t("1 void") : t("{n} voids", { n: list.length })} · {money(total)}</Muted>
       <View style={st.table}>
         {list.map((v, i) => (
           <Pressable key={v.id} onPress={() => onPick(v.order, v.id)} accessibilityRole="button" accessibilityLabel={t("Details of {name}", { name: v.order.number })}
@@ -126,7 +126,7 @@ function Voids({ list, onPick }: { list: ReturnType<typeof voidLog>; onPick: (o:
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
               <Text style={{ fontWeight: "700", color: c.ink }} numberOfLines={1}>{v.qty}× {v.item_name}</Text>
               <Text style={{ color: c.ink2 }} numberOfLines={1}>{v.order.number} · {billTitle(v.order)} · {v.order.status === "open" ? t("bill open") : v.order.status === "completed" ? t("paid") : t("cancelled")}</Text>
-              <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={2}>
+              <Text style={{ color: c.ink2, fontSize: 12 }} numberOfLines={2}>
                 {t("Reason")}: <Text style={{ color: c.ink }}>{t(v.reason)}</Text>{v.employee_name ? ` · ${t("by {name}", { name: v.employee_name })}` : ""}
               </Text>
             </View>
@@ -143,7 +143,7 @@ const st = StyleSheet.create({
   tabs: { flexDirection: "row", gap: 4, borderBottomWidth: 1, borderColor: c.line, marginTop: -6 },
   tab: { flexDirection: "row", alignItems: "center", gap: 8, height: 54, paddingHorizontal: 18, borderBottomWidth: 3, borderColor: "transparent" },
   tabOn: { borderColor: c.accent },
-  tabText: { fontSize: 16, fontWeight: "700", color: c.ink2 },
+  tabText: { fontSize: 14, fontWeight: "700", color: c.ink2 },
   count: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" },
   countText: { fontSize: 12, fontWeight: "800", color: c.ink2 },
   card: { width: 260, padding: 14, gap: 4, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
@@ -151,12 +151,12 @@ const st = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "flex-start", gap: 14, padding: 14 },
   rowLine: { borderTopWidth: 1, borderColor: c.line },
   time: { width: 92, color: c.ink2, fontWeight: "600" },
-  amount: { fontWeight: "800", color: c.ink, fontSize: 16 },
-  chev: { fontSize: 22, color: c.ink2, marginLeft: -4 },
+  amount: { fontWeight: "800", color: c.ink, fontSize: 14 },
+  chev: { fontSize: 19, color: c.ink2, marginLeft: -4 },
   kv: { flexDirection: "row", justifyContent: "space-between", gap: 12, paddingVertical: 3 },
   k: { color: c.ink2 },
   v: { color: c.ink, fontWeight: "600", flexShrink: 1, textAlign: "right" },
-  h: { fontSize: 13, fontWeight: "800", color: c.ink2, marginTop: 14, marginBottom: 6, letterSpacing: 0.4 },
+  h: { fontSize: 12, fontWeight: "800", color: c.ink2, marginTop: 14, marginBottom: 6, letterSpacing: 0.4 },
 });
 
 /** One cancelled bill (or the bill a void came from): who, when, why, and everything that was on it. */
@@ -176,9 +176,9 @@ function BillDetail({ order: o, voidId, onBack }: { order: OrderDoc; voidId?: st
   return (
     <View style={{ gap: 4 }}>
       <Pressable onPress={onBack} accessibilityRole="button" style={{ alignSelf: "flex-start", paddingVertical: 6 }}>
-        <Text style={{ color: c.accent, fontWeight: "700", fontSize: 15 }}>‹ {t("Back")}</Text>
+        <Text style={{ color: c.accent, fontWeight: "700", fontSize: 14 }}>‹ {t("Back")}</Text>
       </Pressable>
-      <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }}>{billTitle(o)}</Text>
+      <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }}>{billTitle(o)}</Text>
       <View style={{ flexDirection: "row", gap: 24, flexWrap: "wrap" }}>
         <View style={{ flex: 1, minWidth: 260 }}>
           <Text style={st.h}>{t("DETAILS")}</Text>
@@ -193,7 +193,7 @@ function BillDetail({ order: o, voidId, onBack }: { order: OrderDoc; voidId?: st
                   <Text style={{ color: c.ink, fontWeight: "700" }}>{v.qty}× {v.item_name}</Text>
                   <Text style={{ color: c.danger, fontWeight: "700" }}>−{money(v.amount)}</Text>
                 </View>
-                <Text style={{ color: c.ink2, fontSize: 13 }}>{when(v.voided_at)} · {t(v.reason)}{v.employee_name ? ` · ${t("by {name}", { name: v.employee_name })}` : ""}</Text>
+                <Text style={{ color: c.ink2, fontSize: 12 }}>{when(v.voided_at)} · {t(v.reason)}{v.employee_name ? ` · ${t("by {name}", { name: v.employee_name })}` : ""}</Text>
                 <Pressable accessibilityRole="button" hitSlop={6} style={{ alignSelf: "flex-start", marginTop: 4 }}
                   onPress={() => showSlip({ kind: "void", reprint: true, order: o, items: [{ name: v.item_name, qty: v.qty, amount: v.amount }], reason: v.reason, by: v.employee_name, at: v.voided_at })}>
                   <Text style={{ color: c.accent, fontWeight: "700" }}>{t("Reprint void slip")}</Text>
@@ -211,8 +211,8 @@ function BillDetail({ order: o, voidId, onBack }: { order: OrderDoc; voidId?: st
                 <Text style={{ color: c.ink, fontWeight: "600", flexShrink: 1 }}>{l.qty}× {lineLabel(l)}</Text>
                 <Text style={{ color: c.ink }}>{money(l.line_total)}</Text>
               </View>
-              {l.modifiers.length > 0 && <Text style={{ color: c.ink2, fontSize: 13 }}>{l.modifiers.map((m) => m.option).join(", ")}</Text>}
-              {l.note ? <Text style={{ color: c.warn, fontSize: 13 }}>“{l.note}”</Text> : null}
+              {l.modifiers.length > 0 && <Text style={{ color: c.ink2, fontSize: 12 }}>{l.modifiers.map((m) => m.option).join(", ")}</Text>}
+              {l.note ? <Text style={{ color: c.warn, fontSize: 12 }}>“{l.note}”</Text> : null}
             </View>
           ))}
           {o.discounts.map((d) => <View key={d.id} style={st.kv}><Text style={st.k}>{d.name}</Text><Text style={[st.v, { color: c.accent }]}>−{money(d.amount)}</Text></View>)}
@@ -241,7 +241,7 @@ function Refunds({ list, onPick }: { list: RefundRow[]; onPick: (r: RefundRow) =
   const total = list.reduce((s, r) => s + r.amount, 0);
   return (
     <View style={{ gap: 10 }}>
-      <Muted style={{ fontSize: 14 }}>{list.length === 1 ? t("1 refund") : t("{n} refunds", { n: list.length })} · {money(total)}</Muted>
+      <Muted style={{ fontSize: 13 }}>{list.length === 1 ? t("1 refund") : t("{n} refunds", { n: list.length })} · {money(total)}</Muted>
       <View style={st.table}>
         {list.map((r, i) => (
           <Pressable key={r.id} onPress={() => onPick(r)} accessibilityRole="button" accessibilityLabel={t("Details of {name}", { name: r.order.number })}
@@ -250,7 +250,7 @@ function Refunds({ list, onPick }: { list: RefundRow[]; onPick: (r: RefundRow) =
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
               <Text style={{ fontWeight: "700", color: c.ink }} numberOfLines={1}>{r.lines.map((l) => `${l.qty}× ${l.item_name}`).join(", ")}</Text>
               <Text style={{ color: c.ink2 }} numberOfLines={1}>{r.order.number} · {billTitle(r.order)} · {r.method_name}</Text>
-              <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={2}>
+              <Text style={{ color: c.ink2, fontSize: 12 }} numberOfLines={2}>
                 {t("Reason")}: <Text style={{ color: c.ink }}>{t(r.reason)}</Text>{r.employee_name ? ` · ${t("by {name}", { name: r.employee_name })}` : ""}
               </Text>
             </View>
@@ -277,9 +277,9 @@ function RefundDetail({ r, onBack }: { r: RefundRow; onBack: () => void }) {
   return (
     <View style={{ gap: 4 }}>
       <Pressable onPress={onBack} accessibilityRole="button" style={{ alignSelf: "flex-start", paddingVertical: 6 }}>
-        <Text style={{ color: c.accent, fontWeight: "700", fontSize: 15 }}>‹ {t("Back")}</Text>
+        <Text style={{ color: c.accent, fontWeight: "700", fontSize: 14 }}>‹ {t("Back")}</Text>
       </Pressable>
-      <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }}>{t("Refund")} · {billTitle(r.order)}</Text>
+      <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }}>{t("Refund")} · {billTitle(r.order)}</Text>
       <View style={{ flexDirection: "row", gap: 24, flexWrap: "wrap" }}>
         <View style={{ flex: 1, minWidth: 260 }}>
           <Text style={st.h}>{t("DETAILS")}</Text>
