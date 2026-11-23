@@ -3,7 +3,7 @@ import { type ComponentProps, useEffect, useMemo, useRef, useState } from "react
 import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { can, clearOrder, confirmBill, splitParts, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
+import { can, clearOrder, confirmBill, isSplitPart, splitParts, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, lineSalesType, mixedSalesTypes, printedQty, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
@@ -169,8 +169,8 @@ export function Sell() {
             ) : null}
             <CustomerTile onPress={() => setModal({ kind: "customers" })} />
             {/* Split: a saved bill with more than one item can be split into two bills. */}
-            {!!order?.version && order.lines.reduce((s, l) => s + l.qty, 0) > 1 && (
-              <InfoTile icon="call-split" text={t("Split")} accent
+            {!!order?.version && (isSplitPart(order) || order.lines.reduce((s, l) => s + l.qty, 0) > 1) && (
+              <InfoTile icon="call-split" text={isSplitPart(order) ? t("Edit split") : t("Split")} accent
                 onPress={() => guard("open_bills_manage", t("Split the bill"), () => setModal({ kind: "split" }))} a11y={t("Split bill")} />
             )}
           </View>

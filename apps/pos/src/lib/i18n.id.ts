@@ -677,4 +677,10 @@ export const ID: Record<string, string> = {
   "Split undone: {n} bills merged into one": "Pisah dibatalkan: {n} bill digabung jadi satu",
   "Tap again to merge all {n} bills back into one": "Ketuk lagi untuk menggabung semua {n} bill jadi satu",
   "Undo split: merge all {n} bills back into one": "Batalkan pisah: gabung semua {n} bill jadi satu",
+  "Split bills updated: {n} bills": "Bill terpisah diperbarui: {n} bill",
+  "Edit split bills": "Ubah bill terpisah",
+  "A bill left empty is removed.": "Bill yang kosong akan dihapus.",
+  "Will be removed": "Akan dihapus",
+  "Save changes": "Simpan perubahan",
+  "Edit split": "Ubah pisah",
 };

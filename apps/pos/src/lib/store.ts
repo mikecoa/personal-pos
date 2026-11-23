@@ -586,6 +586,68 @@ export function mergeSplit(o: OrderDoc): OrderDoc {
   return merged;
 }
 
+/**
+ * Rearrange a split bill: `entries` are all the lines of all its parts, each with how many go to
+ * which bill (`qtys[b]`, b = 0..nBills-1; existing parts first, then new bills). Bills left empty
+ * are closed (empty, reason "Split changed") and the rest are renumbered (1/N)… Nothing is voided:
+ * locked and printed counts move with the items.
+ */
+export function resplit(parts: OrderDoc[], entries: { line: OrderDoc["lines"][number]; origin: number; qtys: number[] }[], nBills: number) {
+  saveOpenBill(false);
+  const fresh = parts.map((p) => (state.order?.id === p.id ? state.order! : db.getOrder(p.id) ?? p));
+  const src = fresh[0]!;
+  const base = stripPart(src.bill_name ?? src.number) || src.number;
+  const linesFor: OrderDoc["lines"][] = Array.from({ length: nBills }, () => []);
+  for (const { line, origin, qtys } of entries) {
+    let saved = line.saved_qty ?? 0, printed = printedQty(line);
+    const order = [origin, ...qtys.map((_, b) => b).filter((b) => b !== origin)];   // the bill it came from keeps the locked ones first
+    for (const b of order) {
+      const q = qtys[b] ?? 0;
+      if (q <= 0) continue;
+      const s = Math.min(q, saved), p = Math.min(q, printed);
+      saved -= s; printed -= p;
+      const piece = { ...line, id: b === origin ? line.id : randomUUID(), qty: q, saved_qty: s, printed_qty: p };
+      const same = linesFor[b]!.findIndex((x) => sameLine(x, piece) && (x.note ?? null) === (piece.note ?? null) && (x.sales_type_id ?? null) === (piece.sales_type_id ?? null));
+      if (same >= 0) { const x = linesFor[b]![same]!; linesFor[b]![same] = { ...x, qty: x.qty + q, saved_qty: (x.saved_qty ?? 0) + s, printed_qty: printedQty(x) + p }; }
+      else linesFor[b]!.push(piece);
+    }
+  }
+  const kept: OrderDoc[] = [];
+  linesFor.forEach((lines, b) => {
+    const part = fresh[b];
+    if (part) {
+      if (!lines.length) {
+        db.saveOrder({ ...part, status: "cancelled", version: part.version + 1, lines: [], discounts: [], cancelled_at: now(),
+          cancel_reason: "Split changed (items moved to the other bills)", closed_by: state.employee!.id, closed_by_name: state.employee!.name });
+        return;
+      }
+      const next = reprice({ ...part, version: part.version + 1, lines }, state.catalog!);
+      db.saveOrder(next); kept.push(next);
+    } else if (lines.length) {
+      const blank = newOrder(state.catalog!, formatOrderNumber(state.device!.receipt_prefix, db.nextCounter()), state.employee!);
+      const created = reprice({
+        ...blank, status: "open", version: 1, bill_name: `${base} (${b + 1})`, table_id: src.table_id, table_name: src.table_name, guests: null,
+        customer_name: src.customer_name, sales_type_id: src.sales_type_id, sales_type_name: src.sales_type_name,
+        served_by: src.served_by, served_by_name: src.served_by_name,
+        tax_name: src.tax_name, tax_rate_bp: src.tax_rate_bp, gratuity_name: src.gratuity_name, gratuity_rate_bp: src.gratuity_rate_bp,
+        prices_include_tax: src.prices_include_tax, tax_after_discount: src.tax_after_discount, lines,
+      }, state.catalog!);
+      db.saveOrder(created); kept.push(created);
+    }
+  });
+  if (!kept.length) throw new Error(t("Every new bill needs at least one item."));
+  if (kept.length === 1) {
+    const only = { ...kept[0]!, bill_name: base, version: kept[0]!.version + 1 };
+    db.saveOrder(only); kept[0] = only;
+  } else renumberSplit(kept[0]!);
+  const onScreen = state.order && kept.find((k) => k.id === state.order!.id);
+  const first = db.getOrder((onScreen ?? kept[0]!).id)!;
+  set({ order: reprice(first, state.catalog!), billChanged: false });
+  refreshLocal();
+  void syncNow();
+  return kept.map((k) => db.getOrder(k.id) ?? k);
+}
+
 function renumberSplit(o: OrderDoc) {
   const base = stripPart(o.bill_name ?? o.number);
   const parts = splitParts(o);
