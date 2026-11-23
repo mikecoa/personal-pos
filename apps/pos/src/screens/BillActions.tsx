@@ -1,9 +1,12 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { AppliedDiscount } from "@pos/core";
-import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, splitBillMany, useStore } from "../lib/store";
+import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, splitBillMany, splitParts, tableLabel, useStore } from "../lib/store";
 import { lineLabel } from "../lib/order";
-import { autoTicket, newItems } from "./receipt";
+import type { OrderDoc } from "../lib/types";
+import { autoTicket, newItems, printReceipt, toReceipt } from "./receipt";
+import { ReceiptView } from "./ReceiptView";
+import { lineWidth } from "../lib/printer";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { t } from "../lib/i18n";
@@ -109,6 +112,10 @@ const st = StyleSheet.create({
   splitCol: { width: 250, padding: 8, gap: 8, borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.bg },
   splitHead: { padding: 6, gap: 2 },
   splitItem: { flexDirection: "row", alignItems: "center", gap: 6, padding: 8, borderRadius: r.sm, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  printRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface },
+  tick: { width: 24, height: 24, borderRadius: r.sm, borderWidth: 1.5, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
+  totalBox: { padding: 12, borderRadius: r.md, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, gap: 2 },
+  stepNo: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: c.line, alignItems: "center", justifyContent: "center" },
   splitAdd: { width: 140, alignItems: "center", justifyContent: "center", borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent },
   tableBtn: { minWidth: 64, height: 52, paddingHorizontal: 12, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   tableOn: { backgroundColor: c.accent, borderColor: c.accent },
@@ -163,6 +170,7 @@ export function SplitBillSheet({ onClose }: { onClose: () => void }) {
   const [bills, setBills] = useState(2);
   const [target, setTarget] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<OrderDoc[] | null>(null);       // after splitting: the bills to print, in order
   const unit = (id: string) => { const l = order.lines.find((x) => x.id === id)!; return l.line_total / l.qty; };
   const count = (b: number) => order.lines.reduce((s, l) => s + (alloc[l.id]![b] ?? 0), 0);
   const amount = (b: number) => order.lines.reduce((s, l) => s + Math.round(unit(l.id) * (alloc[l.id]![b] ?? 0)), 0);
@@ -178,10 +186,11 @@ export function SplitBillSheet({ onClose }: { onClose: () => void }) {
     try {
       const groups = Array.from({ length: bills - 1 }, (_, i) => Object.fromEntries(order.lines.map((l) => [l.id, alloc[l.id]![i + 1] ?? 0]).filter(([, n]) => (n as number) > 0)));
       const made = splitBillMany(groups as Record<string, number>[]);
+      setResult([getState().order!, ...made]);
       notify(t("Split into {n} bills", { n: made.length + 1 }));
-      onClose();
     } catch (e) { setError((e as Error).message); }
   };
+  if (result) return <SplitPrintSheet bills={splitParts(result[0]!)} onClose={onClose} />;
   return (
     <Sheet visible onClose={onClose} title={t("Split bill")} width={1100}
       footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
@@ -219,6 +228,80 @@ export function SplitBillSheet({ onClose }: { onClose: () => void }) {
       {order.discounts.length > 0 && <Muted style={{ fontSize: 12, marginTop: 10 }}>{t("Bill discounts stay on this bill.")}</Muted>}
       {!ok && <Muted style={{ fontSize: 12, marginTop: 8 }}>{t("Every bill needs at least one item.")}</Muted>}
       {error && <Text style={{ color: c.danger, marginTop: 8 }}>{error}</Text>}
+    </Sheet>
+  );
+}
+
+/**
+ * Print a split bill: the whole table's total, every part with its own preview, and a tick box per
+ * bill so the cashier prints just the ones wanted (one by one or together). Opens right after a
+ * split and from "Print bill" on any part.
+ */
+export function SplitPrintSheet({ bills, onClose, focusId }: { bills: OrderDoc[]; onClose: () => void; focusId?: string }) {
+  const catalog = useStore((s) => s.catalog)!;
+  const p = printerSettings();
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(focusId ? [focusId] : bills.map((b) => b.id)));
+  const [focus, setFocus] = useState(focusId ?? bills[0]!.id);
+  const [printed, setPrinted] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const noPrinter = p.connection === "none";
+  const canPrint = can("bill_print");
+  const total = bills.reduce((s, b) => s + b.total, 0);
+  const shown = bills.find((b) => b.id === focus) ?? bills[0]!;
+  const toggle = (id: string) => setPicked((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const title = (b: OrderDoc) => (b.table_id ? t("Table {name}", { name: tableLabel(b) }) : b.bill_name ?? b.number);
+  const printPicked = async () => {
+    setBusy(true);
+    for (const b of bills.filter((x) => picked.has(x.id))) {
+      setFocus(b.id);
+      try { await printReceipt(b, catalog); setPrinted((s) => new Set(s).add(b.id)); }
+      catch (e) { notify((e as Error).message); break; }
+    }
+    setBusy(false);
+  };
+  return (
+    <Sheet visible onClose={onClose} title={t("Print split bills")} width={980}
+      footer={<><Btn kind="secondary" title={t("Done")} onPress={onClose} />
+        <Btn style={{ flex: 1 }} disabled={busy || noPrinter || !canPrint || picked.size === 0}
+          title={busy ? t("Printing…") : picked.size === bills.length ? t("Print all {n} bills", { n: bills.length }) : t("Print {n} selected", { n: picked.size })}
+          onPress={() => void printPicked()} /></>}>
+      <View style={{ flexDirection: "row", gap: 16 }}>
+        <View style={{ width: 340, gap: 8 }}>
+          <View style={st.totalBox}>
+            <Text style={{ color: c.ink2, fontSize: 12 }}>{t("Whole table · {n} bills", { n: bills.length })}</Text>
+            <Text style={{ color: c.ink, fontSize: 19, fontWeight: "800" }}>{money(total)}</Text>
+          </View>
+          {(noPrinter || !canPrint) && <Muted style={{ fontSize: 12 }}>{noPrinter ? t("No printer is set up on this tablet.") : t("Your role can't print bills. Ask a manager.")}</Muted>}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Muted style={{ fontSize: 12 }}>{t("Tick the bills to print. Tap a bill to preview it.")}</Muted>
+            <Pressable onPress={() => setPicked(picked.size === bills.length ? new Set() : new Set(bills.map((b) => b.id)))} hitSlop={6}>
+              <Text style={{ color: c.accent, fontWeight: "700", fontSize: 12 }}>{picked.size === bills.length ? t("None") : t("All")}</Text>
+            </Pressable>
+          </View>
+          <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ gap: 6 }}>
+            {bills.map((b) => {
+              const on = picked.has(b.id), seen = focus === b.id, done = printed.has(b.id);
+              return (
+                <Pressable key={b.id} onPress={() => setFocus(b.id)} style={[st.printRow, seen && { borderColor: c.accent, backgroundColor: c.accentSoft }]}>
+                  <Pressable onPress={() => toggle(b.id)} hitSlop={8} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
+                    style={[st.tick, on && { backgroundColor: c.accent, borderColor: c.accent }]}>
+                    {on && <Text style={{ color: c.accentInk, fontWeight: "800", fontSize: 13 }}>✓</Text>}
+                  </Pressable>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{title(b)}</Text>
+                    <Text style={{ color: c.ink2, fontSize: 12 }} numberOfLines={1}>{b.lines.map((l) => `${l.qty}× ${l.item_name}`).join(", ")}</Text>
+                    {done && <Text style={{ color: c.accent, fontSize: 11, fontWeight: "700" }}>{t("Printed")}</Text>}
+                  </View>
+                  <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{money(b.total)}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+        <ScrollView style={{ flex: 1, maxHeight: 520 }} contentContainerStyle={{ paddingVertical: 4 }}>
+          <ReceiptView lines={toReceipt(shown, catalog, undefined, lineWidth(p.paper))} />
+        </ScrollView>
+      </View>
     </Sheet>
   );
 }

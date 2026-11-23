@@ -3,12 +3,12 @@ import { type ComponentProps, useEffect, useMemo, useRef, useState } from "react
 import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { can, clearOrder, confirmBill, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
+import { can, clearOrder, confirmBill, splitParts, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, lineSalesType, mixedSalesTypes, printedQty, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
-import { BillDiscountSheet, CancelBillSheet, SaveBillSheet, SplitBillSheet } from "./BillActions";
+import { BillDiscountSheet, CancelBillSheet, SaveBillSheet, SplitBillSheet, SplitPrintSheet } from "./BillActions";
 import { BillsSheet } from "./BillsSheet";
 import { ChargeSheet } from "./ChargeSheet";
 import { ItemSheet } from "./ItemSheet";
@@ -429,7 +429,9 @@ export function Sell() {
       {modal?.kind === "line" && <LineSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "note" && <NoteSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "charge" && <ChargeSheet onClose={() => { setModal(null); if (!getState().order?.lines.length) setCartOpen(false); }} />}
-      {modal?.kind === "billPreview" && order && <BillPreviewSheet onClose={() => setModal(null)} />}
+      {modal?.kind === "billPreview" && order && (/ \(\d+\/\d+\)$/.test(order.bill_name ?? "")
+        ? <SplitPrintSheet bills={splitParts(order)} focusId={order.id} onClose={() => setModal(null)} />
+        : <BillPreviewSheet onClose={() => setModal(null)} />)}
       {modal?.kind === "ticketPreview" && order && <BillPreviewSheet ticket onClose={() => setModal(null)} />}
       {modal?.kind === "bills" && <BillsSheet onClose={() => setModal(null)} />}
       {modal?.kind === "save" && <SaveBillSheet onClose={() => setModal(null)} />}

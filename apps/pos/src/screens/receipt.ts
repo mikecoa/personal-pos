@@ -6,7 +6,9 @@ import { notify, printerSettings, type Slip } from "../lib/store";
 import { t } from "../lib/i18n";
 
 /** " (2)" for split bills, so the printouts of the two bills at one table differ. */
-const splitPart = (o: OrderDoc) => o.bill_name?.match(/ \(\d+\)$/)?.[0] ?? "";
+const splitPart = (o: OrderDoc) => o.bill_name?.match(/ \(\d+(?:\/\d+)?\)$/)?.[0] ?? "";
+/** "SPLIT BILL 2 OF 3" for a bill split into parts named "(2/3)". */
+const splitNote = (o: OrderDoc) => { const m = o.bill_name?.match(/ \((\d+)\/(\d+)\)$/); return m ? `SPLIT BILL ${m[1]} OF ${m[2]}` : null; };
 
 export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string, width = 32): string[] {
   // Mixed bill (e.g. Dine In + Take Away): items grouped by type, each showing its type.
@@ -26,7 +28,7 @@ export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string, width = 
     gratuity: o.gratuity_total ? { name: o.gratuity_name ?? "Service", amount: o.gratuity_total } : null,
     tax: o.tax_total ? { name: o.tax_name ?? "Tax", amount: o.tax_total } : null,
     rounding: o.rounding, total: o.total, payments: o.payments.map((p) => ({ name: p.method_name, amount: p.amount })), change: o.change_due,
-    copy: copy ?? (o.status === "open" ? "BILL" : null),
+    copy: [copy ?? (o.status === "open" ? "BILL" : null), splitNote(o)].filter(Boolean).join(" - ") || null,
   };
   return receiptLines(catalog.receipt, r, width);
 }
@@ -94,6 +96,7 @@ export function ticketLines(o: OrderDoc, items: TicketItem[], width = 32, added 
   return [
     center(added ? "*** ADDITIONAL ORDER ***" : "*** ORDER ***"),
     ...(reprint ? [center("(REPRINT)")] : []),
+    ...(splitNote(o) ? [center(splitNote(o)!)] : []),
     ...(who ? [center(who)] : []),
     ...(o.customer_name && o.table_name ? [center(o.customer_name)] : []),
     rule,

@@ -492,8 +492,8 @@ export function splitBill(picks: Record<string, number>): OrderDoc {
   const src = state.order!;
   const base = newOrder(state.catalog!, formatOrderNumber(state.device!.receipt_prefix, db.nextCounter()), state.employee!);
   // Number split bills at the table: (2), (3)…
-  const parts = state.openOrders.filter((b) => b.table_id && b.table_id === src.table_id).map((b) => Number(b.bill_name?.match(/ \((\d+)\)$/)?.[1] ?? 1));
-  const baseName = (src.bill_name ?? src.number).replace(/ \(\d+\)$/, "");
+  const parts = state.openOrders.filter((b) => b.table_id && b.table_id === src.table_id).map((b) => Number(b.bill_name?.match(/ \((\d+)(?:\/\d+)?\)$/)?.[1] ?? 1));
+  const baseName = (src.bill_name ?? src.number).replace(/ \(\d+(?:\/\d+)?\)$/, "");
   const name = `${baseName} (${Math.max(1, ...parts) + 1})`;
   const newLines: OrderDoc["lines"] = [];
   const keptLines: OrderDoc["lines"] = [];
@@ -527,7 +527,40 @@ export function splitBillMany(groups: Record<string, number>[]): OrderDoc[] {
   const moved = groups.reduce((s, g) => s + Object.values(g).reduce((a, n) => a + n, 0), 0);
   if (!groups.length || groups.some((g) => !Object.values(g).some((n) => n > 0))) throw new Error(t("Every new bill needs at least one item."));
   if (moved >= total) throw new Error(t("Leave at least one item on this bill."));
-  return groups.map((g) => splitBill(g));
+  const made = groups.map((g) => splitBill(g));
+  renumberSplit(state.order!);
+  return made.map((m) => db.getOrder(m.id) ?? m);
+}
+
+/**
+ * Name every part of a split bill "… (1/3)", "… (2/3)", "… (3/3)" (in the order they were made),
+ * so the bills and their receipts say which part they are. Parts are the open bills at the same
+ * table with the same base name.
+ */
+const stripPart = (n: string | null | undefined) => (n ?? "").replace(/ \(\d+(?:\/\d+)?\)$/, "");
+/** All open parts of the split bill `o` belongs to, in order (just `o` when it isn't split). */
+export function splitParts(o: OrderDoc): OrderDoc[] {
+  const base = stripPart(o.bill_name ?? o.number);
+  const parts = db.listOrders("open")
+    .filter((b) => (o.table_id ? b.table_id === o.table_id : true) && stripPart(b.bill_name ?? b.number) === base)
+    .sort((a, b) => a.opened_at.localeCompare(b.opened_at) || a.number.localeCompare(b.number))
+    .map((b) => (state.order?.id === b.id ? state.order : db.getOrder(b.id) ?? b));
+  return parts.length ? parts : [o];
+}
+function renumberSplit(o: OrderDoc) {
+  const base = stripPart(o.bill_name ?? o.number);
+  const parts = splitParts(o);
+  if (parts.length < 2) return;
+  parts.forEach((b, i) => {
+    const name = `${base} (${i + 1}/${parts.length})`;
+    if (b.bill_name === name) return;
+    const full = db.getOrder(b.id)!;
+    const next: OrderDoc = { ...full, bill_name: name, version: full.version + 1 };
+    db.saveOrder(next);
+    if (state.order?.id === b.id) set({ order: { ...state.order, bill_name: name, version: next.version } });
+  });
+  refreshLocal();
+  void syncNow();
 }
 export function cancelBill(reason: string) {
   const o = state.order!;
@@ -573,7 +606,7 @@ export const byTableName = (a: { name: string }, b: { name: string }) => a.name.
 /** Table name for a bill; split bills keep their "(2)", "(3)"… so they can be told apart. */
 export const tableLabel = (o: Pick<OrderDoc, "table_id" | "table_name"> & { bill_name?: string | null }) => {
   const name = state.catalog?.tables?.find((t) => t.id === o.table_id)?.name ?? o.table_name ?? "";
-  const part = o.bill_name?.match(/ \((\d+)\)$/)?.[0] ?? "";
+  const part = o.bill_name?.match(/ \(\d+(?:\/\d+)?\)$/)?.[0] ?? "";
   return name + part;
 };
 
