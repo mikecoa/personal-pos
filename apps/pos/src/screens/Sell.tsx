@@ -322,8 +322,8 @@ export function Sell() {
           {compact && <View style={{ flex: 1 }} />}
           {/* Phones: icon buttons so everything fits on one row. */}
           {!editingMenu && (tight
-            ? <IconBtn size={bh} icon="plus-circle-outline" label={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />
-            : <Btn kind="secondary" style={{ minHeight: bh }} title={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />)}
+            ? <IconBtn size={bh} icon="plus-circle-outline" label={t("+ Custom amount")} onPress={() => guard("custom_amount", t("Add a custom amount"), () => setModal({ kind: "custom" }))} />
+            : <Btn kind="secondary" style={{ minHeight: bh }} title={t("+ Custom amount")} onPress={() => guard("custom_amount", t("Add a custom amount"), () => setModal({ kind: "custom" }))} />)}
           {canEditMenu && (tight && !editingMenu
             ? <IconBtn size={bh} icon="pencil-outline" label={t("Edit menu")} onPress={() => setEditingMenu(true)} />
             : <Btn kind={editingMenu ? "primary" : "secondary"} style={{ minHeight: bh }} title={editingMenu ? t("Done") : t("Edit menu")} onPress={() => setEditingMenu(!editingMenu)} />)}

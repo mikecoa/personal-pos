@@ -4,10 +4,12 @@ import { Text, View } from "react-native";
 import { approveWithPin, cancelApproval, useStore } from "../lib/store";
 import { Btn, Keypad, Muted, Sheet } from "../ui/kit";
 import { c } from "../ui/theme";
+import { useLayout } from "../ui/layout";
 import { t } from "../lib/i18n";
 
 /** Asks for a manager's PIN when an action needs approval (see guard() in the store). */
 export function ApprovalSheet() {
+  const { short } = useLayout();
   const approval = useStore((s) => s.approval);
   const employee = useStore((s) => s.employee);
   const [pin, setPin] = useState("");
@@ -32,9 +34,10 @@ export function ApprovalSheet() {
 
   return (
     <Sheet visible onClose={close} title={t("Manager approval")} width={520}
-      footer={<><View style={{ flex: 1 }} /><Btn kind="secondary" title={t("Cancel")} onPress={close} /></>}>
-      <View style={{ alignItems: "center", gap: 14 }}>
-        <MaterialCommunityIcons name="shield-key-outline" size={40} color={c.accent} />
+      // Small tablets: no footer (the ✕ cancels) so the whole keypad fits.
+      footer={short ? undefined : <><View style={{ flex: 1 }} /><Btn kind="secondary" title={t("Cancel")} onPress={close} /></>}>
+      <View style={{ alignItems: "center", gap: short ? 8 : 14 }}>
+        <MaterialCommunityIcons name="shield-key-outline" size={short ? 28 : 40} color={c.accent} />
         <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink, textAlign: "center" }}>{t(approval.label)}</Text>
         <Muted style={{ textAlign: "center" }}>{t("{v0} needs a manager to approve this. Manager, enter your PIN.", { v0: employee?.name ?? t("This employee") })}</Muted>
         <View style={{ flexDirection: "row", gap: 14 }} accessibilityLabel={`${pin.length} of 4 digits entered`}>

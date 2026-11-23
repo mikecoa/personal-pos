@@ -693,4 +693,9 @@ export const ID: Record<string, string> = {
   "this table": "meja ini",
   "Every bill of this split is cancelled with the same reason.": "Semua bill dari pisahan ini dibatalkan dengan alasan yang sama.",
   "These bills are closed without payment. Their items and this reason are kept in the report.": "Bill-bill ini ditutup tanpa pembayaran. Item dan alasannya tetap tercatat di laporan.",
+  "Apply {name}'s discount": "Pakai diskon {name}",
+  "Give this customer a discount": "Beri diskon ke pelanggan ini",
+  "Add custom amounts": "Menambah nominal bebas",
+  "A price typed by hand instead of a menu item": "Harga yang diketik manual, bukan item menu",
+  "Add a custom amount": "Tambah nominal bebas",
 };

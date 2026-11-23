@@ -722,4 +722,7 @@ export const ID: Record<string, string> = {
   "Removing…": "Menghapus…",
   "Remove from history": "Hapus dari riwayat",
   "Shift": "Shift",
+  "Add custom amounts": "Menambah nominal bebas",
+  "A price typed by hand instead of a menu item": "Harga yang diketik manual, bukan item menu",
+  "Add a custom amount": "Tambah nominal bebas",
 };
