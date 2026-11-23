@@ -3,12 +3,12 @@ import { type ComponentProps, useEffect, useMemo, useRef, useState } from "react
 import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { can, clearOrder, confirmBill, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
+import { can, clearOrder, confirmBill, isSplitPart, splitParts, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, lineSalesType, mixedSalesTypes, printedQty, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
-import { BillDiscountSheet, CancelBillSheet, SaveBillSheet } from "./BillActions";
+import { BillDiscountSheet, CancelBillSheet, SaveBillSheet, SplitBillSheet, SplitPrintSheet } from "./BillActions";
 import { BillsSheet } from "./BillsSheet";
 import { ChargeSheet } from "./ChargeSheet";
 import { ItemSheet } from "./ItemSheet";
@@ -28,7 +28,7 @@ import { printerSettings } from "../lib/store";
 import { t } from "../lib/i18n";
 
 type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "note"; id: string }
-  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "billPreview" | "ticketPreview" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
+  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "billPreview" | "ticketPreview" | "split" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "move" | "seating" } | null;
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
@@ -37,7 +37,6 @@ export function Sell() {
   const openCount = useStore((s) => s.openOrders.length);
   const notice = useStore((s) => s.notice);
   const shift = useStore((s) => s.shift);
-  const hasTables = useStore((s) => (s.catalog?.tables?.length ?? 0) > 0) || can("tables_manage");
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [modal, setModal] = useState<Modal>(null);
@@ -57,7 +56,7 @@ export function Sell() {
       (!term || i.name.toLowerCase().includes(term) || byInitials(i.name, term) || i.variants.some((v) => v.sku?.toLowerCase() === term)));
   }, [catalog.items, cat, q]);
   const cols = Math.max(1, Math.floor(gridW / 230));          // list rows: 1 column on phones, 2+ beside the order
-  const tileW = (gridW - 8 * (cols - 1)) / cols;
+  const tileW = Math.floor((gridW - 8 * (cols - 1)) / cols);    // rounded down so the last tile's right border is never clipped
   const catName = cat ? catalog.categories.find((k) => k.id === cat)?.name ?? t("Category") : t("All items");
 
   // Grid rows: a header per category (in "All items"), then the items in rows of `cols`.
@@ -164,10 +163,14 @@ export function Sell() {
                 <InfoTile icon="swap-horizontal" text={t("Move")} accent
                   onPress={() => guard("open_bills_manage", "Move the bill to another table", () => setModal({ kind: "move" }))} a11y="Move table" />
               </>
-            ) : hasTables && (!order || order.version === 0) ? (
-              <InfoTile icon="table-chair" text={t("Pick table")} dashed onPress={() => setModal({ kind: "tables" })} a11y="Pick a table" />
             ) : null}
+            {/* No "Pick table" here: the table is chosen in Save bill, or by starting the bill from the Tables page. */}
             <CustomerTile onPress={() => setModal({ kind: "customers" })} />
+            {/* Split: a saved bill with more than one item can be split into two bills. */}
+            {!!order?.version && (isSplitPart(order) || order.lines.reduce((s, l) => s + l.qty, 0) > 1) && (
+              <InfoTile icon="call-split" text={isSplitPart(order) ? t("Edit split") : t("Split")} accent disabled={billChanged}
+                onPress={() => guard("open_bills_manage", t("Split the bill"), () => setModal({ kind: "split" }))} a11y={t("Split bill")} />
+            )}
           </View>
           {/* Sales type for the items added next: one dropdown, however many types there are. */}
           {catalog.sales_types.length > 0 && (
@@ -244,14 +247,14 @@ export function Sell() {
         <View style={{ padding: short ? 10 : 16, paddingTop: short ? 8 : 12, gap: 8, borderTopWidth: 1, borderColor: c.line }}>
           {hasLines && !printable && (
             <Text style={{ color: c.ink2, fontSize: 12, textAlign: "center" }}>
-              {order?.version ? t("Press Done to confirm the changes, then you can print.") : t("Save the bill to print the order or the bill.")}
+              {order?.version ? t("Press Done to confirm the changes, then you can print or split.") : t("Save the bill to print the order or the bill.")}
             </Text>
           )}
           <View style={{ flexDirection: "row", gap: 8 }}>
             <ToolButton icon="tag-outline" label={t("Discount")} disabled={!hasLines}
               onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
             {order?.version
-              ? <ToolButton icon="check" label={t("Done")} onPress={() => {
+              ? <ToolButton icon="check" label={t("Done")} disabled={!billChanged} onPress={() => {
                   // Save and stay on the bill (to print the order or the bill next). With auto-print on,
                   // the new items go to the kitchen now and count as sent.
                   const o = order!; const items = newItems(o);
@@ -268,7 +271,7 @@ export function Sell() {
                 onPress={() => guard("bill_print", t("Print bill"), () => setModal({ kind: "billPreview" }))} />
             )}
             {hasLines && (
-              <ToolButton icon="chef-hat" label={t("Print order")} disabled={!printable} onPress={() => setModal({ kind: "ticketPreview" })} />
+              <ToolButton icon="clipboard-list-outline" label={t("Print order")} disabled={!printable} onPress={() => setModal({ kind: "ticketPreview" })} />
             )}
             {order?.version
               ? <ToolButton icon="close-octagon-outline" label={t("Cancel bill")} danger onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
@@ -317,8 +320,8 @@ export function Sell() {
           {compact && <View style={{ flex: 1 }} />}
           {/* Phones: icon buttons so everything fits on one row. */}
           {!editingMenu && (tight
-            ? <IconBtn size={bh} icon="plus-circle-outline" label={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />
-            : <Btn kind="secondary" style={{ minHeight: bh }} title={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />)}
+            ? <IconBtn size={bh} icon="plus-circle-outline" label={t("+ Custom amount")} onPress={() => guard("custom_amount", t("Add a custom amount"), () => setModal({ kind: "custom" }))} />
+            : <Btn kind="secondary" style={{ minHeight: bh }} title={t("+ Custom amount")} onPress={() => guard("custom_amount", t("Add a custom amount"), () => setModal({ kind: "custom" }))} />)}
           {canEditMenu && (tight && !editingMenu
             ? <IconBtn size={bh} icon="pencil-outline" label={t("Edit menu")} onPress={() => setEditingMenu(true)} />
             : <Btn kind={editingMenu ? "primary" : "secondary"} style={{ minHeight: bh }} title={editingMenu ? t("Done") : t("Edit menu")} onPress={() => setEditingMenu(!editingMenu)} />)}
@@ -328,7 +331,7 @@ export function Sell() {
           <Muted style={{ fontSize: 13 }}>{t("Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.")}</Muted>
         )}
         <View style={{ flex: 1, opacity: measured ? 1 : 0 }} onLayout={(e) => {
-          const w = Math.round(e.nativeEvent.layout.width);
+          const w = Math.floor(e.nativeEvent.layout.width);
           lastGridW = w; setMeasured(true);
           if (Math.abs(w - gridW) > 1) setGridW(w);
         }}>
@@ -424,15 +427,17 @@ export function Sell() {
       {modal?.kind === "line" && <LineSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "note" && <NoteSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "charge" && <ChargeSheet onClose={() => { setModal(null); if (!getState().order?.lines.length) setCartOpen(false); }} />}
-      {modal?.kind === "billPreview" && order && <BillPreviewSheet onClose={() => setModal(null)} />}
+      {modal?.kind === "billPreview" && order && (/ \(\d+\/\d+\)$/.test(order.bill_name ?? "")
+        ? <SplitPrintSheet bills={splitParts(order)} focusId={order.id} onClose={() => setModal(null)} />
+        : <BillPreviewSheet onClose={() => setModal(null)} />)}
       {modal?.kind === "ticketPreview" && order && <BillPreviewSheet ticket onClose={() => setModal(null)} />}
       {modal?.kind === "bills" && <BillsSheet onClose={() => setModal(null)} />}
       {modal?.kind === "save" && <SaveBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "discount" && <BillDiscountSheet onClose={() => setModal(null)} />}
       {modal?.kind === "cancel" && <CancelBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "custom" && <CustomAmount onClose={() => setModal(null)} />}
-      {modal?.kind === "tables" && <TablesSheet mode="seat" onClose={() => setModal(null)} />}
       {modal?.kind === "move" && <TablesSheet mode="move" onClose={() => setModal(null)} />}
+      {modal?.kind === "split" && order && <SplitBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "seating" && <SeatingSheet onClose={() => setModal(null)} />}
       {modal?.kind === "editItem" && <ItemEditor item={modal.item} categoryId={cat} onClose={() => setModal(null)} />}
       {modal?.kind === "editCategory" && <CategoryEditor category={modal.category} onClose={() => setModal(null)} onSaved={(deleted) => { if (deleted) setCat(null); }} />}
@@ -503,13 +508,13 @@ const ADD_TILE = { id: "__add__" } as Item;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 /** Equal-width tile in the order header (guests, move, table, customer). Dashed = nothing set yet. */
-function InfoTile({ icon, text, onPress, a11y, dashed, accent }: {
-  icon: IconName; text: string; onPress: () => void; a11y: string; dashed?: boolean; accent?: boolean;
+function InfoTile({ icon, text, onPress, a11y, dashed, accent, disabled }: {
+  icon: IconName; text: string; onPress: () => void; a11y: string; dashed?: boolean; accent?: boolean; disabled?: boolean;
 }) {
   const tone = dashed || accent ? c.accent : c.ink;
   return (
-    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} scaleTo={0.97}
-      style={[tile.box, dashed && { borderStyle: "dashed" }]}>
+    <Tap onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={a11y} accessibilityState={{ disabled }} scaleTo={0.97}
+      style={[tile.box, dashed && { borderStyle: "dashed" }, disabled && { opacity: 0.4 }]}>
       <MaterialCommunityIcons name={icon} size={22} color={tone} />
       <Text style={[tile.text, { color: tone }]} numberOfLines={1}>{text}</Text>
     </Tap>

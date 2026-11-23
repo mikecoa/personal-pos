@@ -33,7 +33,13 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
       onSaved={(cu, created) => { if (created && cu) { setOrderCustomer(cu); onClose(); } else setEditing(null); }} />
   );
 
-  const pick = (cu: Customer) => { setOrderCustomer(cu); onClose(); };
+  // A customer's saved discount is still a discount: adding it needs "Apply discounts" (or a manager's PIN).
+  const pick = (cu: Customer) => {
+    const d = catalog.discounts.find((x) => x.id === cu.discount_id && x.scope !== "item");
+    const adds = !!d && !(order?.discounts ?? []).some((x) => x.discount_id === d.id);
+    const go = () => { setOrderCustomer(cu); onClose(); };
+    if (adds) guard("discounts_apply", t("Apply {name}'s discount", { name: cu.name }), go); else go();
+  };
   return (
     <Sheet visible onClose={onClose} title={t("Customers")} width={760}
       footer={<>
@@ -125,7 +131,7 @@ function CustomerForm({ customer, initialName, onBack, onSaved }: {
         <Label>{t("Discount applied automatically")}</Label>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <Chip label={t("None")} active={!discount} onPress={() => setDiscount(null)} />
-          {billDiscounts.map((d) => <Chip key={d.id} label={discountLabel(d)} active={discount === d.id} onPress={() => setDiscount(d.id)} />)}
+          {billDiscounts.map((d) => <Chip key={d.id} label={discountLabel(d)} active={discount === d.id} onPress={() => guard("discounts_apply", t("Give this customer a discount"), () => setDiscount(d.id))} />)}
         </View>
         <Muted style={{ fontSize: 12 }}>{t("Added to the bill when this customer is picked. Discounts are set up in the backoffice.")}</Muted>
       </View>

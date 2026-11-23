@@ -21,7 +21,7 @@ const KIND_ICON: Record<PaymentMethod["kind"], ComponentProps<typeof MaterialCom
 
 export function ChargeSheet({ onClose }: { onClose: () => void }) {
   const catalog = useStore((s) => s.catalog)!;
-  const { compact } = useLayout();                 // phones: everything stacks in one column
+  const { compact, short } = useLayout();          // phones: everything stacks in one column; short: small tablets, tighter so the keypad fits
   const order = useStore((s) => s.order);
   const [tenders, setTenders] = useState<Tender[]>([]);
   // Cash is picked to start with: it's the most common, so most sales need one tap less.
@@ -46,6 +46,7 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
   const total = done?.total ?? order?.total ?? 0;
   const st = settle(total, tenders.map((t) => ({ kind: t.kind, amount: t.amount, tendered: t.tendered })));
   const split = catalog.settings.split_payment_enabled;
+  const pair = short && !compact && catalog.payment_methods.length > 4;
 
   if (done) {
     return (
@@ -96,12 +97,13 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <Sheet visible onClose={onClose} title={t("Charge {number}", { number: order.number })} width={900}
-      footer={<><Btn kind="secondary" title={t("Back to order")} onPress={onClose} />{tenders.length > 0 && <Btn kind="ghost" title={t("Clear payments")} onPress={() => setTenders([])} />}</>}>
+      // Small tablets: no footer (the ✕ goes back) so the whole keypad fits; Clear payments moves under the payments.
+      footer={short ? undefined : <><Btn kind="secondary" title={t("Back to order")} onPress={onClose} />{tenders.length > 0 && <Btn kind="ghost" title={t("Clear payments")} onPress={() => setTenders([])} />}</>}>
       <View style={{ flexDirection: compact ? "column" : "row", gap: compact ? 18 : 24 }}>
-        <View style={{ width: compact ? "100%" : 300, gap: compact ? 12 : 16 }}>
+        <View style={{ width: compact ? "100%" : 300, gap: compact || short ? 10 : 16 }}>
           <View style={{ gap: 4 }}>
             <Label>{tenders.length ? t("Still to pay") : t("Total")}</Label>
-            <Text style={{ fontSize: 34, fontWeight: "800", color: c.ink }} testID="amount-due">{money(st.remaining)}</Text>
+            <Text style={{ fontSize: short ? 28 : 34, fontWeight: "800", color: c.ink }} testID="amount-due">{money(st.remaining)}</Text>
             {tenders.length > 0 && <Muted>of {money(total)}</Muted>}
           </View>
           {tenders.map((t, i) => (
@@ -109,9 +111,11 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
               <Text style={{ color: c.ink }}>{t.method_name}</Text><Text style={{ color: c.ink, fontWeight: "600" }}>{money(t.amount)}</Text>
             </View>
           ))}
+          {short && tenders.length > 0 && <Btn kind="ghost" title={t("Clear payments")} onPress={() => setTenders([])} />}
           <View style={{ gap: 10 }}>
             <Label>{t("Pay with")}</Label>
-            <View style={compact ? { flexDirection: "row", flexWrap: "wrap", gap: 8 } : { gap: 10 }}>
+            {/* More than 4 methods on a small tablet: two per row, so the list never needs scrolling. */}
+            <View style={compact || pair ? { flexDirection: "row", flexWrap: "wrap", gap: 8 } : { gap: short ? 8 : 10 }}>
             {catalog.payment_methods.map((m) => {
               const on = method?.id === m.id;
               return (
@@ -119,11 +123,12 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
                   accessibilityLabel={`Pay with ${m.name}`} scaleTo={0.97}
                   style={[{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, borderRadius: r.md, borderWidth: 2,
                     borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accentSoft : c.surface },
-                    compact && { width: "48.6%", minHeight: 56, gap: 8, paddingHorizontal: 10 }]}>
-                  <MaterialCommunityIcons name={KIND_ICON[m.kind]} size={28} color={on ? c.accent : c.ink2} />
+                    short && { minHeight: 52 },
+                    (compact || pair) && { width: "48.6%", minHeight: pair ? 48 : 56, gap: 8, paddingHorizontal: 10 }]}>
+                  <MaterialCommunityIcons name={KIND_ICON[m.kind]} size={pair ? 22 : 28} color={on ? c.accent : c.ink2} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink }} numberOfLines={1}>{m.name}</Text>
-                    {m.name !== KIND_LABEL[m.kind] && <Text style={{ color: c.ink2, fontSize: 12 }}>{t(KIND_LABEL[m.kind])}</Text>}
+                    {m.name !== KIND_LABEL[m.kind] && !pair && <Text style={{ color: c.ink2, fontSize: 12 }}>{t(KIND_LABEL[m.kind])}</Text>}
                   </View>
                   {on && <FadeIn from={0} scale={0.5} duration={150}><MaterialCommunityIcons name="check-circle" size={24} color={c.accent} /></FadeIn>}
                 </Tap>
@@ -133,14 +138,14 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
           </View>
         </View>
 
-        <View style={compact ? { gap: 14, borderTopWidth: 1, borderColor: c.line, paddingTop: 16 } : { flex: 1, gap: 16, borderLeftWidth: 1, borderColor: c.line, paddingLeft: 24 }}>
+        <View style={compact ? { gap: 14, borderTopWidth: 1, borderColor: c.line, paddingTop: 16 } : { flex: 1, gap: short ? 12 : 16, borderLeftWidth: 1, borderColor: c.line, paddingLeft: 24 }}>
           {!method && <Muted>{t("Choose how the customer pays.")}</Muted>}
           {method?.kind === "cash" && (
             <>
               <H size={18}>{t("Cash received")}</H>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
                 {cashSuggestions(st.remaining).map((v) => (
-                  <Btn key={v} kind={v === st.remaining ? "primary" : "secondary"} style={compact ? { flexBasis: "45%", flexGrow: 1, minHeight: 60 } : { minWidth: 150, minHeight: 60 }}
+                  <Btn key={v} kind={v === st.remaining ? "primary" : "secondary"} style={compact ? { flexBasis: "45%", flexGrow: 1, minHeight: 60 } : { minWidth: 150, minHeight: short ? 48 : 60 }}
                     title={v === st.remaining ? t("Exact {v0}", { v0: money(v) }) : money(v)} onPress={() => payCash(v)} />
                 ))}
               </View>

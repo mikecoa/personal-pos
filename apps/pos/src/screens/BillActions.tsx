@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import type { AppliedDiscount } from "@pos/core";
-import { billsAt, byTableName, can, cancelBill, getState, markSent, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, useStore } from "../lib/store";
-import { autoTicket, newItems } from "./receipt";
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { floorLayout, floorSize, type AppliedDiscount } from "@pos/core";
+import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, isSplitPart, lockBill, mergeSplit, resplit, splitBillMany, splitParts, tableLabel, useStore } from "../lib/store";
+import { lineLabel } from "../lib/order";
+import type { DiningTable, OrderDoc } from "../lib/types";
+import { autoTicket, newItems, printReceipt, toReceipt } from "./receipt";
+import { ReceiptView } from "./ReceiptView";
+import { lineWidth } from "../lib/printer";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { t } from "../lib/i18n";
@@ -25,6 +29,7 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const table = tables.find((t) => t.id === tableId) ?? null;
   const busy = (id: string) => billsAt(id).some((b) => b.id !== order.id);
+  const [areaTab, setAreaTab] = useState<string>(() => (table ? (table.area_id && areas.some((a) => a.id === table.area_id) ? table.area_id : "none") : areas[0]?.id ?? "none"));
 
   const ok = table ? true : !!name.trim();
   const save = () => {
@@ -39,53 +44,48 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
     } catch (e) { setError((e as Error).message); }
   };
 
-  // Group by area, in the area order; tables without an area last.
-  const groups = [...areas.map((a) => ({ key: a.id, name: a.name, list: tables.filter((t) => t.area_id === a.id) })),
-    { key: "none", name: areas.length ? t("No area") : "", list: tables.filter((t) => !t.area_id || !areas.some((a) => a.id === t.area_id)) }]
+  // Areas as tabs (the one of the bill's table first); tables without an area get their own tab.
+  const groups = [...areas.map((a) => ({ key: a.id, name: a.name, area: a, list: tables.filter((t) => t.area_id === a.id) })),
+    { key: "none", name: t("No area"), area: null, list: tables.filter((t) => !t.area_id || !areas.some((a) => a.id === t.area_id)) }]
     .filter((g) => g.list.length);
-
+  const shownGroup = groups.find((g) => g.key === areaTab) ?? groups[0];
   return (
-    <Sheet visible onClose={onClose} title={order.version ? t("Update bill") : t("Save bill")} width={hasTables ? 640 : 520}
+    <Sheet visible onClose={onClose} title={order.version ? t("Update bill") : t("Save bill")} width={hasTables ? 820 : 520}
       footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
         <Btn style={{ flex: 1 }} big title={table ? t("Save to table {name}", { name: table.name }) : t("Save bill")} disabled={!ok} onPress={save} /></>}>
       {hasTables && (
         <View style={{ gap: 10 }}>
-          <Label>{t("Table")}</Label>
-          {groups.map((g) => (
-            <View key={g.key} style={{ gap: 6 }}>
-              {!!g.name && <Text style={{ color: c.ink2, fontSize: 12, fontWeight: "600" }}>{g.name}</Text>}
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {g.list.map((tb) => {
-                  const taken = busy(tb.id);
-                  const on = tableId === tb.id;
-                  return (
-                    <Pressable key={tb.id} disabled={taken} onPress={() => { setTableId(on ? null : tb.id); setError(null); }}
-                      accessibilityRole="radio" accessibilityState={{ selected: on, disabled: taken }}
-                      accessibilityLabel={`Table ${tb.name}${taken ? t(", in use") : ""}`}
-                      style={[st.tableBtn, on && st.tableOn, taken && { opacity: 0.35 }]}>
-                      <Text style={[st.tableText, on && { color: c.accentInk }]}>{tb.name}</Text>
-                      {taken && <Text style={{ fontSize: 10, color: c.ink2 }}>{t("in use")}</Text>}
-                    </Pressable>
-                  );
-                })}
-              </View>
+          {/* "No table" sits beside the label so the map and the name field both fit without scrolling. */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <Label>{t("Table")}</Label>
+            <Pressable onPress={() => setTableId(null)} accessibilityRole="radio" accessibilityState={{ selected: !tableId }}
+              style={[st.tableBtn, { height: 32, minWidth: 0, paddingHorizontal: 12, borderRadius: r.sm }, !tableId && { backgroundColor: c.accentSoft, borderColor: c.accent }]}>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: !tableId ? c.accent : c.ink2 }}>{t("No table")}</Text>
+            </Pressable>
+          </View>
+          {groups.length > 1 && (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {groups.map((g) => <Chip key={g.key} label={g.name} active={shownGroup?.key === g.key} onPress={() => setAreaTab(g.key)} />)}
             </View>
-          ))}
-          <Pressable onPress={() => setTableId(null)} accessibilityRole="radio" accessibilityState={{ selected: !tableId }}
-            style={[st.tableBtn, { alignSelf: "flex-start", paddingHorizontal: 16 }, !tableId && st.tableOn]}>
-            <Text style={[st.tableText, { fontSize: 14 }, !tableId && { color: c.accentInk }]}>{t("No table (takeaway, bar…)")}</Text>
-          </Pressable>
+          )}
+          {shownGroup && (
+            <MiniFloor key={shownGroup.key} tables={shownGroup.list} area={shownGroup.area} selected={tableId} busy={busy}
+              onPick={(id) => { setTableId(tableId === id ? null : id); setError(null); }} />
+          )}
         </View>
       )}
 
       {table ? (
-        <>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        // Side by side so the whole pop-up fits without scrolling.
+        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 16 }}>
+          <View style={{ flex: 1 }}>
+            <Field label={t("Customer name (optional)")} value={customer} onChangeText={setCustomer} placeholder={t("e.g. Pak Budi")} maxLength={40} />
+          </View>
+          <View style={{ gap: 8 }}>
             <Label>{t("Guests")}</Label>
             <Stepper value={guests} min={1} onChange={setGuests} />
           </View>
-          <Field label={t("Customer name (optional)")} value={customer} onChangeText={setCustomer} placeholder={t("e.g. Pak Budi")} maxLength={40} />
-        </>
+        </View>
       ) : (
         <Field label={hasTables ? t("Bill name") : t("Table or customer name")} value={name} onChangeText={setName} autoFocus={!hasTables}
           placeholder={hasTables ? t("e.g. Pak Budi, Ojol 3") : "e.g. 12, Sofa, Pak Budi"} maxLength={40} />
@@ -104,7 +104,62 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
+/**
+ * Tables of one area laid out like the floor map (same grid as the Tables page), small enough to
+ * fit in a pop-up. Empty rows below the last table are left out. Tables in use can't be picked.
+ */
+function MiniFloor({ tables, area, selected, busy, onPick }: {
+  tables: DiningTable[]; area: { grid_cols?: number; grid_rows?: number } | null; selected: string | null; busy: (id: string) => boolean; onPick: (id: string) => void;
+}) {
+  const [w, setW] = useState(0);
+  const winH = useWindowDimensions().height;
+  // Room left for the map once the title, name field and buttons are counted, so nothing needs scrolling.
+  const maxH = Math.max(140, Math.min(300, winH - 432));
+  const { cols } = floorSize(area);
+  const layout = floorLayout(tables, cols);
+  const rows = Math.max(1, ...[...layout.values()].map((p) => p.y + 1));
+  const GAP = 6;
+  const cellW = w ? Math.min(96, Math.floor((w - GAP * (cols - 1)) / cols)) : 0;
+  // As tall as the width allows, but the map never gets taller than ~230 so the pop-up fits without scrolling.
+  const cellH = Math.max(30, Math.min(Math.round(cellW * 0.68), Math.floor((maxH - GAP * (rows - 1)) / rows)));
+  const small = cellW < 60 || cellH < 40;
+  return (
+    <View style={{ padding: 8, borderRadius: r.md, backgroundColor: c.surface2 }}>
+    <View onLayout={(e) => setW(Math.floor(e.nativeEvent.layout.width))}
+      style={{ height: cellW ? rows * cellH + (rows - 1) * GAP : 60, alignSelf: "stretch" }}>
+      {cellW > 0 && tables.map((tb) => {
+        const p = layout.get(tb.id)!;
+        const taken = busy(tb.id);
+        const on = selected === tb.id;
+        return (
+          <Pressable key={tb.id} disabled={taken} onPress={() => onPick(tb.id)}
+            accessibilityRole="radio" accessibilityState={{ selected: on, disabled: taken }}
+            accessibilityLabel={`Table ${tb.name}${taken ? t(", in use") : ""}`}
+            style={[st.tableBtn, { position: "absolute", left: p.x * (cellW + GAP), top: p.y * (cellH + GAP), width: cellW, height: cellH, minWidth: 0, minHeight: 0, paddingHorizontal: 2 },
+              on && st.tableOn, taken && { opacity: 0.35 }]}>
+            <Text style={[st.tableText, small && { fontSize: 13 }, on && { color: c.accentInk }]} numberOfLines={1}>{tb.name}</Text>
+            {taken && <Text style={{ fontSize: small ? 9 : 10, color: c.ink2 }} numberOfLines={1}>{t("in use")}</Text>}
+          </Pressable>
+        );
+      })}
+    </View>
+    </View>
+  );
+}
+
 const st = StyleSheet.create({
+  splitCol: { width: 250, padding: 8, gap: 8, borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.bg },
+  splitHead: { padding: 6, gap: 2 },
+  splitItem: { flexDirection: "row", alignItems: "center", gap: 6, padding: 8, borderRadius: r.sm, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  printRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface },
+  choice: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface },
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: c.line, alignItems: "center", justifyContent: "center" },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.danger },
+  undoBox: { padding: 10, marginBottom: 10, borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent, alignItems: "center" },
+  tick: { width: 24, height: 24, borderRadius: r.sm, borderWidth: 1.5, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
+  totalBox: { padding: 12, borderRadius: r.md, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, gap: 2 },
+  stepNo: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: c.line, alignItems: "center", justifyContent: "center" },
+  splitAdd: { width: 140, alignItems: "center", justifyContent: "center", borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent },
   tableBtn: { minWidth: 64, height: 52, paddingHorizontal: 12, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   tableOn: { backgroundColor: c.accent, borderColor: c.accent },
   tableText: { fontSize: 16, fontWeight: "800", color: c.ink },
@@ -136,12 +191,215 @@ export function BillDiscountSheet({ onClose }: { onClose: () => void }) {
 export function CancelBillSheet({ onClose }: { onClose: () => void }) {
   const order = useStore((s) => s.order)!;
   const [reason, setReason] = useState("");
+  // Split bill: cancel just this one, or every bill of the split (the whole table).
+  const [parts] = useState(() => (isSplitPart(order) ? splitParts(order) : [order]));
+  const split = parts.length > 1;
+  const [all, setAll] = useState(false);
+  const name = order.table_id ? t("Table {name}", { name: tableLabel(order) }) : order.bill_name ?? order.number;
+  const where = order.table_id ? t("Table {name}", { name: tableLabel({ table_id: order.table_id, table_name: order.table_name }) }) : "";
+  const total = parts.reduce((s, b) => s + b.total, 0);
   return (
-    <Sheet visible onClose={onClose} title={t("Cancel bill {v0}", { v0: order.bill_name ?? order.number })} width={520}
-      footer={<><Btn kind="secondary" title={t("Keep bill")} onPress={onClose} /><Btn kind="danger" style={{ flex: 1 }} title={t("Cancel bill")}
-        disabled={!reason.trim()} onPress={() => { cancelBill(reason.trim()); onClose(); }} /></>}>
-      <Text style={{ color: c.ink }}>{t("The bill is closed without payment. Its items and this reason are kept in the report.")}</Text>
+    <Sheet visible onClose={onClose} title={t("Cancel bill {v0}", { v0: name })} width={560}
+      footer={<><Btn kind="secondary" title={t("Keep bill")} onPress={onClose} /><Btn kind="danger" style={{ flex: 1 }}
+        title={all ? t("Cancel all {n} bills", { n: parts.length }) : t("Cancel bill")}
+        disabled={!reason.trim()} onPress={() => { cancelBill(reason.trim(), all); onClose(); }} /></>}>
+      {split && (
+        <View style={{ gap: 8, marginBottom: 6 }}>
+          <Label>{t("What to cancel")}</Label>
+          {([[false, t("Only {name}", { name }), money(order.total), t("The other bills stay open and are renumbered.")],
+            [true, t("All {n} bills at {where}", { n: parts.length, where: where || t("this table") }), money(total), t("Every bill of this split is cancelled with the same reason.")]] as const).map(([v, title, amt, hint]) => (
+            <Pressable key={String(v)} onPress={() => setAll(v)} accessibilityRole="radio" accessibilityState={{ checked: all === v }}
+              style={[st.choice, all === v && { borderColor: c.danger, backgroundColor: c.dangerSoft }]}>
+              <View style={[st.radio, all === v && { borderColor: c.danger }]}>{all === v && <View style={st.radioDot} />}</View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{title}</Text>
+                <Text style={{ color: c.ink2, fontSize: 12 }}>{hint}</Text>
+              </View>
+              <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{amt}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+      <Text style={{ color: c.ink }}>{all ? t("These bills are closed without payment. Their items and this reason are kept in the report.") : t("The bill is closed without payment. Its items and this reason are kept in the report.")}</Text>
       <Field label={t("Reason")} value={reason} onChangeText={setReason} autoFocus placeholder={t("e.g. Customer left")} maxLength={120} />
+    </Sheet>
+  );
+}
+
+/**
+ * Split a bill, or rearrange one that's already split: one column per bill. Tap a bill's header to
+ * choose where items go, then tap items to move them there one at a time (tapping an item in the
+ * chosen bill sends it back where it came from). + New bill adds a column; a bill left empty is
+ * removed when saving. Nothing is voided; bill discounts stay where they are.
+ */
+export function SplitBillSheet({ onClose }: { onClose: () => void }) {
+  const order = useStore((s) => s.order)!;
+  const editing = isSplitPart(order);                         // already split: edit all its bills together
+  const [parts] = useState<OrderDoc[]>(() => (editing ? splitParts(order) : [order]));
+  const entries = useMemo(() => parts.flatMap((p, origin) => p.lines.map((line) => ({ line, origin }))), [parts]);
+  const [bills, setBills] = useState(parts.length + (editing ? 0 : 1));
+  // alloc[lineId][bill] = how many of that line go to that bill.
+  const [alloc, setAlloc] = useState<Record<string, number[]>>(() => Object.fromEntries(entries.map(({ line, origin }) => {
+    const row = Array(parts.length + (editing ? 0 : 1)).fill(0); row[origin] = line.qty; return [line.id, row];
+  })));
+  const [target, setTarget] = useState(editing ? Math.max(0, parts.findIndex((p) => p.id === order.id)) : 1);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<OrderDoc[] | null>(null);
+  const [undoAsk, setUndoAsk] = useState(false);
+  const unit = (l: OrderDoc["lines"][number]) => l.line_total / l.qty;
+  const count = (b: number) => entries.reduce((s, e) => s + (alloc[e.line.id]![b] ?? 0), 0);
+  const amount = (b: number) => entries.reduce((s, e) => s + Math.round(unit(e.line) * (alloc[e.line.id]![b] ?? 0)), 0);
+  const move = (id: string, origin: number, from: number) => {
+    const to = from === target ? (origin !== from ? origin : 0) : target;
+    if (to === from) return;
+    setAlloc((a) => { const row = [...a[id]!]; row[from] = (row[from] ?? 0) - 1; row[to] = (row[to] ?? 0) + 1; return { ...a, [id]: row }; });
+  };
+  const addBill = () => { setAlloc((a) => Object.fromEntries(Object.entries(a).map(([k, v]) => [k, [...v, 0]]))); setTarget(bills); setBills(bills + 1); };
+  const filled = Array.from({ length: bills }, (_, b) => count(b) > 0).filter(Boolean).length;
+  const changed = entries.some(({ line, origin }) => (alloc[line.id]![origin] ?? 0) !== line.qty);
+  const ok = editing ? changed && filled >= 1 : count(0) > 0 && filled >= 2;
+  const label = (b: number) => (editing && parts[b] ? (parts[b]!.table_id ? t("Table {name}", { name: tableLabel(parts[b]!) }) : parts[b]!.bill_name ?? parts[b]!.number)
+    : b === 0 ? t("This bill") : t("Bill {n}", { n: b + 1 }));
+  const save = () => {
+    try {
+      if (editing) {
+        const kept = resplit(parts, entries.map((e) => ({ ...e, qtys: alloc[e.line.id]! })), bills);
+        notify(kept.length > 1 ? t("Split bills updated: {n} bills", { n: kept.length }) : t("Split undone: {n} bills merged into one", { n: parts.length }));
+        if (kept.length > 1) setResult(kept); else onClose();
+        return;
+      }
+      const groups = Array.from({ length: bills - 1 }, (_, i) => Object.fromEntries(order.lines.map((l) => [l.id, alloc[l.id]![i + 1] ?? 0]).filter(([, n]) => (n as number) > 0)))
+        .filter((g) => Object.keys(g).length > 0);
+      const made = splitBillMany(groups as Record<string, number>[]);
+      setResult([getState().order!, ...made]);
+      notify(t("Split into {n} bills", { n: made.length + 1 }));
+    } catch (e) { setError((e as Error).message); }
+  };
+  if (result) return <SplitPrintSheet bills={splitParts(result[0]!)} onClose={onClose} />;
+  return (
+    <Sheet visible onClose={onClose} title={editing ? t("Edit split bills") : t("Split bill")} width={1100}
+      footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
+        <Btn style={{ flex: 1 }} title={editing ? t("Save changes") : t("Split into {n} bills", { n: Math.max(2, filled) })} disabled={!ok} onPress={save} /></>}>
+      <Muted style={{ fontSize: 12, marginBottom: 10 }}>{t("Tap a bill to choose it, then tap items to move them there. Tap an item in the chosen bill to send it back.")}{editing ? ` ${t("A bill left empty is removed.")}` : ""}</Muted>
+      {editing && (
+        <Pressable onPress={() => {
+          if (!undoAsk) return setUndoAsk(true);
+          mergeSplit(order); notify(t("Split undone: {n} bills merged into one", { n: parts.length })); onClose();
+        }} style={[st.undoBox, undoAsk && { borderColor: c.danger }]}>
+          <Text style={{ color: undoAsk ? c.danger : c.accent, fontWeight: "800", fontSize: 13 }}>
+            {undoAsk ? t("Tap again to merge all {n} bills back into one", { n: parts.length }) : t("Undo split: merge all {n} bills back into one", { n: parts.length })}
+          </Text>
+        </Pressable>
+      )}
+      <ScrollView horizontal contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
+        {Array.from({ length: bills }, (_, b) => {
+          const on = b === target;
+          const removed = editing && !!parts[b] && count(b) === 0;
+          return (
+            <View key={b} style={[st.splitCol, on && { borderColor: c.accent, backgroundColor: c.accentSoft }]}>
+              <Pressable onPress={() => setTarget(b)} accessibilityRole="button" accessibilityState={{ selected: on }} style={st.splitHead}>
+                <Text style={{ fontWeight: "800", color: on ? c.accent : c.ink, fontSize: 14 }}>{label(b)}</Text>
+                <Text style={{ color: removed ? c.danger : c.ink2, fontSize: 12 }}>
+                  {removed ? t("Will be removed") : `${count(b) === 1 ? t("1 item") : t("{n} items", { n: count(b) })} · ${money(amount(b))}`}
+                </Text>
+                {on && <Text style={{ color: c.accent, fontSize: 11, fontWeight: "700" }}>{t("Items go here")}</Text>}
+              </Pressable>
+              <ScrollView style={{ maxHeight: 340 }} contentContainerStyle={{ gap: 6 }}>
+                {entries.filter((e) => (alloc[e.line.id]![b] ?? 0) > 0).map(({ line: l, origin }) => (
+                  <Pressable key={l.id} onPress={() => move(l.id, origin, b)} accessibilityRole="button"
+                    accessibilityLabel={on ? t("Send one {name} back", { name: lineLabel(l) }) : t("Move one {name}", { name: lineLabel(l) })}
+                    style={({ pressed }) => [st.splitItem, pressed && { backgroundColor: c.surface2 }]}>
+                    <Text style={{ fontWeight: "800", color: c.ink, fontSize: 13, minWidth: 22 }}>{alloc[l.id]![b]}×</Text>
+                    <Text style={{ flex: 1, color: c.ink, fontSize: 13 }} numberOfLines={2}>{lineLabel(l)}</Text>
+                    <Text style={{ color: c.ink2, fontSize: 12 }}>{money(Math.round(unit(l) * alloc[l.id]![b]!))}</Text>
+                  </Pressable>
+                ))}
+                {count(b) === 0 && <Muted style={{ fontSize: 12, padding: 8 }}>{on ? t("Tap items in another bill to move them here.") : t("Empty")}</Muted>}
+              </ScrollView>
+            </View>
+          );
+        })}
+        {!editing && (
+          <Pressable onPress={addBill} accessibilityRole="button" style={({ pressed }) => [st.splitAdd, pressed && { backgroundColor: c.surface2 }]}>
+            <Text style={{ color: c.accent, fontWeight: "800", fontSize: 14 }}>+ {t("New bill")}</Text>
+          </Pressable>
+        )}
+      </ScrollView>
+      {error && <Text style={{ color: c.danger, marginTop: 8 }}>{error}</Text>}
+    </Sheet>
+  );
+}
+
+/**
+ * Print a split bill: the whole table's total, every part with its own preview, and a tick box per
+ * bill so the cashier prints just the ones wanted (one by one or together). Opens right after a
+ * split and from "Print bill" on any part.
+ */
+export function SplitPrintSheet({ bills, onClose, focusId }: { bills: OrderDoc[]; onClose: () => void; focusId?: string }) {
+  const catalog = useStore((s) => s.catalog)!;
+  const p = printerSettings();
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(focusId ? [focusId] : bills.map((b) => b.id)));
+  const [focus, setFocus] = useState(focusId ?? bills[0]!.id);
+  const [printed, setPrinted] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const noPrinter = p.connection === "none";
+  const canPrint = can("bill_print");
+  const total = bills.reduce((s, b) => s + b.total, 0);
+  const shown = bills.find((b) => b.id === focus) ?? bills[0]!;
+  const toggle = (id: string) => setPicked((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const title = (b: OrderDoc) => (b.table_id ? t("Table {name}", { name: tableLabel(b) }) : b.bill_name ?? b.number);
+  const printPicked = async () => {
+    setBusy(true);
+    for (const b of bills.filter((x) => picked.has(x.id))) {
+      setFocus(b.id);
+      try { lockBill(b.id); await printReceipt(b, catalog); setPrinted((s) => new Set(s).add(b.id)); }
+      catch (e) { notify((e as Error).message); break; }
+    }
+    setBusy(false);
+  };
+  return (
+    <Sheet visible onClose={onClose} title={t("Print split bills")} width={980}
+      footer={<><Btn kind="secondary" title={t("Done")} onPress={onClose} />
+        <Btn style={{ flex: 1 }} disabled={busy || noPrinter || !canPrint || picked.size === 0}
+          title={busy ? t("Printing…") : picked.size === bills.length ? t("Print all {n} bills", { n: bills.length }) : t("Print {n} selected", { n: picked.size })}
+          onPress={() => void printPicked()} /></>}>
+      <View style={{ flexDirection: "row", gap: 16 }}>
+        <View style={{ width: 340, gap: 8 }}>
+          <View style={st.totalBox}>
+            <Text style={{ color: c.ink2, fontSize: 12 }}>{t("Whole table · {n} bills", { n: bills.length })}</Text>
+            <Text style={{ color: c.ink, fontSize: 19, fontWeight: "800" }}>{money(total)}</Text>
+          </View>
+          {(noPrinter || !canPrint) && <Muted style={{ fontSize: 12 }}>{noPrinter ? t("No printer is set up on this tablet.") : t("Your role can't print bills. Ask a manager.")}</Muted>}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Muted style={{ fontSize: 12 }}>{t("Tick the bills to print. Tap a bill to preview it.")}</Muted>
+            <Pressable onPress={() => setPicked(picked.size === bills.length ? new Set() : new Set(bills.map((b) => b.id)))} hitSlop={6}>
+              <Text style={{ color: c.accent, fontWeight: "700", fontSize: 12 }}>{picked.size === bills.length ? t("None") : t("All")}</Text>
+            </Pressable>
+          </View>
+          <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ gap: 6 }}>
+            {bills.map((b) => {
+              const on = picked.has(b.id), seen = focus === b.id, done = printed.has(b.id);
+              return (
+                <Pressable key={b.id} onPress={() => setFocus(b.id)} style={[st.printRow, seen && { borderColor: c.accent, backgroundColor: c.accentSoft }]}>
+                  <Pressable onPress={() => toggle(b.id)} hitSlop={8} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
+                    style={[st.tick, on && { backgroundColor: c.accent, borderColor: c.accent }]}>
+                    {on && <Text style={{ color: c.accentInk, fontWeight: "800", fontSize: 13 }}>✓</Text>}
+                  </Pressable>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{title(b)}</Text>
+                    <Text style={{ color: c.ink2, fontSize: 12 }} numberOfLines={1}>{b.lines.map((l) => `${l.qty}× ${l.item_name}`).join(", ")}</Text>
+                    {done && <Text style={{ color: c.accent, fontSize: 11, fontWeight: "700" }}>{t("Printed")}</Text>}
+                  </View>
+                  <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{money(b.total)}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+        <ScrollView style={{ flex: 1, maxHeight: 520 }} contentContainerStyle={{ paddingVertical: 4 }}>
+          <ReceiptView lines={toReceipt(shown, catalog, undefined, lineWidth(p.paper))} />
+        </ScrollView>
+      </View>
     </Sheet>
   );
 }

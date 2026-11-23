@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView } from "react-native";
-import { billsAt, byTableName, can, guard, editFloorPlan, editTables, getState, saveLayout, moveToTable, openBill, seatAtTable, tableLabel, updateSeating, useStore } from "../lib/store";
+import { billsAt, byTableName, can, guard, isSplitPart, mergeSplit, notify, editFloorPlan, editTables, getState, saveLayout, moveToTable, openBill, seatAtTable, tableLabel, updateSeating, useStore } from "../lib/store";
 import type { DiningTable, OrderDoc } from "../lib/types";
 import { Btn, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
-import { FloorBoard } from "./FloorBoard";
+import { FloorBoard, MIN_CELL } from "./FloorBoard";
+import { floorSize } from "@pos/core";
 import { t } from "../lib/i18n";
+import { lineLabel } from "../lib/order";
+import { SplitPrintSheet } from "./BillActions";
 import { useLayout } from "../ui/layout";
 
 const NO_AREA = "none";
@@ -52,6 +55,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
   const currentArea = areas.some((a) => a.id === area) || area === NO_AREA ? area : (areas[0]?.id ?? NO_AREA);
   const inArea = (t: DiningTable, a: string) => (a === NO_AREA ? !t.area_id : t.area_id === a);
   const shown = areas.length ? tables.filter((t) => inArea(t, currentArea)) : tables;
+  const areaSize = floorSize(areas.find((a) => a.id === currentArea));
   const busyIn = (a: string) => tables.filter((t) => inArea(t, a) && billsAt(t.id).length).length;
   const totalBusy = tables.filter((t) => billsAt(t.id).length).length;
   void openOrders;                                          // subscribed so busy/free updates live
@@ -72,6 +76,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
   // doesn't change under the finger); keep moving the same finger to drag it.
   const hold = (_t: DiningTable) => { if (!editing && canEdit) startEditing(); };
   const [rowW, setRowW] = useState(0);
+  const [rowH, setRowH] = useState(0);
 
   const tap = (tb: DiningTable) => {
     setNotice(null);
@@ -91,6 +96,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
   };
 
   const { compact } = useLayout();                           // phones: panels cover the map instead of sitting beside it
+  const sideOpen = !compact && !!(panel || (editing && selectedTables.length > 0));
   const title = editing ? t("Edit tables") : mode === "move" ? t("Move {v0} to…", { v0: order?.table_id ? tableLabel(order) : "bill" }) : t("Tables");
   const subtitle = editing
     ? (selectedTables.length ? t("{length} selected", { length: selectedTables.length }) : t("Tap tables to select them"))
@@ -139,14 +145,15 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
             </View>
           )}
 
-          <View style={{ flexDirection: "row", flex: 1, minHeight: 0 }} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
+          {/* With a panel open on a narrow screen, tables show as tiles (like on phones) so none is cut off. */}
+          <View style={{ flexDirection: "row", flex: 1, minHeight: 0 }} onLayout={(e) => { setRowW(e.nativeEvent.layout.width); setRowH(e.nativeEvent.layout.height); }}>
             {/* grid */}
             <ScrollView style={{ flex: 1 }} scrollEnabled={!dragging} contentContainerStyle={{ padding: compact ? 14 : 20, gap: 14 }}>
               {notice && <Text style={st.notice}>{notice}</Text>}
               {(shown.length > 0 || editing) && (
-                <FloorBoard list={compact && !editing} tables={shown} mode={editing ? "edit" : mode} currentTableId={order?.table_id ?? null}
+                <FloorBoard list={(compact || (sideOpen && rowW - 360 - 40 < areaSize.cols * MIN_CELL + 24)) && !editing} tables={shown} size={areaSize} mode={editing ? "edit" : mode} currentTableId={order?.table_id ?? null}
                   isSelected={(t) => (editing ? selection.includes(t.id) : (panel?.kind === "seat" || panel?.kind === "bills") && panel.table.id === t.id)}
-                  onPress={tap} onLongPress={hold} onDragging={setDragging} fullWidth={rowW - 40} canArrange={canEdit}
+                  onPress={tap} onLongPress={hold} onDragging={setDragging} fullWidth={rowW - 40} fitHeight={editing ? 0 : rowH - (compact ? 28 : 40) - (notice ? 56 : 0)} canArrange={canEdit}
                   onAdd={editing ? () => { setSelection([]); setPanel({ kind: "new" }); } : undefined} addActive={panel?.kind === "new"}
                   onLayoutChange={(cells) => { setNotice(null); saveLayout(cells).catch((e) => setNotice((e as Error).message)); }} />
               )}
@@ -246,19 +253,59 @@ function SeatPanel({ table, onCancel, onDone }: { table: DiningTable; onCancel: 
   );
 }
 
+/**
+ * A table with several bills (e.g. a split bill): everything ordered at the table in one list,
+ * grouped by bill, with the table total. Open a bill to add items or charge it; print the bills.
+ */
 function BillsPanel({ table, bills, onPick, onCancel }: { table: DiningTable; bills: OrderDoc[]; onPick: (id: string) => void; onCancel: () => void }) {
+  const [printing, setPrinting] = useState(false);
+  const [undo, setUndo] = useState(false);           // first tap asks, second tap merges
+  const split = bills.some(isSplitPart);
+  // A bill at this table is on screen with changes not confirmed yet: nothing can be printed,
+  // merged or rearranged until Done (otherwise unconfirmed items could leave without a void).
+  const pending = useStore((s) => s.billChanged && !!s.order && bills.some((b) => b.id === s.order!.id));
+  const sorted = [...bills].sort((a, b) => tableLabel(a).localeCompare(tableLabel(b), undefined, { numeric: true }) || a.opened_at.localeCompare(b.opened_at));
+  const total = bills.reduce((s, b) => s + b.total, 0);
   return (
-    <PanelShell title={t("Table {name}", { name: table.name })} sub={t("{length} open bills", { length: bills.length })} footer={<Btn kind="secondary" style={{ flex: 1 }} title={t("Back")} onPress={onCancel} />}>
-      {bills.map((b) => (
-        <Pressable key={b.id} onPress={() => onPick(b.id)} accessibilityRole="button" accessibilityLabel={`Open ${b.customer_name ?? b.number}`}
-          style={({ pressed }) => [st.billRow, pressed && { backgroundColor: c.surface2 }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: "700", color: c.ink }}>{b.customer_name ?? b.number}</Text>
-            <Muted style={{ fontSize: 12 }}>{`${b.guests ? `${t("{n} guests", { n: b.guests })} · ` : ""}${ago(b.opened_at)}`}</Muted>
-          </View>
-          <Text style={{ fontWeight: "700", color: c.ink }}>{money(b.total)}</Text>
-        </Pressable>
+    <PanelShell title={t("Table {name}", { name: table.name })} sub={t("{length} open bills", { length: bills.length })}
+      footer={<><Btn kind="secondary" title={t("Back")} onPress={onCancel} />
+        {split && can("open_bills_manage") && (
+          <Btn kind={undo ? "danger" : "secondary"} disabled={pending} title={undo ? t("Tap again to merge") : t("Undo split")}
+            onPress={() => {
+              if (!undo) return setUndo(true);
+              const m = mergeSplit(sorted.find(isSplitPart)!);
+              notify(t("Split undone: {n} bills merged into one", { n: bills.filter(isSplitPart).length }));
+              onPick(m.id);
+            }} />
+        )}
+        {can("bill_print") && <Btn style={{ flex: 1 }} title={t("Print bills")} disabled={pending} onPress={() => setPrinting(true)} />}</>}>
+      {pending && <Muted style={{ fontSize: 12, marginBottom: 6 }}>{t("A bill here has changes that aren't confirmed. Open it and press Done first.")}</Muted>}
+      <View style={st.tableTotal}>
+        <Text style={{ color: c.ink2, fontSize: 12 }}>{t("Whole table · {n} bills", { n: bills.length })}</Text>
+        <Text style={{ color: c.ink, fontSize: 18, fontWeight: "800" }}>{money(total)}</Text>
+      </View>
+      {sorted.map((b) => (
+        <View key={b.id} style={st.billGroup}>
+          <Pressable onPress={() => onPick(b.id)} accessibilityRole="button" accessibilityLabel={t("Open {name}", { name: tableLabel(b) })}
+            style={({ pressed }) => [st.billHead, pressed && { backgroundColor: c.surface2 }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{t("Table {name}", { name: tableLabel(b) })}{b.customer_name ? ` · ${b.customer_name}` : ""}</Text>
+              <Muted style={{ fontSize: 12 }}>{`${b.number} · ${ago(b.opened_at)}`}</Muted>
+            </View>
+            <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{money(b.total)}</Text>
+            <Text style={{ color: c.accent, fontWeight: "800", fontSize: 13, marginLeft: 8 }}>{t("Open")} ›</Text>
+          </Pressable>
+          {b.lines.length === 0 && <Muted style={{ fontSize: 12, paddingHorizontal: 10, paddingBottom: 8 }}>{t("No items yet")}</Muted>}
+          {b.lines.map((l) => (
+            <View key={l.id} style={st.billLine}>
+              <Text style={{ color: c.ink, fontSize: 13, fontWeight: "700", minWidth: 26 }}>{l.qty}×</Text>
+              <Text style={{ flex: 1, color: c.ink, fontSize: 13 }} numberOfLines={2}>{lineLabel(l)}{l.note ? `  “${l.note}”` : ""}</Text>
+              <Text style={{ color: c.ink2, fontSize: 12 }}>{money(l.line_total)}</Text>
+            </View>
+          ))}
+        </View>
       ))}
+      {printing && <SplitPrintSheet bills={sorted} onClose={() => setPrinting(false)} />}
     </PanelShell>
   );
 }
@@ -289,7 +336,7 @@ function TableEditor({ table, areaId, suggest, onDone }: {
     setBusy(true); setError(null);
     try { await fn(); onDone(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
-  const save = () => run(() => editFloorPlan({ kind: "table", op: "save", id: table?.id, name: name.trim(), seats, shape: table?.shape ?? "square", area_id: area }));
+  const save = () => run(() => editFloorPlan({ kind: "table", op: "save", id: table?.id, name: name.trim(), seats, shape: "square", area_id: area }));
   const remove = () => (confirmDelete ? run(() => editFloorPlan({ kind: "table", op: "delete", id: table!.id })) : setConfirmDelete(true));
 
   return (
@@ -454,6 +501,10 @@ const st = StyleSheet.create({
   side: { width: 360, borderLeftWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   sideFoot: { padding: 16, borderTopWidth: 1, borderColor: c.line, flexDirection: "row", gap: 12 },
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  tableTotal: { padding: 12, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, gap: 2, marginBottom: 4 },
+  billGroup: { borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, overflow: "hidden" },
+  billHead: { flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderBottomWidth: 1, borderColor: c.line },
+  billLine: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 5 },
   billRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line },
   option: { paddingHorizontal: 18, height: 48, borderRadius: 6, borderWidth: 1, borderColor: c.line, justifyContent: "center", backgroundColor: c.surface },
   optionOn: { backgroundColor: c.accent, borderColor: c.accent },

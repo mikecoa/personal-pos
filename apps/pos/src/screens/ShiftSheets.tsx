@@ -1,11 +1,12 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { can, cashMove, closeShift, shiftSummary, startShift, useStore } from "../lib/store";
 import type { ShiftDoc } from "../lib/types";
 import { Btn, Chip, Field, H, Keypad, Label, money, Muted } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { t } from "../lib/i18n";
+import { useLayout } from "../ui/layout";
 
 export const keyInto = (set: (f: (d: string) => string) => void) => (k: string) =>
   set((d) => (k === "⌫" ? d.slice(0, -1) : (d + k).replace(/^0+/, "").slice(0, 11)));
@@ -15,19 +16,20 @@ export function StartShiftPanel() {
   const def = useStore((s) => s.catalog!.settings.default_starting_cash ?? 0);
   const name = useStore((s) => s.employee?.name ?? "");
   const [digits, setDigits] = useState(def ? String(def) : "");
+  const { short } = useLayout();                         // small tablets: no icon, tighter, so the button stays on screen
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg, alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <View style={{ width: 420, maxWidth: "100%", padding: 28, gap: 16, alignItems: "center", borderRadius: r.lg, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface }}>
-        <View style={{ width: 64, height: 64, borderRadius: 6, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" }}>
+    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", padding: short ? 12 : 24 }}>
+      <View style={{ width: 420, maxWidth: "100%", padding: short ? 18 : 28, gap: short ? 10 : 16, alignItems: "center", borderRadius: r.lg, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface }}>
+        {!short && <View style={{ width: 64, height: 64, borderRadius: 6, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" }}>
           <MaterialCommunityIcons name="cash-register" size={32} color={c.accent} />
-        </View>
+        </View>}
         <H>{t("Start a shift")}</H>
         <Muted style={{ textAlign: "center", fontSize: 14 }}>{name ? t("Hi {name}. Count the cash in the drawer and enter the total to open the menu.", { name }) : t("Count the cash in the drawer and enter the total to open the menu.")}</Muted>
         <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink }} testID="starting-cash" accessibilityLabel={`Starting cash ${money(Number(digits || 0))}`}>{money(Number(digits || 0))}</Text>
         <Keypad onKey={keyInto(setDigits)} />
         <Btn big style={{ alignSelf: "stretch" }} title={t("Start shift")} onPress={() => startShift(Number(digits || 0))} />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 

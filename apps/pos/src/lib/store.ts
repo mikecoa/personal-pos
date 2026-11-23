@@ -44,8 +44,28 @@ let state: State = {
   page: "pos", approval: null, slip: null, billChanged: false, lang: currentLang(),
 };
 const listeners = new Set<() => void>();
+/**
+ * What a saved bill looked like when it was last confirmed (opened, saved, Done, printed…): items,
+ * quantities, notes, item and bill discounts, sales types. A bill counts as changed only while it
+ * differs from this, so adding an item and taking it off again isn't a change.
+ */
+let confirmedSig = "";
+export const billSig = (o: OrderDoc | null) => {
+  if (!o) return "";
+  // By content, not line ids: taking an item off and adding the same one back is no change.
+  const qty = new Map<string, number>();
+  for (const l of o.lines) {
+    const key = [l.item_id ?? `custom:${l.item_name}:${l.unit_price}`, l.variant_id ?? "", l.modifiers.map((m) => m.option).join("|"),
+      l.note ?? "", l.discount?.id ?? "", l.discount?.value ?? 0, l.sales_type_id ?? ""].join("¦");
+    qty.set(key, (qty.get(key) ?? 0) + l.qty);
+  }
+  return JSON.stringify([[...qty].filter(([, n]) => n > 0).sort(([a], [b]) => a.localeCompare(b)), o.discounts.map((d) => [d.discount_id ?? d.name, d.kind, d.value])]);
+};
+
 function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
-  state = { ...state, ...(typeof patch === "function" ? patch(state) : patch) };
+  const p = typeof patch === "function" ? patch(state) : patch;
+  state = { ...state, ...p };
+  if (p.billChanged === false) confirmedSig = billSig(state.order);
   listeners.forEach((l) => l());
 }
 export const getState = () => state;
@@ -252,7 +272,7 @@ function ensureOrder(): OrderDoc {
 }
 function update(fn: (o: OrderDoc) => OrderDoc) {
   const next = reprice(fn(ensureOrder()), state.catalog!);
-  set({ order: next, billChanged: true });
+  set({ order: next, billChanged: next.version > 0 && billSig(next) !== confirmedSig });
   if (next.version > 0) scheduleBillSave();
 }
 /** "Done": the cashier confirms the bill's changes; printing is allowed again. */
@@ -477,14 +497,238 @@ export function openBill(id: string) {
   // closed or crashed mid-change, so nothing on it can be taken off without a void.
   if (o) set({ order: reprice(o.version > 0 ? { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) } : o, state.catalog!), billChanged: false });
 }
-export function cancelBill(reason: string) {
+/**
+ * Split bill: move the picked quantities of the bill on screen to a new bill at the same table
+ * (charged separately). Nothing is voided: locked and printed counts move with the items.
+ * Bill discounts stay on the original bill. Returns the new bill.
+ */
+export function splitBill(picks: Record<string, number>): OrderDoc {
   const o = state.order!;
-  const next: OrderDoc = {
-    ...o, status: "cancelled", version: o.version + 1, cancelled_at: now(), cancel_reason: reason,
-    closed_by: state.employee!.id, closed_by_name: state.employee!.name,
-  };
+  if (o.version === 0) throw new Error(t("Save the bill first, then split it."));
+  const moving = o.lines.filter((l) => (picks[l.id] ?? 0) > 0);
+  const total = o.lines.reduce((s, l) => s + l.qty, 0), moved = moving.reduce((s, l) => s + Math.min(l.qty, picks[l.id]!), 0);
+  if (moved === 0 || moved >= total) throw new Error(t("Pick some items to move, but not all of them."));
+  saveOpenBill(false);
+  const src = state.order!;
+  const base = newOrder(state.catalog!, formatOrderNumber(state.device!.receipt_prefix, db.nextCounter()), state.employee!);
+  // Number split bills at the table: (2), (3)…
+  const parts = state.openOrders.filter((b) => b.table_id && b.table_id === src.table_id).map((b) => Number(b.bill_name?.match(/ \((\d+)(?:\/\d+)?\)$/)?.[1] ?? 1));
+  const baseName = (src.bill_name ?? src.number).replace(/ \(\d+(?:\/\d+)?\)$/, "");
+  const name = `${baseName} (${Math.max(1, ...parts) + 1})`;
+  const newLines: OrderDoc["lines"] = [];
+  const keptLines: OrderDoc["lines"] = [];
+  for (const l of src.lines) {
+    const n = Math.min(l.qty, picks[l.id] ?? 0);
+    if (n <= 0) { keptLines.push(l); continue; }
+    const saved = l.saved_qty ?? 0, printed = printedQty(l);
+    const mSaved = Math.min(n, saved), mPrinted = Math.min(n, printed);
+    newLines.push({ ...l, id: randomUUID(), qty: n, saved_qty: mSaved, printed_qty: mPrinted });
+    if (l.qty - n > 0) keptLines.push({ ...l, qty: l.qty - n, saved_qty: saved - mSaved, printed_qty: printed - mPrinted });
+  }
+  const created: OrderDoc = reprice({
+    ...base, status: "open", version: 1, bill_name: name, table_id: src.table_id, table_name: src.table_name, guests: null,
+    customer_name: src.customer_name, sales_type_id: src.sales_type_id, sales_type_name: src.sales_type_name,
+    served_by: src.served_by, served_by_name: src.served_by_name,
+    tax_name: src.tax_name, tax_rate_bp: src.tax_rate_bp, gratuity_name: src.gratuity_name, gratuity_rate_bp: src.gratuity_rate_bp,
+    prices_include_tax: src.prices_include_tax, tax_after_discount: src.tax_after_discount, lines: newLines,
+  }, state.catalog!);
+  const kept: OrderDoc = reprice({ ...src, version: src.version + 1, lines: keptLines }, state.catalog!);
+  db.saveOrder(created);
+  db.saveOrder(kept);
+  set({ order: kept, billChanged: false });
+  refreshLocal();
+  void syncNow();
+  return created;
+}
+/** Split into several bills at once: one `picks` map per new bill (the rest stays on this bill). */
+export function splitBillMany(groups: Record<string, number>[]): OrderDoc[] {
+  const o = state.order!;
+  const total = o.lines.reduce((s, l) => s + l.qty, 0);
+  const moved = groups.reduce((s, g) => s + Object.values(g).reduce((a, n) => a + n, 0), 0);
+  if (!groups.length || groups.some((g) => !Object.values(g).some((n) => n > 0))) throw new Error(t("Every new bill needs at least one item."));
+  if (moved >= total) throw new Error(t("Leave at least one item on this bill."));
+  const made = groups.map((g) => splitBill(g));
+  renumberSplit(state.order!);
+  return made.map((m) => db.getOrder(m.id) ?? m);
+}
+
+/**
+ * Name every part of a split bill "… (1/3)", "… (2/3)", "… (3/3)" (in the order they were made),
+ * so the bills and their receipts say which part they are. Parts are the open bills at the same
+ * table with the same base name.
+ */
+const stripPart = (n: string | null | undefined) => (n ?? "").replace(/ \(\d+(?:\/\d+)?\)$/, "");
+/** All open parts of the split bill `o` belongs to, in order (just `o` when it isn't split). */
+export function splitParts(o: OrderDoc): OrderDoc[] {
+  const base = stripPart(o.bill_name ?? o.number);
+  const parts = db.listOrders("open")
+    .filter((b) => (o.table_id ? b.table_id === o.table_id : true) && stripPart(b.bill_name ?? b.number) === base)
+    .sort((a, b) => a.opened_at.localeCompare(b.opened_at) || a.number.localeCompare(b.number))
+    .map((b) => (state.order?.id === b.id ? state.order : db.getOrder(b.id) ?? b));
+  return parts.length ? parts : [o];
+}
+/** True when `o` is one part of a split bill ("… (2/3)"). */
+const hasPartSuffix = (o: Pick<OrderDoc, "bill_name">) => / \(\d+(?:\/\d+)?\)$/.test(o.bill_name ?? "");
+/**
+ * True when `o` belongs to a split bill: it's numbered ("(2/4)", or "(2)" from older splits), or it's
+ * the first bill of a split whose other parts are numbered (older splits left the first unnumbered).
+ */
+/** Lock everything on a saved bill (as when it's closed), e.g. before it's printed for the customer. */
+export function lockBill(id: string) {
+  const o = state.order?.id === id ? state.order : db.getOrder(id);
+  if (!o || o.version === 0 || o.lines.every((l) => (l.saved_qty ?? 0) >= l.qty)) return;
+  const next: OrderDoc = { ...o, version: o.version + 1, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) };
   db.saveOrder(next);
-  set({ order: null });
+  if (state.order?.id === id) set({ order: next });
+  refreshLocal();
+}
+export function isSplitPart(o: OrderDoc): boolean {
+  if (hasPartSuffix(o)) return true;
+  if (!o.table_id || !o.version) return false;
+  const parts = splitParts(o);
+  return parts.length > 1 && parts.some(hasPartSuffix);
+}
+
+/**
+ * Undo a split: put every part's items back on the first bill (same items are added together),
+ * drop the "(1/3)" numbering, and close the other parts as empty bills with the reason "Split
+ * undone" so there's a record and nothing is counted twice. Returns the merged bill.
+ */
+export function mergeSplit(o: OrderDoc): OrderDoc {
+  if (state.order?.version) saveOpenBill(false);
+  const parts = splitParts(o).filter((b) => b.status === "open");
+  if (parts.length < 2) throw new Error(t("This bill isn't split."));
+  const [first, ...rest] = parts.map((b) => (state.order?.id === b.id ? state.order! : db.getOrder(b.id)!));
+  const lines = [...first!.lines];
+  for (const b of rest) for (const l of b.lines) {
+    const same = lines.findIndex((x) => sameLine(x, l) && (x.note ?? null) === (l.note ?? null) && (x.sales_type_id ?? null) === (l.sales_type_id ?? null));
+    if (same >= 0) {
+      const x = lines[same]!;
+      lines[same] = { ...x, qty: x.qty + l.qty, saved_qty: (x.saved_qty ?? 0) + (l.saved_qty ?? 0), printed_qty: printedQty(x) + printedQty(l) };
+    } else lines.push(l);
+  }
+  const merged: OrderDoc = reprice({
+    ...first!, version: first!.version + 1, bill_name: stripPart(first!.bill_name ?? first!.number) || null,
+    // Amount discounts add up (each bill had its own); the same percentage discount applies once.
+    lines, discounts: [...first!.discounts, ...rest.flatMap((b) => b.discounts)].filter((d, i, all) =>
+      d.kind !== "percent" || all.findIndex((x) => x.kind === "percent" && (x.discount_id ?? x.name) === (d.discount_id ?? d.name)) === i),
+  }, state.catalog!);
+  db.saveOrder(merged);
+  for (const b of rest) {
+    db.saveOrder(reprice({
+      ...b, status: "cancelled", version: b.version + 1, lines: [], discounts: [], cancelled_at: now(),
+      cancel_reason: `Split undone (merged into ${merged.number})`,
+      closed_by: state.employee!.id, closed_by_name: state.employee!.name,
+    }, state.catalog!));                    // nothing left on it: totals become 0, so nothing is counted twice
+  }
+  if (state.order && parts.some((p) => p.id === state.order!.id)) set({ order: merged, billChanged: false });
+  refreshLocal();
+  void syncNow();
+  return merged;
+}
+
+/**
+ * Rearrange a split bill: `entries` are all the lines of all its parts, each with how many go to
+ * which bill (`qtys[b]`, b = 0..nBills-1; existing parts first, then new bills). Bills left empty
+ * are closed (empty, reason "Split changed") and the rest are renumbered (1/N)… Nothing is voided:
+ * locked and printed counts move with the items.
+ */
+export function resplit(parts: OrderDoc[], entries: { line: OrderDoc["lines"][number]; origin: number; qtys: number[] }[], nBills: number) {
+  saveOpenBill(false);
+  const fresh = parts.map((p) => (state.order?.id === p.id ? state.order! : db.getOrder(p.id) ?? p));
+  const src = fresh[0]!;
+  const base = stripPart(src.bill_name ?? src.number) || src.number;
+  const linesFor: OrderDoc["lines"][] = Array.from({ length: nBills }, () => []);
+  for (const { line, origin, qtys } of entries) {
+    let saved = line.saved_qty ?? 0, printed = printedQty(line);
+    const order = [origin, ...qtys.map((_, b) => b).filter((b) => b !== origin)];   // the bill it came from keeps the locked ones first
+    for (const b of order) {
+      const q = qtys[b] ?? 0;
+      if (q <= 0) continue;
+      const s = Math.min(q, saved), p = Math.min(q, printed);
+      saved -= s; printed -= p;
+      const piece = { ...line, id: b === origin ? line.id : randomUUID(), qty: q, saved_qty: s, printed_qty: p };
+      const same = linesFor[b]!.findIndex((x) => sameLine(x, piece) && (x.note ?? null) === (piece.note ?? null) && (x.sales_type_id ?? null) === (piece.sales_type_id ?? null));
+      if (same >= 0) { const x = linesFor[b]![same]!; linesFor[b]![same] = { ...x, qty: x.qty + q, saved_qty: (x.saved_qty ?? 0) + s, printed_qty: printedQty(x) + p }; }
+      else linesFor[b]!.push(piece);
+    }
+  }
+  const kept: OrderDoc[] = [];
+  linesFor.forEach((lines, b) => {
+    const part = fresh[b];
+    if (part) {
+      if (!lines.length) {
+        db.saveOrder(reprice({ ...part, status: "cancelled", version: part.version + 1, lines: [], discounts: [], cancelled_at: now(),
+          cancel_reason: "Split changed (items moved to the other bills)", closed_by: state.employee!.id, closed_by_name: state.employee!.name }, state.catalog!));
+        return;
+      }
+      const next = reprice({ ...part, version: part.version + 1, lines }, state.catalog!);
+      db.saveOrder(next); kept.push(next);
+    } else if (lines.length) {
+      const blank = newOrder(state.catalog!, formatOrderNumber(state.device!.receipt_prefix, db.nextCounter()), state.employee!);
+      const created = reprice({
+        ...blank, status: "open", version: 1, bill_name: `${base} (${b + 1})`, table_id: src.table_id, table_name: src.table_name, guests: null,
+        customer_name: src.customer_name, sales_type_id: src.sales_type_id, sales_type_name: src.sales_type_name,
+        served_by: src.served_by, served_by_name: src.served_by_name,
+        tax_name: src.tax_name, tax_rate_bp: src.tax_rate_bp, gratuity_name: src.gratuity_name, gratuity_rate_bp: src.gratuity_rate_bp,
+        prices_include_tax: src.prices_include_tax, tax_after_discount: src.tax_after_discount, lines,
+      }, state.catalog!);
+      db.saveOrder(created); kept.push(created);
+    }
+  });
+  if (!kept.length) throw new Error(t("Every new bill needs at least one item."));
+  if (kept.length === 1) {
+    const only = { ...kept[0]!, bill_name: base, version: kept[0]!.version + 1 };
+    db.saveOrder(only); kept[0] = only;
+  } else renumberSplit(kept[0]!);
+  const onScreen = state.order && kept.find((k) => k.id === state.order!.id);
+  const first = db.getOrder((onScreen ?? kept[0]!).id)!;
+  set({ order: reprice(first, state.catalog!), billChanged: false });
+  refreshLocal();
+  void syncNow();
+  return kept.map((k) => db.getOrder(k.id) ?? k);
+}
+
+function renumberSplit(o: OrderDoc) {
+  const base = stripPart(o.bill_name ?? o.number);
+  const parts = splitParts(o);
+  if (parts.length < 2) return;
+  parts.forEach((b, i) => {
+    const name = `${base} (${i + 1}/${parts.length})`;
+    if (b.bill_name === name) return;
+    const full = db.getOrder(b.id)!;
+    const next: OrderDoc = { ...full, bill_name: name, version: full.version + 1 };
+    db.saveOrder(next);
+    if (state.order?.id === b.id) set({ order: { ...state.order, bill_name: name, version: next.version } });
+  });
+  refreshLocal();
+  void syncNow();
+}
+/**
+ * Cancel the bill on screen with a reason. For a split bill, `all` cancels every bill of the split
+ * (same reason); otherwise only this one, and the remaining bills are renumbered ((1/3)…, or a
+ * normal bill again when one is left). Items stay recorded on the cancelled bills.
+ */
+export function cancelBill(reason: string, all = false) {
+  const o = state.order!;
+  const split = isSplitPart(o);
+  const parts = split ? splitParts(o) : [o];
+  const targets = all ? parts : [o];
+  for (const p of targets) {
+    const doc = p.id === o.id ? o : db.getOrder(p.id) ?? p;
+    db.saveOrder({
+      ...doc, status: "cancelled", version: doc.version + 1, cancelled_at: now(), cancel_reason: reason,
+      closed_by: state.employee!.id, closed_by_name: state.employee!.name,
+    });
+  }
+  set({ order: null, billChanged: false });
+  if (split && !all) {
+    const rest = parts.filter((p) => p.id !== o.id);
+    if (rest.length === 1) {
+      const only = db.getOrder(rest[0]!.id)!;
+      db.saveOrder({ ...only, bill_name: stripPart(only.bill_name ?? only.number) || null, version: only.version + 1 });
+    } else if (rest.length > 1) renumberSplit(db.getOrder(rest[0]!.id)!);
+  }
   refreshLocal();
   void syncNow();
 }
@@ -518,8 +762,12 @@ export type FloorChange =
 export const byTableName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
 
 /** The table's current name (it may have been renamed since the bill was seated). */
-export const tableLabel = (o: Pick<OrderDoc, "table_id" | "table_name">) =>
-  state.catalog?.tables?.find((t) => t.id === o.table_id)?.name ?? o.table_name ?? "";
+/** Table name for a bill; split bills keep their "(2)", "(3)"… so they can be told apart. */
+export const tableLabel = (o: Pick<OrderDoc, "table_id" | "table_name"> & { bill_name?: string | null }) => {
+  const name = state.catalog?.tables?.find((t) => t.id === o.table_id)?.name ?? o.table_name ?? "";
+  const part = o.bill_name?.match(/ \(\d+(?:\/\d+)?\)$/)?.[0] ?? "";
+  return name + part;
+};
 
 /**
  * Change the floor plan (needs a connection: every tablet shares it). The server returns the new

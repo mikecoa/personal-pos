@@ -11,6 +11,7 @@ export const PERMISSION_GROUPS = [
       { key: "open_bills_manage", label: "Manage open bills", hint: "Save, edit, merge and cancel bills" },
       { key: "void_items", label: "Void items from saved bills", hint: "Always asks for a reason" },
       { key: "discounts_apply", label: "Apply discounts" },
+      { key: "custom_amount", label: "Add custom amounts", hint: "A price typed by hand instead of a menu item" },
     ],
   },
   {
