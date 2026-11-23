@@ -2,11 +2,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import { lock, printerSettings, resetDevice, savePrinterSettings, setLanguage, signedInEmail, unsentCount, useStore, type PrinterSettings } from "../lib/store";
+import { lock, syncNow, printerSettings, resetDevice, savePrinterSettings, setLanguage, signedInEmail, unsentCount, useStore, type PrinterSettings } from "../lib/store";
 import { Btn, Chip, Label, Muted, PageTop, Stepper } from "../ui/kit";
 import { useLayout } from "../ui/layout";
 import { c, r } from "../ui/theme";
-import { SyncBadge } from "./SyncBadge";
+import { SyncBadge, SyncSheet, useSyncTrouble } from "./SyncBadge";
 import { dateLocale, LANGS, t } from "../lib/i18n";
 import { allowUsb, findPrinters, lineWidth, openBluetoothSettings, printingAvailable, printLines, type FoundPrinter } from "../lib/printer";
 import { FadeIn, Tap } from "../ui/motion";
@@ -132,10 +132,30 @@ function Account() {
         ["Menu last updated", new Date(catalog.synced_at).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })],
       ]} />
       <UpdateCheck />
+      <Label>{t("Sync")}</Label>
+      <SyncStatus />
       <Label>{t("Employee")}</Label>
       <Info rows={[["Signed in", employee.name], ["Role", employee.role]]} />
       <Muted style={{ fontSize: 14 }}>{t("Business details, employees and roles are changed in the backoffice.")}</Muted>
     </Pane>
+  );
+}
+
+/** Sync runs by itself; this shows its state and lets someone sync now or see details. */
+function SyncStatus() {
+  const sync = useStore((s) => s.sync);
+  const trouble = useSyncTrouble();
+  const [open, setOpen] = useState(false);
+  const last = sync.lastSync ? new Date(sync.lastSync).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" }) : "—";
+  const text = trouble ? t("Needs attention: tap Details") : sync.pending ? t("Uploading {pending}…", { pending: sync.pending }) : t("Everything is up to date · last sync {time}", { time: last });
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: trouble ? c.danger : c.accent }} />
+      <Text style={{ flex: 1, minWidth: 180, color: trouble ? c.danger : c.ink, fontSize: 15, fontWeight: "600" }}>{text}</Text>
+      <Btn kind="secondary" title={t("Details")} onPress={() => setOpen(true)} />
+      <Btn kind="secondary" title={t("Sync now")} onPress={() => void syncNow({ catalog: true })} />
+      {open && <SyncSheet onClose={() => setOpen(false)} />}
+    </View>
   );
 }
 

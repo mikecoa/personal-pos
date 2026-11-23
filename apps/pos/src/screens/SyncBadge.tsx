@@ -1,14 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { reauthenticate, rejected, retryRecord, syncNow, useStore } from "../lib/store";
 import { Btn, Field, H, Label, Muted, Sheet } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { t } from "../lib/i18n";
 
-/** Online/offline, uploads waiting, and anything needing a person. Tap for details. */
+const STUCK_MS = 2 * 60_000;
+
+/** True when sync needs someone's attention (not for the normal few seconds of uploading). */
+export function useSyncTrouble() {
+  const sync = useStore((s) => s.sync);
+  const [, tick] = useState(0);
+  useEffect(() => { const i = setInterval(() => tick((n) => n + 1), 15_000); return () => clearInterval(i); }, []);
+  const offline = !sync.online && !!sync.error;                       // before the first sync it's just starting
+  const stuck = sync.pending > 0 && (!sync.lastSync || Date.now() - Date.parse(sync.lastSync) > STUCK_MS);
+  return !!sync.problem || sync.rejected > 0 || offline || stuck;
+}
+
+/**
+ * Sync runs by itself (right after every sale or change, every 10 s while anything waits, and the
+ * menu every 5 min). This badge only appears when something needs attention: offline, uploads
+ * stuck, records refused by the server, or the sign-in expired. Tap it for details.
+ */
 export function SyncBadge() {
   const sync = useStore((s) => s.sync);
   const [open, setOpen] = useState(false);
+  const trouble = useSyncTrouble();
+  if (!trouble && !open) return null;
   const problem = sync.problem === "auth" ? t("Sign in again") : sync.problem === "unregistered" ? t("Tablet not registered: reset it") : null;
   const color = problem || sync.rejected ? c.danger : sync.online ? (sync.pending ? c.warn : c.accent) : c.danger;
   const text = problem
@@ -27,7 +45,7 @@ export function SyncBadge() {
   );
 }
 
-function SyncSheet({ onClose }: { onClose: () => void }) {
+export function SyncSheet({ onClose }: { onClose: () => void }) {
   const sync = useStore((s) => s.sync);
   const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);

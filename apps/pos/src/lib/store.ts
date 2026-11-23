@@ -360,10 +360,26 @@ export function setBillInfo(patch: { bill_name?: string | null; customer_name?: 
   }));
 }
 
-/** Discard an order that was never saved (nothing to void or sync). */
+/** Reason stored with an order cleared before it was saved or paid (kept in English, like other stored reasons). */
+export const CLEARED_REASON = "Cleared before payment";
+
+/**
+ * Clear an order that was never saved. If it had items it's kept as a cancelled order (synced, so
+ * the backoffice can show it under Cancelled orders); an empty one is just dropped.
+ */
 export function clearOrder() {
   const o = state.order;
   if (o && o.version > 0) throw new Error(t("Saved bills must be cancelled with a reason."));
+  if (o && o.lines.length > 0) {
+    db.saveOrder({
+      ...o, status: "cancelled", version: 1, cancelled_at: now(), cancel_reason: CLEARED_REASON,
+      closed_by: state.employee!.id, closed_by_name: state.employee!.name,
+    });
+    set({ order: null });
+    refreshLocal();
+    void syncNow();
+    return;
+  }
   set({ order: null });
 }
 

@@ -576,4 +576,7 @@ export const ID: Record<string, string> = {
   "Android will then ask you to confirm the install.": "Lalu Android akan meminta konfirmasi pemasangan.",
   "Check for updates": "Cek pembaruan",
   "Orda is up to date.": "Orda sudah versi terbaru.",
+  "Needs attention: tap Details": "Perlu dicek: ketuk Detail",
+  "Everything is up to date · last sync {time}": "Semua sudah terkini · sinkron terakhir {time}",
+  "Details": "Detail",
 };

@@ -812,6 +812,9 @@ isOneToOne: false
 "create_account":
 { Args: { "p_first_location": string,"p_name": string }; Returns: string
                            },
+"delete_transactions":
+{ Args: { "p_ids": (string)[],"p_kind": string }; Returns: number
+                           },
 "device_heartbeat":
 { Args: { "p": Json,"p_device": string }; Returns: undefined
                            },
