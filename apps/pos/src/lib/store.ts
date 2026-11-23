@@ -202,10 +202,12 @@ export type PrinterSettings = {
   name: string;               // shown in settings
   paper: 58 | 80;             // mm
   autoPrint: boolean;         // print a receipt after every sale
-  copies: number;             // receipts and bills
+  copies: number;             // customer bill / receipt
+  ticketCopies: number;       // order tickets: item list for kitchen, checker… (no prices)
+  autoTicket: boolean;        // print order tickets when a bill is saved, new items are added, or an order is charged
   slipCopies: number;         // void / refund slips (e.g. one for the kitchen, one for the cashier)
 };
-export const defaultPrinter: PrinterSettings = { connection: "none", address: "", name: "", paper: 58, autoPrint: false, copies: 1, slipCopies: 1 };
+export const defaultPrinter: PrinterSettings = { connection: "none", address: "", name: "", paper: 58, autoPrint: false, copies: 1, slipCopies: 1, ticketCopies: 3, autoTicket: false };
 export const printerSettings = (): PrinterSettings => ({ ...defaultPrinter, ...(db.kvGet<PrinterSettings>("printer") ?? {}) });
 export function savePrinterSettings(p: PrinterSettings) { db.kvSet("printer", p); }
 

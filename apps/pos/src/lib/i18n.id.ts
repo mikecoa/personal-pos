@@ -600,4 +600,12 @@ export const ID: Record<string, string> = {
   "Reprint void slip": "Cetak ulang slip void",
   "Reprint cancelled bill": "Cetak ulang bill batal",
   "Print cancelled bill": "Cetak bill batal",
+  "Order ticket printed.": "Tiket pesanan dicetak.",
+  "Print order": "Cetak pesanan",
+  "Bill & receipt copies": "Salinan bill & struk",
+  "For the customer: the bill before paying and the receipt after.": "Untuk pelanggan: bill sebelum bayar dan struk sesudahnya.",
+  "Order ticket copies": "Salinan tiket pesanan",
+  "Item list without prices for the kitchen, checker and so on. Each copy is cut separately.": "Daftar item tanpa harga untuk dapur, checker, dll. Tiap salinan dipotong terpisah.",
+  "Print order tickets automatically": "Cetak tiket pesanan otomatis",
+  "When a bill is saved, when items are added to a saved bill (only the new items), and when an order is charged without saving.": "Saat bill disimpan, saat item ditambahkan ke bill tersimpan (hanya item baru), dan saat pesanan dibayar tanpa disimpan.",
 };

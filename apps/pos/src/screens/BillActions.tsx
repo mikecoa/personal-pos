@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { AppliedDiscount } from "@pos/core";
-import { billsAt, byTableName, can, cancelBill, saveBillAt, setBillDiscounts, setBillInfo, useStore } from "../lib/store";
+import { billsAt, byTableName, can, cancelBill, getState, saveBillAt, setBillDiscounts, setBillInfo, useStore } from "../lib/store";
+import { autoTicket, newItems } from "./receipt";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { t } from "../lib/i18n";
@@ -29,7 +30,10 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
   const save = () => {
     try {
       if (trackServer) setBillInfo({ served_by: employees.find((e) => e.id === server) ?? null });
+      const before = getState().order!;
+      const items = newItems(before);
       saveBillAt({ table, guests, customer: customer.trim() || null, name: name.trim() });
+      autoTicket(getState().openOrders.find((o) => o.id === before.id) ?? before, items, before.version > 0);
       onClose();
     } catch (e) { setError((e as Error).message); }
   };

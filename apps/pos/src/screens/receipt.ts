@@ -2,7 +2,8 @@ import { receiptLines, type ReceiptOrder } from "@pos/core";
 import { lineLabel, lineSalesType, mixedSalesTypes } from "../lib/order";
 import type { Catalog, OrderDoc } from "../lib/types";
 import { lineWidth, printLines } from "../lib/printer";
-import { printerSettings, type Slip } from "../lib/store";
+import { notify, printerSettings, type Slip } from "../lib/store";
+import { t } from "../lib/i18n";
 
 export function toReceipt(o: OrderDoc, catalog: Catalog, copy?: string, width = 32): string[] {
   // Mixed bill (e.g. Dine In + Take Away): items grouped by type, each showing its type.
@@ -64,4 +65,56 @@ export function slipLines(sl: Slip, catalog: Catalog, width = 32): string[] {
 export async function printSlip(sl: Slip, catalog: Catalog) {
   const p = printerSettings();
   await printLines(p, slipLines(sl, catalog, lineWidth(p.paper)), p.slipCopies ?? 1);
+}
+
+// ───────────────────────────── order tickets (kitchen, checker…)
+export type TicketItem = { name: string; qty: number; modifiers: string[]; note: string | null; salesType: string | null };
+
+/** Items not sent yet: everything on a new order, only what was added since on a saved bill. */
+export function newItems(o: OrderDoc): TicketItem[] {
+  return o.lines
+    .map((l) => ({ l, qty: l.qty - (l.saved_qty ?? 0) }))
+    .filter((x) => x.qty > 0)
+    .map(({ l, qty }) => ({ name: lineLabel(l), qty, modifiers: l.modifiers.map((m) => m.option), note: l.note, salesType: lineSalesType(l, o) ?? null }));
+}
+export const allItems = (o: OrderDoc): TicketItem[] =>
+  o.lines.map((l) => ({ name: lineLabel(l), qty: l.qty, modifiers: l.modifiers.map((m) => m.option), note: l.note, salesType: lineSalesType(l, o) ?? null }));
+
+/** Order ticket: what to make, for whom, no prices. `added` marks items added to an existing bill. */
+export function ticketLines(o: OrderDoc, items: TicketItem[], width = 32, added = false): string[] {
+  const rule = "-".repeat(width);
+  const center = (x: string) => " ".repeat(Math.max(0, Math.floor((width - x.length) / 2))) + x;
+  const pair = (a: string, b: string) => a + " ".repeat(Math.max(1, width - a.length - b.length)) + b;
+  const at = new Date();
+  const who = o.table_name ? `TABLE ${o.table_name}${o.guests ? ` (${o.guests} pax)` : ""}` : o.bill_name ?? null;
+  const mixed = new Set(items.map((i) => i.salesType)).size > 1;
+  return [
+    center(added ? "*** ADDITIONAL ORDER ***" : "*** ORDER ***"),
+    ...(who ? [center(who)] : []),
+    ...(o.customer_name && o.table_name ? [center(o.customer_name)] : []),
+    rule,
+    pair(o.number, at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })),
+    ...(!mixed && (items[0]?.salesType ?? o.sales_type_name) ? [`${items[0]?.salesType ?? o.sales_type_name}`] : []),
+    ...(o.opened_by_name ? [`Cashier: ${o.opened_by_name}`] : []),
+    rule,
+    ...items.flatMap((i) => [
+      `${i.qty} x ${i.name}${mixed && i.salesType ? ` [${i.salesType}]` : ""}`,
+      ...i.modifiers.map((m) => `    - ${m}`),
+      ...(i.note ? [`    * ${i.note}`] : []),
+    ]),
+    rule,
+    pair("Items", String(items.reduce((s, i) => s + i.qty, 0))),
+  ];
+}
+
+export async function printTicket(o: OrderDoc, items: TicketItem[], added = false) {
+  const p = printerSettings();
+  await printLines(p, ticketLines(o, items, lineWidth(p.paper), added), p.ticketCopies ?? 3);
+}
+
+/** Prints order tickets by itself when that's switched on (Settings → Printer). Errors show as a notice. */
+export function autoTicket(o: OrderDoc, items: TicketItem[], added = false) {
+  const p = printerSettings();
+  if (!p.autoTicket || p.connection === "none" || !items.length) return;
+  printTicket(o, items, added).then(() => notify(t("Order ticket printed."))).catch((e: Error) => notify(e.message));
 }

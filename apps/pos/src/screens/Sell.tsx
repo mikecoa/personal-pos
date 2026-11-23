@@ -21,14 +21,14 @@ import { CategoryEditor, CategoryPicker, ItemEditor } from "./MenuEditor";
 import { CustomerSheet } from "./CustomerSheet";
 import { NoteSheet } from "./NoteSheet";
 import { addCustom, addItem } from "../lib/store";
-import { printReceipt, toReceipt } from "./receipt";
+import { allItems, autoTicket, newItems, printReceipt, printTicket, ticketLines, toReceipt } from "./receipt";
 import { ReceiptView } from "./ReceiptView";
 import { lineWidth } from "../lib/printer";
 import { printerSettings } from "../lib/store";
 import { t } from "../lib/i18n";
 
 type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "note"; id: string }
-  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "billPreview" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
+  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "billPreview" | "ticketPreview" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
@@ -208,7 +208,7 @@ export function Sell() {
             <ToolButton icon="tag-outline" label={t("Discount")} disabled={!hasLines}
               onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
             {order?.version
-              ? <ToolButton icon="check" label={t("Done")} onPress={() => saveOpenBill(true)} />
+              ? <ToolButton icon="check" label={t("Done")} onPress={() => { const o = order!; const items = newItems(o); saveOpenBill(true); autoTicket(o, items, true); }} />
               : catalog.settings.save_bill_enabled && (
                 <ToolButton icon="content-save-outline" label={t("Save bill")} disabled={!hasLines}
                   onPress={() => guard("open_bills_manage", t("Save the bill"), () => setModal({ kind: "save" }))} />
@@ -216,6 +216,9 @@ export function Sell() {
             {can("bill_print") && (
               <ToolButton icon="printer-outline" label={t("Print bill")} disabled={!hasLines}
                 onPress={() => guard("bill_print", t("Print bill"), () => setModal({ kind: "billPreview" }))} />
+            )}
+            {hasLines && (
+              <ToolButton icon="chef-hat" label={t("Print order")} onPress={() => setModal({ kind: "ticketPreview" })} />
             )}
             {order?.version
               ? <ToolButton icon="close-octagon-outline" label={t("Cancel bill")} danger onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
@@ -372,6 +375,7 @@ export function Sell() {
       {modal?.kind === "note" && <NoteSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "charge" && <ChargeSheet onClose={() => { setModal(null); if (!getState().order?.lines.length) setCartOpen(false); }} />}
       {modal?.kind === "billPreview" && order && <BillPreviewSheet onClose={() => setModal(null)} />}
+      {modal?.kind === "ticketPreview" && order && <BillPreviewSheet ticket onClose={() => setModal(null)} />}
       {modal?.kind === "bills" && <BillsSheet onClose={() => setModal(null)} />}
       {modal?.kind === "save" && <SaveBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "discount" && <BillDiscountSheet onClose={() => setModal(null)} />}
@@ -536,21 +540,26 @@ function byInitials(name: string, term: string) {
 }
 
 /** "Print bill": shows exactly what will be printed, then prints it. */
-function BillPreviewSheet({ onClose }: { onClose: () => void }) {
+function BillPreviewSheet({ onClose, ticket }: { onClose: () => void; ticket?: boolean }) {
   const order = useStore((s) => s.order)!;
   const catalog = useStore((s) => s.catalog)!;
   const [busy, setBusy] = useState(false);
   const p = printerSettings();
-  const lines = toReceipt(order, catalog, undefined, lineWidth(p.paper));
+  // "Print order": every item on the order, no prices, for the kitchen / checker (order ticket copies).
+  const lines = ticket ? ticketLines(order, allItems(order), lineWidth(p.paper)) : toReceipt(order, catalog, undefined, lineWidth(p.paper));
+  const n = ticket ? p.ticketCopies ?? 3 : p.copies;
   const print = async () => {
     setBusy(true);
-    try { await printReceipt(order, catalog); notify(t("Bill printed.")); onClose(); }
-    catch (e) { notify((e as Error).message); setBusy(false); }
+    try {
+      if (ticket) { await printTicket(order, allItems(order)); notify(t("Order ticket printed.")); }
+      else { await printReceipt(order, catalog); notify(t("Bill printed.")); }
+      onClose();
+    } catch (e) { notify((e as Error).message); setBusy(false); }
   };
   return (
-    <Sheet visible onClose={onClose} title={t("Print bill")} width={p.paper === 80 ? 520 : 440}
+    <Sheet visible onClose={onClose} title={ticket ? t("Print order") : t("Print bill")} width={p.paper === 80 ? 520 : 440}
       footer={<><Btn kind="secondary" title={t("Close")} onPress={onClose} />
-        <Btn style={{ flex: 1 }} title={busy ? t("Printing…") : p.copies > 1 ? t("Print {n} copies", { n: p.copies }) : t("Print")} disabled={busy} onPress={() => void print()} /></>}>
+        <Btn style={{ flex: 1 }} title={busy ? t("Printing…") : n > 1 ? t("Print {n} copies", { n }) : t("Print")} disabled={busy} onPress={() => void print()} /></>}>
       <ScrollView contentContainerStyle={{ paddingVertical: 8 }}><ReceiptView lines={lines} /></ScrollView>
     </Sheet>
   );

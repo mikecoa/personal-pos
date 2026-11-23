@@ -275,8 +275,26 @@ function Printer() {
           accessibilityLabel="Print receipt after every sale" />
       </View>
       <View style={st.toggleRow}>
-        <Text style={{ flex: 1, fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Copies")}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Bill & receipt copies")}</Text>
+          <Muted style={{ fontSize: 13 }}>{t("For the customer: the bill before paying and the receipt after.")}</Muted>
+        </View>
         <Stepper value={p.copies} min={1} onChange={(n) => change({ copies: Math.min(3, n) })} />
+      </View>
+      <View style={st.toggleRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Order ticket copies")}</Text>
+          <Muted style={{ fontSize: 13 }}>{t("Item list without prices for the kitchen, checker and so on. Each copy is cut separately.")}</Muted>
+        </View>
+        <Stepper value={p.ticketCopies ?? 3} min={1} onChange={(n) => change({ ticketCopies: Math.min(5, n) })} />
+      </View>
+      <View style={st.toggleRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, color: c.ink, fontWeight: "600" }}>{t("Print order tickets automatically")}</Text>
+          <Muted style={{ fontSize: 13 }}>{t("When a bill is saved, when items are added to a saved bill (only the new items), and when an order is charged without saving.")}</Muted>
+        </View>
+        <Switch value={p.autoTicket ?? false} onValueChange={(v) => change({ autoTicket: v })} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface}
+          accessibilityLabel="Print order tickets automatically" />
       </View>
       <View style={st.toggleRow}>
         <View style={{ flex: 1 }}>

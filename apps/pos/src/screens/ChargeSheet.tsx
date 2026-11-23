@@ -2,11 +2,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { type ComponentProps, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { cashSuggestions, settle } from "@pos/core";
-import { completeSale, syncNow, useStore } from "../lib/store";
+import { completeSale, getState, syncNow, useStore } from "../lib/store";
 import type { OrderDoc, OrderPayment, PaymentMethod } from "../lib/types";
 import { Btn, Field, H, Keypad, Label, money, Muted, Sheet } from "../ui/kit";
 import { c, r } from "../ui/theme";
-import { printReceipt, toReceipt } from "./receipt";
+import { autoTicket, newItems, printReceipt, toReceipt } from "./receipt";
 import { printerSettings } from "../lib/store";
 import { ReceiptView } from "./ReceiptView";
 import { FadeIn, Tap } from "../ui/motion";
@@ -78,7 +78,13 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
     const next = [...tenders, t];
     setMethod(null); setEntry(""); setReference("");
     const s = settle(total, next.map((x) => ({ kind: x.kind, amount: x.amount, tendered: x.tendered })));
-    if (s.complete) setDone(completeSale(next));
+    if (s.complete) {
+      const before = getState().order!;                // items not sent to the kitchen yet
+      const items = newItems(before);
+      const sold = completeSale(next);
+      setDone(sold);
+      autoTicket(sold, items, before.version > 0);
+    }
     else setTenders(next);
   };
   const payCash = (tendered: number) => {
