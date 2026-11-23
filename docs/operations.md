@@ -2,6 +2,27 @@
 
 ## Backups
 
+### Daily backup to Telegram (automatic)
+
+Every day at **23:30 WIB** a GitHub Action (`.github/workflows/telegram-backup.yml`) backs up the
+live database (everything: menu, sales, shifts, staff and sign-in accounts), **encrypts it with your
+backup passphrase**, and sends the file `orda-backup-<date>.tgz.enc` to your Telegram bot chat. If it
+ever fails, the bot sends a ⚠️ message instead.
+
+- **Set up once:** create a bot with @BotFather in Telegram, then run `scripts/setup-telegram-backup.sh`
+  and follow it (bot token, database password and a passphrase; nothing is shown or saved on the Mac).
+- **Back up right now:** GitHub → Actions → *Backup to Telegram* → *Run workflow*
+  (or `gh workflow run telegram-backup.yml`).
+- **Restore:** download the file from Telegram, then
+  `scripts/restore-telegram-backup.sh ~/Downloads/orda-backup-….tgz.enc` (asks for the passphrase;
+  restores into the local database, or a hosted one with `DATABASE_URL=…`; same rules as `restore.sh` below).
+  `UNPACK_ONLY=1` just decrypts and unpacks it into `backups/`.
+- **Keep the passphrase safe** (password manager). Without it the backups can't be opened, by
+  anyone, including you.
+- Tested: backup → wipe → restore from the encrypted file gave identical counts and totals.
+
+### Manual backups
+
 | | Command |
 |---|---|
 | Back up (local) | `pnpm db:backup` |

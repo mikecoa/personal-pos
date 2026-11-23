@@ -33,8 +33,13 @@ const [version, code, url, sha256, size, notes] = process.argv.slice(1);
 process.stdout.write(JSON.stringify({ version, versionCode: Number(code), url, sha256, size: Number(size), notes: notes || undefined }, null, 2));
 ' "$version" "$code" "$base/orda-$version.apk" "$sha" "$size" "$notes" > dist/latest.json
 
-supabase storage cp --remote --experimental --yes --content-type application/vnd.android.package-archive "$apk" "ss:///app-releases/orda-$version.apk" < /dev/null
-supabase storage cp --remote --experimental --yes --content-type application/json --cache-control "max-age=60" dist/latest.json "ss:///app-releases/latest.json" < /dev/null
+# Storage won't overwrite files, so remove any earlier copy first (a missing file is fine).
+put() {
+  supabase storage rm --remote --experimental --yes "ss:///app-releases/$2" < /dev/null > /dev/null 2>&1 || true
+  supabase storage cp --remote --experimental --yes --content-type "$3" ${4:+--cache-control "$4"} "$1" "ss:///app-releases/$2" < /dev/null
+}
+put "$apk" "orda-$version.apk" application/vnd.android.package-archive
+put dist/latest.json latest.json application/json "max-age=60"
 
 gh release create "v$version" "$apk" --title "Orda $version" --notes "${notes:-Orda $version}" --target main || echo "(GitHub release not created; the in-app update is published anyway)"
 echo "Published Orda $version (versionCode $code). Tablets will offer it next time they open or come back to the app."
