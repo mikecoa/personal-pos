@@ -35,7 +35,7 @@ export function Field(props: TextInputProps & { label?: string }) {
   return (
     <View style={{ gap: 6 }}>
       {props.label && <Text style={s.label}>{props.label}</Text>}
-      <TextInput disableFullscreenUI placeholderTextColor="#a3968a" {...props} style={[s.input, props.style]} />
+      <TextInput disableFullscreenUI placeholderTextColor="#98a29c" {...props} style={[s.input, props.style]} />
     </View>
   );
 }
@@ -64,11 +64,11 @@ export function Sheet({ visible, onClose, title, children, footer, width = 560, 
   const { w, compact } = useLayout();
   const sheetW = Math.min(width, w - (compact ? 16 : 48));    // never wider than the screen
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} supportedOrientations={["landscape", "portrait"]}>
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent hardwareAccelerated onRequestClose={onClose} supportedOrientations={["landscape", "portrait"]}>
       {/* The pop-up moves up when the on-screen keyboard opens, so the field being typed in stays visible. */}
       <KeyboardAvoidingView behavior="padding" style={[s.overlay, compact && { padding: 8 }, side && { alignItems: "flex-end", justifyContent: "flex-start", padding: 0 }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-        <FadeIn from={side ? 0 : 14} scale={side ? 1 : 0.97} duration={180} style={[s.sheet, { width: sheetW }, compact && { maxHeight: "96%" }, side && { height: "100%", borderRadius: 0, maxHeight: "100%" }]}>
+        <FadeIn from={side ? 0 : 10} scale={side ? 1 : 0.98} duration={140} style={[s.sheet, { width: sheetW }, compact && { maxHeight: "96%" }, side && { height: "100%", borderRadius: 0, maxHeight: "100%" }]}>
           <View style={s.sheetHead}>
             <H size={20}>{title}</H>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}
@@ -114,16 +114,16 @@ export function Keypad({ onKey, extra = "00", compact: small, fill }: { onKey: (
 const s = StyleSheet.create({
   btn: { minHeight: 54, paddingHorizontal: 20, borderRadius: r.md, alignItems: "center", justifyContent: "center", borderWidth: 1 },
   btnBig: { minHeight: 68 },
-  btnText: { fontSize: 17, fontWeight: "700" },
+  btnText: { fontSize: 16, fontWeight: "700", letterSpacing: 0.1 },
   chip: { paddingHorizontal: 18, minHeight: 48, borderRadius: 24, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, justifyContent: "center" },
   chipText: { fontSize: 16, fontWeight: "600", color: c.ink },
   label: { fontSize: 15, fontWeight: "600", color: c.ink2 },
   input: { height: 54, borderWidth: 1, borderColor: c.line, borderRadius: r.md, paddingHorizontal: 14, fontSize: 17, backgroundColor: c.surface, color: c.ink },
-  overlay: { flex: 1, backgroundColor: "rgba(42,33,27,0.35)", alignItems: "center", justifyContent: "center", padding: 24 },
-  sheet: { backgroundColor: c.bg, borderRadius: r.lg, maxHeight: "92%", overflow: "hidden" },
+  overlay: { flex: 1, backgroundColor: "rgba(16,24,20,0.45)", alignItems: "center", justifyContent: "center", padding: 24 },
+  sheet: { backgroundColor: c.bg, borderRadius: r.lg, maxHeight: "92%", overflow: "hidden", elevation: 16, shadowColor: "#0b1a12", shadowOpacity: 0.2, shadowRadius: 30, shadowOffset: { width: 0, height: 12 } },
   close: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", marginRight: -8 },
-  sheetHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderColor: c.line },
-  sheetFoot: { padding: 16, borderTopWidth: 1, borderColor: c.line, flexDirection: "row", gap: 12 },
+  sheetHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  sheetFoot: { padding: 16, borderTopWidth: 1, borderColor: c.line, flexDirection: "row", gap: 12, backgroundColor: c.surface },
   step: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   stepText: { fontSize: 24, color: c.ink, fontWeight: "600" },
   key: { width: 96, height: 72, borderRadius: r.md, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" },

@@ -187,7 +187,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
   );
   if (page) return card;
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose} supportedOrientations={["landscape", "portrait"]}>
+    <Modal visible transparent animationType="none" statusBarTranslucent hardwareAccelerated onRequestClose={onClose} supportedOrientations={["landscape", "portrait"]}>
       <KeyboardAvoidingView behavior="padding" style={st.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
         {card}
@@ -434,7 +434,7 @@ export function SeatingSheet({ onClose }: { onClose: () => void }) {
 }
 
 const st = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(42,33,27,0.35)", alignItems: "center", justifyContent: "center", padding: 24 },
+  overlay: { flex: 1, backgroundColor: "rgba(16,24,20,0.45)", alignItems: "center", justifyContent: "center", padding: 24 },
   card: { width: "100%", maxWidth: 1120, height: "94%", backgroundColor: c.bg, borderRadius: r.lg, overflow: "hidden" },
   cardPage: { flex: 1, maxWidth: undefined, height: undefined, borderRadius: 0 },
   head: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },

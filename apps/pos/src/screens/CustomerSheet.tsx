@@ -43,7 +43,7 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
       </>}>
       <View style={st.search}>
         <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
-        <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Search name or phone")} placeholderTextColor="#a3968a" accessibilityLabel="Search customers"
+        <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Search name or phone")} placeholderTextColor="#98a29c" accessibilityLabel="Search customers"
           autoFocus style={{ flex: 1, fontSize: 17, color: c.ink, height: 48 }} />
       </View>
       {customers.length === 0 ? (

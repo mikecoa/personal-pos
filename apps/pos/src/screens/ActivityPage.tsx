@@ -64,7 +64,7 @@ export function ActivityPage() {
         {!(compact && sel) && <View style={[st.list, compact && { width: "100%", borderRightWidth: 0 }]}>
           <View style={st.search}>
             <MaterialCommunityIcons name="magnify" size={24} color={c.ink2} />
-            <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Receipt number")} placeholderTextColor="#a3968a" accessibilityLabel="Search by receipt number"
+            <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Receipt number")} placeholderTextColor="#98a29c" accessibilityLabel="Search by receipt number"
               autoCapitalize="characters" style={{ flex: 1, fontSize: 17, color: c.ink, height: 52 }} />
           </View>
           <FlatList data={rows} keyExtractor={(row) => (row.kind === "day" ? `d${row.key}` : row.sale.id)}
@@ -222,6 +222,6 @@ const st = StyleSheet.create({
   salesType: { textAlign: "center", fontSize: 16, color: c.ink, paddingVertical: 10, borderBottomWidth: 1, borderColor: c.line },
   item: { flexDirection: "row", alignItems: "center", gap: 16, minHeight: 64, paddingRight: 12, borderBottomWidth: 1, borderColor: c.line },
   thumb: { width: 64, alignSelf: "stretch", alignItems: "center", justifyContent: "center" },
-  thumbText: { fontSize: 22, fontWeight: "600", color: "rgba(42,33,27,0.55)" },
+  thumbText: { fontSize: 22, fontWeight: "600", color: "rgba(22,32,27,0.5)" },
   mod: { flexDirection: "row", alignItems: "center", minHeight: 52, paddingLeft: 80, paddingRight: 12, borderBottomWidth: 1, borderColor: c.line },
 });

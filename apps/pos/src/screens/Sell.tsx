@@ -238,7 +238,7 @@ export function Sell() {
         <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
           <View style={{ flex: 1, flexDirection: "row", alignItems: "center", height: bh, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingLeft: 14 }}>
             <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
-            <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={tight && !compact ? t("Search") : t("Search item or scan SKU…")} placeholderTextColor="#a3968a" accessibilityLabel="Search items"
+            <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={tight && !compact ? t("Search") : t("Search item or scan SKU…")} placeholderTextColor="#98a29c" accessibilityLabel="Search items"
               style={{ flex: 1, height: bh - 2, paddingHorizontal: 8, fontSize: 16, color: c.ink }} />
             {q ? (
               <Pressable onPress={() => setQ("")} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search" style={{ paddingHorizontal: 12, height: bh - 2, justifyContent: "center" }}>
@@ -310,7 +310,7 @@ export function Sell() {
                     <Tap key={item.id} onPress={() => (editingMenu ? setModal({ kind: "editItem", item }) : tap(item))} accessibilityRole="button"
                       accessibilityLabel={editingMenu ? t("Edit {name}", { name: item.name }) : `${item.name}, ${priceLabel(item)}`} scaleTo={0.95}
                       style={{ width: tileW, minHeight: 56, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8,
-                        borderRadius: r.sm, backgroundColor: c.surface, borderWidth: 1, borderColor: (inCart.get(item.id) ?? 0) > 0 && !editingMenu ? c.accent : c.line, opacity: out ? 0.55 : 1 }}>
+                        borderRadius: r.sm, backgroundColor: (inCart.get(item.id) ?? 0) > 0 && !editingMenu ? c.accentSoft : c.surface, borderWidth: 1, borderColor: (inCart.get(item.id) ?? 0) > 0 && !editingMenu ? c.accent : c.line, opacity: out ? 0.55 : 1 }}>
                       {/* Compact menu row: name on the left, price on the right, how many are on the order. */}
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }} numberOfLines={2}>{item.name}</Text>

@@ -52,7 +52,16 @@ export function useStore<T>(select: (s: State) => T): T {
   return useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l); }, () => select(state));
 }
 
-const refreshLocal = () => set((s) => ({ openOrders: db.listOrders("open"), sync: { ...s.sync, pending: db.pendingCount(), rejected: db.rejectedCount() } }));
+// Only replace what actually changed, so a background sync doesn't redraw the whole screen.
+const sameOrders = (a: OrderDoc[], b: OrderDoc[]) => a.length === b.length && a.every((o, i) => o.id === b[i]!.id && o.version === b[i]!.version && o.total === b[i]!.total && o.table_id === b[i]!.table_id);
+const refreshLocal = () => {
+  const openOrders = db.listOrders("open");
+  const pending = db.pendingCount(), rejected = db.rejectedCount();
+  const s = state;
+  const ordersChanged = !sameOrders(s.openOrders, openOrders);
+  if (!ordersChanged && s.sync.pending === pending && s.sync.rejected === rejected) return;
+  set({ ...(ordersChanged ? { openOrders } : {}), sync: { ...s.sync, pending, rejected } });
+};
 export const can = (perm: string) => !!state.employee?.permissions.includes(perm);
 let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 /** Show a short message at the bottom of the screen; it clears itself after 6 seconds. */
@@ -763,6 +772,7 @@ export function refund(order: OrderDoc, picks: Record<string, number>, reason: s
 let timer: ReturnType<typeof setInterval> | null = null;
 let running: Promise<void> | null = null;
 let lastCatalogPull = 0;
+let lastCatalogJson = "";
 let failures = 0;           // consecutive transient failures → backoff
 let nextAttemptAt = 0;
 
@@ -772,8 +782,12 @@ function stopSync() { if (timer) clearInterval(timer); timer = null; }
 async function pullCatalog() {
   const { data, error } = await supabase.rpc("pos_catalog", { p_device: state.device!.id });
   if (error) throw error;
-  db.kvSet("catalog", data);
   lastCatalogPull = Date.now();
+  // Unchanged menu: keep the same object so nothing redraws.
+  const json = JSON.stringify(data);
+  if (json === lastCatalogJson) return;
+  lastCatalogJson = json;
+  db.kvSet("catalog", data);
   set({ catalog: data as unknown as Catalog });
 }
 
