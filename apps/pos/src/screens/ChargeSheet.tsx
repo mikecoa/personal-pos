@@ -46,6 +46,7 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
   const total = done?.total ?? order?.total ?? 0;
   const st = settle(total, tenders.map((t) => ({ kind: t.kind, amount: t.amount, tendered: t.tendered })));
   const split = catalog.settings.split_payment_enabled;
+  const pair = short && !compact && catalog.payment_methods.length > 4;
 
   if (done) {
     return (
@@ -113,7 +114,8 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
           {short && tenders.length > 0 && <Btn kind="ghost" title={t("Clear payments")} onPress={() => setTenders([])} />}
           <View style={{ gap: 10 }}>
             <Label>{t("Pay with")}</Label>
-            <View style={compact ? { flexDirection: "row", flexWrap: "wrap", gap: 8 } : { gap: short ? 8 : 10 }}>
+            {/* More than 4 methods on a small tablet: two per row, so the list never needs scrolling. */}
+            <View style={compact || pair ? { flexDirection: "row", flexWrap: "wrap", gap: 8 } : { gap: short ? 8 : 10 }}>
             {catalog.payment_methods.map((m) => {
               const on = method?.id === m.id;
               return (
@@ -122,11 +124,11 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
                   style={[{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, borderRadius: r.md, borderWidth: 2,
                     borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accentSoft : c.surface },
                     short && { minHeight: 52 },
-                    compact && { width: "48.6%", minHeight: 56, gap: 8, paddingHorizontal: 10 }]}>
-                  <MaterialCommunityIcons name={KIND_ICON[m.kind]} size={28} color={on ? c.accent : c.ink2} />
+                    (compact || pair) && { width: "48.6%", minHeight: pair ? 48 : 56, gap: 8, paddingHorizontal: 10 }]}>
+                  <MaterialCommunityIcons name={KIND_ICON[m.kind]} size={pair ? 22 : 28} color={on ? c.accent : c.ink2} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink }} numberOfLines={1}>{m.name}</Text>
-                    {m.name !== KIND_LABEL[m.kind] && <Text style={{ color: c.ink2, fontSize: 12 }}>{t(KIND_LABEL[m.kind])}</Text>}
+                    {m.name !== KIND_LABEL[m.kind] && !pair && <Text style={{ color: c.ink2, fontSize: 12 }}>{t(KIND_LABEL[m.kind])}</Text>}
                   </View>
                   {on && <FadeIn from={0} scale={0.5} duration={150}><MaterialCommunityIcons name="check-circle" size={24} color={c.accent} /></FadeIn>}
                 </Tap>
