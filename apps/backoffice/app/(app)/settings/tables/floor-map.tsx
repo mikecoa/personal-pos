@@ -5,7 +5,7 @@ import { FLOOR_MAX_COLS, FLOOR_MAX_ROW, floorLayout, floorMinSize, floorRows, fl
 import { saveAreaGrid, saveLayout } from "./actions";
 import { useT } from "@/components/lang";
 
-export type MapTable = { id: string; name: string; seats: number; shape: string; is_active: boolean; pos_x: number | null; pos_y: number | null; busy: boolean };
+export type MapTable = { id: string; name: string; seats: number; is_active: boolean; pos_x: number | null; pos_y: number | null; busy: boolean };
 export type MapArea = { id: string; grid_cols: number; grid_rows: number };
 
 const GAP = 8;          // px between cells (Tailwind gap-2)
@@ -163,7 +163,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
                       style={dragId === t.id ? { transform: `translate(${drag!.dx}px, ${drag!.dy}px) scale(1.05)`, zIndex: 10, position: "relative" } : undefined}
                       title={tr("Table {name}: drag to move, click to edit", { name: t.name })}
                       className={`flex h-full w-full cursor-grab flex-col items-center justify-center border bg-surface transition hover:border-accent active:cursor-grabbing
-                        ${t.shape === "round" ? "rounded-full" : "rounded-xl"} ${t.busy ? "border-accent bg-accent-soft" : "border-line"}
+                        rounded-xl ${t.busy ? "border-accent bg-accent-soft" : "border-line"}
                         touch-none select-none ${t.is_active ? "" : "opacity-50"} ${dragId === t.id ? "shadow-xl" : ""}`}>
                       <span className={`${cellW < 90 ? "text-base" : "text-lg"} font-bold leading-tight`}>{t.name}</span>
                       <span className="text-xs text-ink-2">{tr("{n} seats", { n: t.seats })}</span>

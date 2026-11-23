@@ -336,7 +336,7 @@ function TableEditor({ table, areaId, suggest, onDone }: {
     setBusy(true); setError(null);
     try { await fn(); onDone(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
-  const save = () => run(() => editFloorPlan({ kind: "table", op: "save", id: table?.id, name: name.trim(), seats, shape: table?.shape ?? "square", area_id: area }));
+  const save = () => run(() => editFloorPlan({ kind: "table", op: "save", id: table?.id, name: name.trim(), seats, shape: "square", area_id: area }));
   const remove = () => (confirmDelete ? run(() => editFloorPlan({ kind: "table", op: "delete", id: table!.id })) : setConfirmDelete(true));
 
   return (

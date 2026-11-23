@@ -7,7 +7,6 @@ import { FloorMap } from "./floor-map";
 import { getT } from "@/lib/prefs";
 
 const BASE = "/settings/tables";
-const SHAPES = { square: "Square", round: "Round", long: "Long" } as const;
 type SP = { table?: string; area?: string; new?: "table" | "area" | "bulk" };
 
 export default async function TablesPage({ searchParams }: { searchParams: Promise<SP> }) {
@@ -16,7 +15,7 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const [{ data: areas }, { data: tables }, { data: open }] = await Promise.all([
     supabase.from("table_areas").select("id, name, sort_order, is_active, grid_cols, grid_rows").eq("location_id", location.id).order("sort_order").order("name"),
-    supabase.from("dining_tables").select("id, name, area_id, seats, shape, sort_order, is_active, pos_x, pos_y").eq("location_id", location.id).order("sort_order").order("name"),
+    supabase.from("dining_tables").select("id, name, area_id, seats, sort_order, is_active, pos_x, pos_y").eq("location_id", location.id).order("sort_order").order("name"),
     supabase.from("orders").select("table_id").eq("location_id", location.id).eq("status", "open").not("table_id", "is", null),
   ]);
   const busy = new Set((open ?? []).map((o) => o.table_id));
@@ -60,11 +59,7 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
             confirmDelete={editingTable && busy.has(editingTable.id) ? t("A bill is open on this table. Delete anyway? The bill stays open, just without a table.") : t("Delete this table?")}>
             <Field label={t("Name or number")} name="name" defaultValue={editingTable?.name} required autoFocus maxLength={20} placeholder={t("e.g. 5, T2, Sofa")} />
             <Select label={t("Area")} name="area_id" defaultValue={editingTable?.area_id ?? ""} options={areaOptions} />
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={t("Seats")} name="seats" type="number" min={1} max={50} defaultValue={editingTable?.seats ?? 4} />
-              <Select label={t("Shape")} name="shape" defaultValue={editingTable?.shape ?? "square"}
-                options={Object.entries(SHAPES).map(([value, label]) => ({ value, label }))} />
-            </div>
+            <Field label={t("Seats")} name="seats" type="number" min={1} max={50} defaultValue={editingTable?.seats ?? 4} />
             <input type="hidden" name="sort_order" value={editingTable?.sort_order ?? 0} />
             <Toggle label={t("Available")} name="is_active" defaultChecked={editingTable?.is_active ?? true} description={t("Unavailable tables are hidden on the tablet.")} />
           </EditorForm>

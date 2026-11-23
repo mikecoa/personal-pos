@@ -132,7 +132,7 @@ function MiniFloor({ tables, area, selected, busy, onPick }: {
             accessibilityRole="radio" accessibilityState={{ selected: on, disabled: taken }}
             accessibilityLabel={`Table ${tb.name}${taken ? t(", in use") : ""}`}
             style={[st.tableBtn, { position: "absolute", left: p.x * (cellW + GAP), top: p.y * (cellH + GAP), width: cellW, height: cellH, minWidth: 0, minHeight: 0, paddingHorizontal: 2 },
-              tb.shape === "round" && { borderRadius: cellH / 2 }, on && st.tableOn, taken && { opacity: 0.35 }]}>
+              on && st.tableOn, taken && { opacity: 0.35 }]}>
             <Text style={[st.tableText, small && { fontSize: 13 }, on && { color: c.accentInk }]} numberOfLines={1}>{tb.name}</Text>
             {taken && <Text style={{ fontSize: small ? 9 : 10, color: c.ink2 }} numberOfLines={1}>{t("in use")}</Text>}
           </Pressable>

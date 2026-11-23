@@ -29,7 +29,7 @@ const tableSchema = z.object({
   name: z.string().trim().min(1, "Table name is required").max(20, "Max 20 characters"),
   area_id: z.string().uuid().nullable(),
   seats: z.coerce.number().int().min(1).max(50),
-  shape: z.enum(["square", "round", "long"]),
+  shape: z.literal("square"),                      // tables are always square
   sort_order: z.coerce.number().int(),
   is_active: z.boolean(),
 });
@@ -38,7 +38,7 @@ export async function saveTable(_: ActionState, form: FormData): Promise<ActionS
   const { supabase, location } = await requireManage();
   const parsed = tableSchema.safeParse({
     name: str(form, "name"), area_id: str(form, "area_id") || null, seats: str(form, "seats") || 4,
-    shape: str(form, "shape") || "square", sort_order: str(form, "sort_order") || 0, is_active: bool(form, "is_active"),
+    shape: "square", sort_order: str(form, "sort_order") || 0, is_active: bool(form, "is_active"),
   });
   if (!parsed.success) return fail(parsed.error);
   const id = str(form, "id");
