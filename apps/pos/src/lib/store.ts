@@ -520,6 +520,15 @@ export function splitBill(picks: Record<string, number>): OrderDoc {
   void syncNow();
   return created;
 }
+/** Split into several bills at once: one `picks` map per new bill (the rest stays on this bill). */
+export function splitBillMany(groups: Record<string, number>[]): OrderDoc[] {
+  const o = state.order!;
+  const total = o.lines.reduce((s, l) => s + l.qty, 0);
+  const moved = groups.reduce((s, g) => s + Object.values(g).reduce((a, n) => a + n, 0), 0);
+  if (!groups.length || groups.some((g) => !Object.values(g).some((n) => n > 0))) throw new Error(t("Every new bill needs at least one item."));
+  if (moved >= total) throw new Error(t("Leave at least one item on this bill."));
+  return groups.map((g) => splitBill(g));
+}
 export function cancelBill(reason: string) {
   const o = state.order!;
   const next: OrderDoc = {

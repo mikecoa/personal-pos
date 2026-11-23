@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { AppliedDiscount } from "@pos/core";
-import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, splitBill, useStore } from "../lib/store";
+import { billsAt, byTableName, can, cancelBill, getState, markSent, notify, printerSettings, saveBillAt, setBillDiscounts, setBillInfo, splitBillMany, useStore } from "../lib/store";
 import { lineLabel } from "../lib/order";
 import { autoTicket, newItems } from "./receipt";
 import { Btn, Chip, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
@@ -106,7 +106,10 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
 }
 
 const st = StyleSheet.create({
-  splitRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  splitCol: { width: 250, padding: 8, gap: 8, borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.bg },
+  splitHead: { padding: 6, gap: 2 },
+  splitItem: { flexDirection: "row", alignItems: "center", gap: 6, padding: 8, borderRadius: r.sm, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  splitAdd: { width: 140, alignItems: "center", justifyContent: "center", borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent },
   tableBtn: { minWidth: 64, height: 52, paddingHorizontal: 12, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   tableOn: { backgroundColor: c.accent, borderColor: c.accent },
   tableText: { fontSize: 16, fontWeight: "800", color: c.ink },
@@ -149,45 +152,72 @@ export function CancelBillSheet({ onClose }: { onClose: () => void }) {
 }
 
 /**
- * Split bill: choose how many of each item go to a new bill (same table). Each bill is then
- * charged on its own. Nothing is voided; bill discounts stay on this bill.
+ * Split bill into any number of bills: one column per bill. Tap a bill's header to choose where
+ * items go, then tap items to move them there one at a time (tapping an item in the chosen bill
+ * sends it back to this bill). Nothing is voided; bill discounts stay on this bill.
  */
 export function SplitBillSheet({ onClose }: { onClose: () => void }) {
   const order = useStore((s) => s.order)!;
-  const [picks, setPicks] = useState<Record<string, number>>({});
+  // alloc[lineId][bill] = how many of that line go to that bill; bill 0 is this bill.
+  const [alloc, setAlloc] = useState<Record<string, number[]>>(() => Object.fromEntries(order.lines.map((l) => [l.id, [l.qty, 0]])));
+  const [bills, setBills] = useState(2);
+  const [target, setTarget] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const total = order.lines.reduce((s, l) => s + l.qty, 0);
-  const moved = order.lines.reduce((s, l) => s + (picks[l.id] ?? 0), 0);
-  const movedAmount = order.lines.reduce((s, l) => s + Math.round((l.line_total / l.qty) * (picks[l.id] ?? 0)), 0);
-  const ok = moved > 0 && moved < total;
-  const set = (id: string, n: number) => setPicks((p) => ({ ...p, [id]: n }));
+  const unit = (id: string) => { const l = order.lines.find((x) => x.id === id)!; return l.line_total / l.qty; };
+  const count = (b: number) => order.lines.reduce((s, l) => s + (alloc[l.id]![b] ?? 0), 0);
+  const amount = (b: number) => order.lines.reduce((s, l) => s + Math.round(unit(l.id) * (alloc[l.id]![b] ?? 0)), 0);
+  const move = (id: string, from: number) => {
+    const to = from === target ? 0 : target;
+    if (to === from) return;
+    setAlloc((a) => { const row = [...a[id]!]; row[from] = (row[from] ?? 0) - 1; row[to] = (row[to] ?? 0) + 1; return { ...a, [id]: row }; });
+  };
+  const addBill = () => { setAlloc((a) => Object.fromEntries(Object.entries(a).map(([k, v]) => [k, [...v, 0]]))); setTarget(bills); setBills(bills + 1); };
+  const filled = Array.from({ length: bills }, (_, b) => count(b) > 0);
+  const ok = filled.every(Boolean);
   const split = () => {
     try {
-      const created = splitBill(picks);
-      notify(t("Split into a new bill: {name}", { name: created.bill_name ?? created.number }));
+      const groups = Array.from({ length: bills - 1 }, (_, i) => Object.fromEntries(order.lines.map((l) => [l.id, alloc[l.id]![i + 1] ?? 0]).filter(([, n]) => (n as number) > 0)));
+      const made = splitBillMany(groups as Record<string, number>[]);
+      notify(t("Split into {n} bills", { n: made.length + 1 }));
       onClose();
     } catch (e) { setError((e as Error).message); }
   };
   return (
-    <Sheet visible onClose={onClose} title={t("Split bill")} width={600}
+    <Sheet visible onClose={onClose} title={t("Split bill")} width={1100}
       footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
-        <Btn style={{ flex: 1 }} title={ok ? t("Move {n} to a new bill · {amount}", { n: moved, amount: money(movedAmount) }) : t("Move to a new bill")} disabled={!ok} onPress={split} /></>}>
-      <Muted style={{ fontSize: 13, marginBottom: 10 }}>{t("Choose the items for the new bill. Both bills stay at the same table and are charged separately.")}</Muted>
-      <View style={{ gap: 8 }}>
-        {order.lines.map((l) => (
-          <View key={l.id} style={st.splitRow}>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontWeight: "600", color: c.ink, fontSize: 14 }} numberOfLines={2}>{lineLabel(l)}</Text>
-              <Text style={{ color: c.ink2, fontSize: 12 }}>{t("{n} on this bill", { n: l.qty })} · {money(l.line_total)}</Text>
+        <Btn style={{ flex: 1 }} title={t("Split into {n} bills", { n: bills })} disabled={!ok} onPress={split} /></>}>
+      <Muted style={{ fontSize: 12, marginBottom: 10 }}>{t("Tap a bill to choose it, then tap items to move them there. Tap an item in the chosen bill to send it back.")}</Muted>
+      <ScrollView horizontal contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
+        {Array.from({ length: bills }, (_, b) => {
+          const on = b === target;
+          return (
+            <View key={b} style={[st.splitCol, on && { borderColor: c.accent, backgroundColor: c.accentSoft }]}>
+              <Pressable onPress={() => setTarget(b)} accessibilityRole="button" accessibilityState={{ selected: on }} style={st.splitHead}>
+                <Text style={{ fontWeight: "800", color: on ? c.accent : c.ink, fontSize: 14 }}>{b === 0 ? t("This bill") : t("Bill {n}", { n: b + 1 })}</Text>
+                <Text style={{ color: c.ink2, fontSize: 12 }}>{count(b) === 1 ? t("1 item") : t("{n} items", { n: count(b) })} · {money(amount(b))}</Text>
+                {on && b > 0 && <Text style={{ color: c.accent, fontSize: 11, fontWeight: "700" }}>{t("Items go here")}</Text>}
+              </Pressable>
+              <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={{ gap: 6 }}>
+                {order.lines.filter((l) => (alloc[l.id]![b] ?? 0) > 0).map((l) => (
+                  <Pressable key={l.id} onPress={() => move(l.id, b)} accessibilityRole="button"
+                    accessibilityLabel={on ? t("Send one {name} back", { name: lineLabel(l) }) : t("Move one {name}", { name: lineLabel(l) })}
+                    style={({ pressed }) => [st.splitItem, pressed && { backgroundColor: c.surface2 }]}>
+                    <Text style={{ fontWeight: "800", color: c.ink, fontSize: 13, minWidth: 22 }}>{alloc[l.id]![b]}×</Text>
+                    <Text style={{ flex: 1, color: c.ink, fontSize: 13 }} numberOfLines={2}>{lineLabel(l)}</Text>
+                    <Text style={{ color: c.ink2, fontSize: 12 }}>{money(Math.round(unit(l.id) * alloc[l.id]![b]!))}</Text>
+                  </Pressable>
+                ))}
+                {count(b) === 0 && <Muted style={{ fontSize: 12, padding: 8 }}>{on ? t("Tap items in another bill to move them here.") : t("Empty")}</Muted>}
+              </ScrollView>
             </View>
-            <Pressable onPress={() => set(l.id, l.qty)} hitSlop={6} accessibilityRole="button" accessibilityLabel={t("Move all of {name}", { name: lineLabel(l) })}>
-              <Text style={{ color: c.accent, fontWeight: "700", fontSize: 12, marginRight: 4 }}>{t("All")}</Text>
-            </Pressable>
-            <Stepper value={picks[l.id] ?? 0} min={0} onChange={(n) => set(l.id, Math.min(l.qty, n))} />
-          </View>
-        ))}
-      </View>
+          );
+        })}
+        <Pressable onPress={addBill} accessibilityRole="button" style={({ pressed }) => [st.splitAdd, pressed && { backgroundColor: c.surface2 }]}>
+          <Text style={{ color: c.accent, fontWeight: "800", fontSize: 14 }}>+ {t("New bill")}</Text>
+        </Pressable>
+      </ScrollView>
       {order.discounts.length > 0 && <Muted style={{ fontSize: 12, marginTop: 10 }}>{t("Bill discounts stay on this bill.")}</Muted>}
+      {!ok && <Muted style={{ fontSize: 12, marginTop: 8 }}>{t("Every bill needs at least one item.")}</Muted>}
       {error && <Text style={{ color: c.danger, marginTop: 8 }}>{error}</Text>}
     </Sheet>
   );
