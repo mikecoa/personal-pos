@@ -569,26 +569,33 @@ function BillPreviewSheet({ onClose, ticket }: { onClose: () => void; ticket?: b
   const catalog = useStore((s) => s.catalog)!;
   const [busy, setBusy] = useState(false);
   const p = printerSettings();
-  // "Print order" (saved bills only): the items not sent to the kitchen yet; when everything was
-  // sent already, the whole order again marked as a reprint. Printing marks the items as sent.
-  const fresh = newItems(order);
-  const anySent = order.lines.some((l) => (l.saved_qty ?? 0) > 0);
-  const tItems = fresh.length ? fresh : allItems(order);
-  const tAdded = fresh.length > 0 && anySent, tReprint = fresh.length === 0;
-  const lines = ticket ? ticketLines(order, tItems, lineWidth(p.paper), tAdded, tReprint) : toReceipt(order, catalog, undefined, lineWidth(p.paper));
+  const noPrinter = p.connection === "none";
+  // "Print order" (saved bills only): the items not sent to the kitchen yet; when everything was sent
+  // already, the whole order again marked as a reprint. Worked out once when the preview opens, so a
+  // retry after a failed print prints the same items.
+  const [tk] = useState(() => {
+    const fresh = newItems(order);
+    const anySent = order.lines.some((l) => (l.saved_qty ?? 0) > 0);
+    return { items: fresh.length ? fresh : allItems(order), added: fresh.length > 0 && anySent, reprint: fresh.length === 0 };
+  });
+  const lines = ticket ? ticketLines(order, tk.items, lineWidth(p.paper), tk.added, tk.reprint) : toReceipt(order, catalog, undefined, lineWidth(p.paper));
   const n = ticket ? p.ticketCopies ?? 3 : p.copies;
   const print = async () => {
     setBusy(true);
     try {
-      if (ticket) { await printTicket(order, tItems, tAdded, tReprint); markSent(); notify(t("Order ticket printed.")); }
-      else { await printReceipt(order, catalog); notify(t("Bill printed.")); }
+      if (ticket) {
+        markSent();                          // lock the items first: a failed print can't leave them removable without a void
+        await printTicket(order, tk.items, tk.added, tk.reprint);
+        notify(t("Order ticket printed."));
+      } else { await printReceipt(order, catalog); notify(t("Bill printed.")); }
       onClose();
     } catch (e) { notify((e as Error).message); setBusy(false); }
   };
   return (
     <Sheet visible onClose={onClose} title={ticket ? t("Print order") : t("Print bill")} width={p.paper === 80 ? 520 : 440}
       footer={<><Btn kind="secondary" title={t("Close")} onPress={onClose} />
-        <Btn style={{ flex: 1 }} title={busy ? t("Printing…") : n > 1 ? t("Print {n} copies", { n }) : t("Print")} disabled={busy} onPress={() => void print()} /></>}>
+        <Btn style={{ flex: 1 }} title={busy ? t("Printing…") : n > 1 ? t("Print {n} copies", { n }) : t("Print")} disabled={busy || noPrinter} onPress={() => void print()} /></>}>
+      {noPrinter && <Muted style={{ marginBottom: 8 }}>{t("No printer is set up on this tablet.")}</Muted>}
       <ScrollView contentContainerStyle={{ paddingVertical: 8 }}><ReceiptView lines={lines} /></ScrollView>
     </Sheet>
   );
