@@ -256,7 +256,7 @@ export function Sell() {
             <ToolButton icon="tag-outline" label={t("Discount")} disabled={!hasLines}
               onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
             {order?.version
-              ? <ToolButton icon="check" label={t("Done")} onPress={() => {
+              ? <ToolButton icon="check" label={t("Done")} disabled={!billChanged} onPress={() => {
                   // Save and stay on the bill (to print the order or the bill next). With auto-print on,
                   // the new items go to the kitchen now and count as sent.
                   const o = order!; const items = newItems(o);

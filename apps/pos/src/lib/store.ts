@@ -44,8 +44,28 @@ let state: State = {
   page: "pos", approval: null, slip: null, billChanged: false, lang: currentLang(),
 };
 const listeners = new Set<() => void>();
+/**
+ * What a saved bill looked like when it was last confirmed (opened, saved, Done, printed…): items,
+ * quantities, notes, item and bill discounts, sales types. A bill counts as changed only while it
+ * differs from this, so adding an item and taking it off again isn't a change.
+ */
+let confirmedSig = "";
+export const billSig = (o: OrderDoc | null) => {
+  if (!o) return "";
+  // By content, not line ids: taking an item off and adding the same one back is no change.
+  const qty = new Map<string, number>();
+  for (const l of o.lines) {
+    const key = [l.item_id ?? `custom:${l.item_name}:${l.unit_price}`, l.variant_id ?? "", l.modifiers.map((m) => m.option).join("|"),
+      l.note ?? "", l.discount?.id ?? "", l.discount?.value ?? 0, l.sales_type_id ?? ""].join("¦");
+    qty.set(key, (qty.get(key) ?? 0) + l.qty);
+  }
+  return JSON.stringify([[...qty].filter(([, n]) => n > 0).sort(([a], [b]) => a.localeCompare(b)), o.discounts.map((d) => [d.discount_id ?? d.name, d.kind, d.value])]);
+};
+
 function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
-  state = { ...state, ...(typeof patch === "function" ? patch(state) : patch) };
+  const p = typeof patch === "function" ? patch(state) : patch;
+  state = { ...state, ...p };
+  if (p.billChanged === false) confirmedSig = billSig(state.order);
   listeners.forEach((l) => l());
 }
 export const getState = () => state;
@@ -252,7 +272,7 @@ function ensureOrder(): OrderDoc {
 }
 function update(fn: (o: OrderDoc) => OrderDoc) {
   const next = reprice(fn(ensureOrder()), state.catalog!);
-  set({ order: next, billChanged: true });
+  set({ order: next, billChanged: next.version > 0 && billSig(next) !== confirmedSig });
   if (next.version > 0) scheduleBillSave();
 }
 /** "Done": the cashier confirms the bill's changes; printing is allowed again. */
