@@ -93,8 +93,8 @@ export function UpdatePrompt() {
       ) : (
         <View style={{ gap: 10 }}>
           <Muted>{t("A new version of Orda is ready to install. This tablet keeps its setup, sales and settings.")}</Muted>
-          {release.notes ? <Text style={{ color: c.ink, fontSize: 15 }}>{release.notes}</Text> : null}
-          {mine ? <Muted style={{ fontSize: 13 }}>{t("This tablet has {version}.", { version: mine.versionName })}</Muted> : null}
+          {release.notes ? <Text style={{ color: c.ink, fontSize: 14 }}>{release.notes}</Text> : null}
+          {mine ? <Muted style={{ fontSize: 12 }}>{t("This tablet has {version}.", { version: mine.versionName })}</Muted> : null}
         </View>
       )}
       {state === "downloading" && (
@@ -102,7 +102,7 @@ export function UpdatePrompt() {
           <View style={{ height: 10, borderRadius: radius.sm, backgroundColor: c.surface2, overflow: "hidden" }}>
             <View style={{ height: "100%", width: `${Math.round(progress * 100)}%`, backgroundColor: c.accent }} />
           </View>
-          <Muted style={{ fontSize: 13 }}>{t("Downloading… {pct}%", { pct: Math.round(progress * 100) })} {t("Android will then ask you to confirm the install.")}</Muted>
+          <Muted style={{ fontSize: 12 }}>{t("Downloading… {pct}%", { pct: Math.round(progress * 100) })} {t("Android will then ask you to confirm the install.")}</Muted>
         </View>
       )}
       {state === "error" && error ? <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text> : null}

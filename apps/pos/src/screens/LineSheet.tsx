@@ -49,7 +49,7 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
         <Stepper value={qty} onChange={setQ} />
       </View>
       {voiding > 0 && (
-        <View style={{ gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.dangerSoft }}>
+        <View style={{ gap: 10, padding: 14, borderRadius: 6, backgroundColor: c.dangerSoft }}>
           <Text style={{ color: c.danger, fontWeight: "700" }}>
             {voiding > 1 ? t("Voiding {n} already-saved items. Why?", { n: voiding }) : t("Voiding 1 already-saved item. Why?")}
           </Text>
@@ -65,8 +65,9 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
         <View style={{ gap: 10 }}>
           <Label>{t("Sales type")}</Label>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-            {salesTypes.map((s) => <Chip key={s.id} label={s.name} active={typeId === s.id} onPress={() => setTypeId(s.id)} />)}
+            {salesTypes.map((s) => <Chip key={s.id} label={s.name} active={typeId === s.id} onPress={() => (saved > 0 ? undefined : setTypeId(s.id))} />)}
           </View>
+          {saved > 0 && <Muted style={{ fontSize: 12 }}>{t("Saved items keep their sales type. To change it, void the item and add it again.")}</Muted>}
         </View>
       )}
       <Field label={t("Note")} value={note} onChangeText={setNote} maxLength={120} />

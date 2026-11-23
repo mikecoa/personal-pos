@@ -1,10 +1,10 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { type ComponentProps, useMemo, useState } from "react";
+import { type ComponentProps, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { can, clearOrder, getState, guard, notify, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
-import { lineLabel, lineSalesType, mixedSalesTypes, variantPrice } from "../lib/order";
+import { can, clearOrder, confirmBill, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
+import { lineLabel, lineSalesType, mixedSalesTypes, printedQty, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
@@ -21,13 +21,18 @@ import { CategoryEditor, CategoryPicker, ItemEditor } from "./MenuEditor";
 import { CustomerSheet } from "./CustomerSheet";
 import { NoteSheet } from "./NoteSheet";
 import { addCustom, addItem } from "../lib/store";
+import { allItems, autoTicket, newItems, printReceipt, printTicket, ticketLines, toReceipt } from "./receipt";
+import { ReceiptView } from "./ReceiptView";
+import { lineWidth } from "../lib/printer";
+import { printerSettings } from "../lib/store";
 import { t } from "../lib/i18n";
 
 type Modal = { kind: "item"; item: Item } | { kind: "line"; id: string } | { kind: "note"; id: string }
-  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
+  | { kind: "editItem"; item: Item | null } | { kind: "categories" } | { kind: "editCategory"; category: { id: string; name: string } | null } | { kind: "customers" } | { kind: "salesType" } | { kind: "charge" | "billPreview" | "ticketPreview" | "bills" | "sales" | "save" | "discount" | "cancel" | "custom" | "shift" | "tables" | "move" | "seating" } | null;
 
 export function Sell() {
   const catalog = useStore((s) => s.catalog)!;
+  const billChanged = useStore((s) => s.billChanged);
   const order = useStore((s) => s.order);
   const openCount = useStore((s) => s.openOrders.length);
   const notice = useStore((s) => s.notice);
@@ -37,8 +42,9 @@ export function Sell() {
   const [q, setQ] = useState("");
   const [modal, setModal] = useState<Modal>(null);
   // Start at the real width (remembered, or worked out from the screen) so tiles don't resize on open.
-  const { w: screenW, compact, narrow, cartW, railW, pad } = useLayout();
-  const tight = compact || narrow;                              // short top-row controls (phones, portrait tablets)
+  const { w: screenW, compact, narrow, short, cartW, railW, pad } = useLayout();
+  const tight = compact || narrow || short;                     // icon buttons instead of labels (phones, portrait / small tablets)
+  const bh = compact ? 48 : 42;                                 // toolbar height: lower on tablets so more menu fits
   const [cartOpen, setCartOpen] = useState(false);              // phones: order shown full screen
   const [gridW, setGridW] = useState(() => lastGridW ?? screenW - railW - cartW - pad * 2);
   const [measured, setMeasured] = useState(lastGridW !== null);
@@ -48,10 +54,10 @@ export function Sell() {
   const items = useMemo(() => {
     const term = q.trim().toLowerCase();
     return catalog.items.filter((i) => (!cat || i.category_id === cat) &&
-      (!term || i.name.toLowerCase().includes(term) || i.variants.some((v) => v.sku?.toLowerCase() === term)));
+      (!term || i.name.toLowerCase().includes(term) || byInitials(i.name, term) || i.variants.some((v) => v.sku?.toLowerCase() === term)));
   }, [catalog.items, cat, q]);
-  const cols = Math.max(compact ? 2 : 3, Math.floor(gridW / (compact ? 150 : 170)));
-  const tileW = (gridW - 10 * (cols - 1)) / cols;
+  const cols = Math.max(1, Math.floor(gridW / 230));          // list rows: 1 column on phones, 2+ beside the order
+  const tileW = (gridW - 8 * (cols - 1)) / cols;
   const catName = cat ? catalog.categories.find((k) => k.id === cat)?.name ?? t("Category") : t("All items");
 
   // Grid rows: a header per category (in "All items"), then the items in rows of `cols`.
@@ -108,18 +114,46 @@ export function Sell() {
     setQty(lineId, next);
   };
 
+  // Scroll the order list to the item just added (or whose quantity went up), so the cashier sees it.
+  const linesRef = useRef<FlatList<NonNullable<typeof order>["lines"][number]>>(null);
+  const prevQty = useRef<{ id: string | null; qty: Map<string, number> }>({ id: null, qty: new Map() });
+  useEffect(() => {
+    const lines = order?.lines ?? [];
+    const prev = prevQty.current;
+    const sameOrder = prev.id === (order?.id ?? null);
+    prevQty.current = { id: order?.id ?? null, qty: new Map(lines.map((l) => [l.id, l.qty])) };
+    if (!sameOrder || !lines.length) return;
+    const idx = lines.findIndex((l) => l.qty > (prev.qty.get(l.id) ?? 0));
+    if (idx < 0) return;
+    requestAnimationFrame(() => {
+      if (idx === lines.length - 1) linesRef.current?.scrollToEnd({ animated: true });
+      else linesRef.current?.scrollToIndex({ index: idx, viewPosition: 0.5, animated: true });
+    });
+  }, [order?.id, order?.lines]);
+
   // No shift yet: count the cash first. The menu stays hidden until then.
   if (!shift) return <StartShiftPanel />;
 
   // The order panel's content; shown beside the menu, or full screen on phones.
+  // Printing only for a saved bill with its changes confirmed (Save bill / Done), so nothing can be
+  // printed for the kitchen or the customer and then quietly cleared.
+  const printable = hasLines && !!order?.version && !billChanged;
   const cartBody = (
     <>
-        <View style={{ padding: 16, gap: 12, borderBottomWidth: 1, borderColor: c.line }}>
+        <View style={{ padding: short ? 12 : 16, gap: short ? 8 : 12, borderBottomWidth: 1, borderColor: c.line }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-            <Text style={{ fontSize: 22, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
+            <Text style={{ fontSize: short ? 17 : 19, fontWeight: "800", color: c.ink, flexShrink: 1 }} numberOfLines={1}>
               {order?.table_id ? t("Table {v0}", { v0: tableLabel(order) }) : order?.bill_name ?? t("New order")}
             </Text>
-            <Text style={{ color: c.ink2, fontSize: 14 }}>{order?.number ?? ""}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={{ color: c.ink2, fontSize: 13 }}>{order?.number ?? ""}</Text>
+              {order?.version ? (
+                <Tap onPress={() => saveOpenBill(true)} accessibilityRole="button" accessibilityLabel={t("Close bill and start a new order")} hitSlop={8} scaleTo={0.9}
+                  style={{ width: 34, height: 34, borderRadius: r.md, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface }}>
+                  <MaterialCommunityIcons name="close" size={20} color={c.ink2} />
+                </Tap>
+              ) : null}
+            </View>
           </View>
           {/* One row of equal tiles: table details and the customer. */}
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -148,37 +182,49 @@ export function Sell() {
         </View>
 
         <FlatList
+          ref={linesRef}
           style={{ flex: 1 }}
           data={order?.lines ?? []}
           keyExtractor={(l) => l.id}
+          onScrollToIndexFailed={() => linesRef.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={<View style={{ padding: 24 }}><Muted>{t("Tap items to add them.")}</Muted></View>}
           renderItem={({ item: l }) => (
-            <FadeIn from={0} duration={220} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 16, paddingRight: 10, paddingVertical: 8, borderBottomWidth: 1, borderColor: c.line }}>
+            <FadeIn from={0} duration={220} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 14, paddingRight: 8, paddingVertical: 4, borderBottomWidth: 1, borderColor: c.line }}>
               <Pressable onPress={() => setModal({ kind: "line", id: l.id })} accessibilityRole="button" accessibilityLabel={`${l.qty} ${lineLabel(l)}, ${money(l.line_total)}. Tap to edit`}
-                style={({ pressed }) => ({ flex: 1, gap: 2, paddingVertical: 4, opacity: pressed ? 0.6 : 1 })}>
-                <Text style={{ fontWeight: "600", color: c.ink, fontSize: 16 }} numberOfLines={2}>{lineLabel(l)}</Text>
+                style={({ pressed }) => ({ flex: 1, gap: 1, paddingVertical: 2, opacity: pressed ? 0.6 : 1 })}>
+                <Text style={{ fontWeight: "600", color: c.ink, fontSize: 14 }} numberOfLines={2}>{lineLabel(l)}</Text>
                 {mixed && (
                   <View style={typeTag.box}><Text style={typeTag.text} numberOfLines={1}>{lineSalesType(l, order!)}</Text></View>
                 )}
-                {l.modifiers.length > 0 && <Text style={{ color: c.ink2 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
+                {l.modifiers.length > 0 && <Text style={{ color: c.ink2, fontSize: 12 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
                 {l.discount_amount > 0 && <Text style={{ color: c.accent }}>{l.discount!.name} −{money(l.discount_amount)}</Text>}
-                <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }}>{money(l.line_total)}</Text>
+                {/* Price and the note link share one row to keep each line short. */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <Text style={{ fontWeight: "700", color: c.ink, fontSize: 13 }}>{money(l.line_total)}</Text>
                 <Pressable onPress={() => setModal({ kind: "note", id: l.id })} accessibilityRole="button" hitSlop={6}
                   accessibilityLabel={l.note ? t("Note: {note}. Change", { note: l.note }) : t("Add a note to {v0}", { v0: lineLabel(l) })}
                   style={({ pressed }) => [noteBtn, l.note && { borderColor: c.warn, borderStyle: "solid" }, pressed && { backgroundColor: c.surface2 }]}>
-                  <MaterialCommunityIcons name={l.note ? "note-text-outline" : "note-plus-outline"} size={18} color={l.note ? c.warn : c.accent} />
-                  <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", fontSize: 15, flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : t("Add note")}</Text>
+                  <MaterialCommunityIcons name={l.note ? "note-text-outline" : "note-plus-outline"} size={16} color={l.note ? c.warn : c.accent} />
+                  <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", fontSize: 12, flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : t("Add note")}</Text>
                 </Pressable>
+                {/* Printed for the kitchen: all of it, or part (when more were added since). */}
+                {order!.version > 0 && printedQty(l) > 0 && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }} accessibilityLabel={printedQty(l) >= l.qty ? t("Printed") : t("{n} of {m} printed", { n: printedQty(l), m: l.qty })}>
+                    <MaterialCommunityIcons name="printer-check" size={14} color={c.ink2} />
+                    <Text style={{ color: c.ink2, fontSize: 11, fontWeight: "600" }}>{printedQty(l) >= l.qty ? t("Printed") : t("{n} of {m} printed", { n: printedQty(l), m: l.qty })}</Text>
+                  </View>
+                )}
+                </View>
               </Pressable>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                 <Pressable onPress={() => step(l.id, -1)} accessibilityRole="button" accessibilityLabel={`One less ${lineLabel(l)}`} hitSlop={4}
                   style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
-                  <MaterialCommunityIcons name={l.qty === 1 && !(l.saved_qty ?? 0) ? "trash-can-outline" : "minus"} size={22} color={c.ink} />
+                  <MaterialCommunityIcons name={l.qty === 1 && !(l.saved_qty ?? 0) ? "trash-can-outline" : "minus"} size={20} color={c.ink} />
                 </Pressable>
-                <Pop value={l.qty}><Text style={{ minWidth: 32, textAlign: "center", fontSize: 20, fontWeight: "800", color: c.ink }}>{l.qty}</Text></Pop>
+                <Pop value={l.qty}><Text style={{ minWidth: 28, textAlign: "center", fontSize: 16, fontWeight: "800", color: c.ink }}>{l.qty}</Text></Pop>
                 <Pressable onPress={() => step(l.id, 1)} accessibilityRole="button" accessibilityLabel={`One more ${lineLabel(l)}`} hitSlop={4}
                   style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
-                  <MaterialCommunityIcons name="plus" size={22} color={c.ink} />
+                  <MaterialCommunityIcons name="plus" size={20} color={c.ink} />
                 </Pressable>
               </View>
             </FadeIn>
@@ -195,19 +241,40 @@ export function Sell() {
           </View>
         )}
 
-        <View style={{ padding: 16, paddingTop: 12, gap: 10, borderTopWidth: 1, borderColor: c.line }}>
+        <View style={{ padding: short ? 10 : 16, paddingTop: short ? 8 : 12, gap: 8, borderTopWidth: 1, borderColor: c.line }}>
+          {hasLines && !printable && (
+            <Text style={{ color: c.ink2, fontSize: 12, textAlign: "center" }}>
+              {order?.version ? t("Press Done to confirm the changes, then you can print.") : t("Save the bill to print the order or the bill.")}
+            </Text>
+          )}
           <View style={{ flexDirection: "row", gap: 8 }}>
             <ToolButton icon="tag-outline" label={t("Discount")} disabled={!hasLines}
               onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
-            {catalog.settings.save_bill_enabled && (
-              <ToolButton icon="content-save-outline" label={order?.version ? t("Update bill") : t("Save bill")} disabled={!hasLines}
-                onPress={() => guard("open_bills_manage", order?.version ? t("Update the bill") : t("Save the bill"), () => setModal({ kind: "save" }))} />
+            {order?.version
+              ? <ToolButton icon="check" label={t("Done")} onPress={() => {
+                  // Save and stay on the bill (to print the order or the bill next). With auto-print on,
+                  // the new items go to the kitchen now and count as sent.
+                  const o = order!; const items = newItems(o);
+                  if (printerSettings().autoTicket && items.length) { autoTicket(o, items, o.lines.some((l) => printedQty(l) > 0)); markSent(); }
+                  else confirmBill();
+                  notify(t("Bill saved."));
+                }} />
+              : catalog.settings.save_bill_enabled && (
+                <ToolButton icon="content-save-outline" label={t("Save bill")} disabled={!hasLines}
+                  onPress={() => guard("open_bills_manage", t("Save the bill"), () => setModal({ kind: "save" }))} />
+              )}
+            {can("bill_print") && (
+              <ToolButton icon="printer-outline" label={t("Print bill")} disabled={!printable}
+                onPress={() => guard("bill_print", t("Print bill"), () => setModal({ kind: "billPreview" }))} />
+            )}
+            {hasLines && (
+              <ToolButton icon="chef-hat" label={t("Print order")} disabled={!printable} onPress={() => setModal({ kind: "ticketPreview" })} />
             )}
             {order?.version
               ? <ToolButton icon="close-octagon-outline" label={t("Cancel bill")} danger onPress={() => guard("open_bills_manage", "Cancel the bill", () => setModal({ kind: "cancel" }))} />
               : <ToolButton icon="backspace-outline" label={t("Clear")} disabled={!hasLines} onPress={() => clearOrder()} />}
           </View>
-          <Btn big testID="charge" title={hasLines ? t("Charge {v0}", { v0: money(order!.total) }) : t("Charge")} disabled={!hasLines || !can("charge")} onPress={() => setModal({ kind: "charge" })} />
+          <Btn big={compact} style={compact ? undefined : { minHeight: 52 }} testID="charge" title={hasLines ? t("Charge {v0}", { v0: money(order!.total) }) : t("Charge")} disabled={!hasLines || !can("charge")} onPress={() => setModal({ kind: "charge" })} />
         </View>
     </>
   );
@@ -215,47 +282,50 @@ export function Sell() {
   return (
     <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.bg }}>
       {/* ── catalog ── */}
-      <View style={{ flex: 1, padding: pad, gap: 12 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", height: 48, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingLeft: 14 }}>
+      <View style={{ flex: 1, padding: pad, gap: compact ? 12 : 10 }}>
+        {/* Tablets: search and menu buttons share one row; phones: two rows. */}
+        <View style={{ flexDirection: compact ? "column" : "row", gap: compact ? 12 : 8 }}>
+        <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", height: bh, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, paddingLeft: 14 }}>
             <MaterialCommunityIcons name="magnify" size={22} color={c.ink2} />
-            <TextInput value={q} onChangeText={setQ} placeholder={t("Search item or scan SKU…")} placeholderTextColor="#a3968a" accessibilityLabel="Search items"
-              style={{ flex: 1, height: 46, paddingHorizontal: 10, fontSize: 17, color: c.ink }} />
+            <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={tight && !compact ? t("Search") : t("Search item or scan SKU…")} placeholderTextColor="#98a29c" accessibilityLabel="Search items"
+              style={{ flex: 1, height: bh - 2, paddingHorizontal: 8, fontSize: 14, color: c.ink }} />
             {q ? (
-              <Pressable onPress={() => setQ("")} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search" style={{ paddingHorizontal: 12, height: 46, justifyContent: "center" }}>
+              <Pressable onPress={() => setQ("")} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search" style={{ paddingHorizontal: 12, height: bh - 2, justifyContent: "center" }}>
                 <MaterialCommunityIcons name="close-circle" size={22} color={c.ink2} />
               </Pressable>
             ) : null}
           </View>
           {!tight && <SyncBadge />}
-          <Btn kind="secondary" title={`${tight ? t("Bills") : t("Billing list")}${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
+          <Btn kind="secondary" style={{ minHeight: bh, paddingHorizontal: 14 }} title={`${tight ? t("Bills") : t("Billing list")}${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: tight ? 8 : 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           {/* One button for categories, however many there are. */}
           <Pressable onPress={() => setModal({ kind: "categories" })} accessibilityRole="button" accessibilityLabel={`Category: ${catName}. Change`}
-            style={({ pressed }) => [catBtn, pressed && { backgroundColor: c.surface2 }]}>
-            <MaterialCommunityIcons name="shape-outline" size={20} color={c.ink2} />
-            <Text style={{ fontSize: 16, fontWeight: "700", color: c.ink, maxWidth: tight ? 150 : 260 }} numberOfLines={1}>{catName}</Text>
+            style={({ pressed }) => [catBtn, { height: bh, paddingHorizontal: 12 }, pressed && { backgroundColor: c.surface2 }]}>
+            <MaterialCommunityIcons name="shape-outline" size={18} color={c.ink2} />
+            <Text style={{ fontSize: 14, fontWeight: "700", color: c.ink, maxWidth: tight ? 120 : 220 }} numberOfLines={1}>{catName}</Text>
             <MaterialCommunityIcons name="chevron-down" size={22} color={c.ink2} />
           </Pressable>
           {cat && (
             <Pressable onPress={() => setCat(null)} accessibilityRole="button" accessibilityLabel="Show all items"
-              style={({ pressed }) => [catBtn, pressed && { backgroundColor: c.surface2 }]}>
+              style={({ pressed }) => [catBtn, { height: bh, paddingHorizontal: 12 }, pressed && { backgroundColor: c.surface2 }]}>
               <MaterialCommunityIcons name="close" size={20} color={c.accent} />
-              {!tight && <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>{t("Show all")}</Text>}
+              {!tight && <Text style={{ color: c.accent, fontWeight: "700", fontSize: 14 }}>{t("Show all")}</Text>}
             </Pressable>
           )}
-          <View style={{ flex: 1 }} />
+          {compact && <View style={{ flex: 1 }} />}
           {/* Phones: icon buttons so everything fits on one row. */}
           {!editingMenu && (tight
-            ? <IconBtn icon="plus-circle-outline" label={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />
-            : <Btn kind="secondary" title={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />)}
+            ? <IconBtn size={bh} icon="plus-circle-outline" label={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />
+            : <Btn kind="secondary" style={{ minHeight: bh }} title={t("+ Custom amount")} onPress={() => setModal({ kind: "custom" })} />)}
           {canEditMenu && (tight && !editingMenu
-            ? <IconBtn icon="pencil-outline" label={t("Edit menu")} onPress={() => setEditingMenu(true)} />
-            : <Btn kind={editingMenu ? "primary" : "secondary"} title={editingMenu ? t("Done") : t("Edit menu")} onPress={() => setEditingMenu(!editingMenu)} />)}
+            ? <IconBtn size={bh} icon="pencil-outline" label={t("Edit menu")} onPress={() => setEditingMenu(true)} />
+            : <Btn kind={editingMenu ? "primary" : "secondary"} style={{ minHeight: bh }} title={editingMenu ? t("Done") : t("Edit menu")} onPress={() => setEditingMenu(!editingMenu)} />)}
+        </View>
         </View>
         {editingMenu && (
-          <Muted style={{ fontSize: 14 }}>{t("Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.")}</Muted>
+          <Muted style={{ fontSize: 13 }}>{t("Tap an item to edit it. Categories are added, renamed and deleted from the category button. Changes need internet and reach every tablet.")}</Muted>
         )}
         <View style={{ flex: 1, opacity: measured ? 1 : 0 }} onLayout={(e) => {
           const w = Math.round(e.nativeEvent.layout.width);
@@ -272,16 +342,16 @@ export function Sell() {
             ListEmptyComponent={<Muted>{q ? t("No items match “{q}”.", { q }) : t("No items in this category.")}</Muted>}
             renderItem={({ item: row }) => row.kind === "header" ? (
               <View style={{ backgroundColor: c.bg, paddingTop: 10, paddingBottom: 8, flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-                <Text style={{ fontSize: 15, fontWeight: "800", color: c.ink, letterSpacing: 0.3 }}>{row.name.toUpperCase()}</Text>
-                <Text style={{ color: c.ink2, fontSize: 13 }}>{row.count === 1 ? t("1 item") : t("{n} items", { n: row.count })}</Text>
+                <Text style={{ fontSize: 14, fontWeight: "800", color: c.ink, letterSpacing: 0.3 }}>{row.name.toUpperCase()}</Text>
+                <Text style={{ color: c.ink2, fontSize: 12 }}>{row.count === 1 ? t("1 item") : t("{n} items", { n: row.count })}</Text>
               </View>
             ) : (
-              <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
                 {row.items.map((item) => item === ADD_TILE ? (
                   <Pressable key="add" onPress={() => setModal({ kind: "editItem", item: null })} accessibilityRole="button" accessibilityLabel="New item"
-                    style={({ pressed }) => ({ width: tileW, minHeight: 150, borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent,
+                    style={({ pressed }) => ({ width: tileW, minHeight: 56, flexDirection: "row", borderRadius: r.sm, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent,
                       alignItems: "center", justifyContent: "center", gap: 4, opacity: pressed ? 0.7 : 1 })}>
-                    <MaterialCommunityIcons name="plus" size={30} color={c.accent} />
+                    <MaterialCommunityIcons name="plus" size={22} color={c.accent} />
                     <Text style={{ color: c.accent, fontWeight: "700" }}>{t("New item")}</Text>
                   </Pressable>
                 ) : (() => {
@@ -289,30 +359,22 @@ export function Sell() {
                   return (
                     <Tap key={item.id} onPress={() => (editingMenu ? setModal({ kind: "editItem", item }) : tap(item))} accessibilityRole="button"
                       accessibilityLabel={editingMenu ? t("Edit {name}", { name: item.name }) : `${item.name}, ${priceLabel(item)}`} scaleTo={0.95}
-                      style={{ width: tileW, borderRadius: r.md, overflow: "hidden", backgroundColor: c.surface,
-                        borderWidth: 1, borderColor: c.line, opacity: out ? 0.55 : 1 }}>
-                      {item.image_url ? <Image source={{ uri: item.image_url }} style={{ height: 88 }} /> : (
-                        <View style={{ height: 88, backgroundColor: tileColor(item.name), alignItems: "center", justifyContent: "center" }}>
-                          <Text style={{ fontSize: 30, fontWeight: "800", color: "rgba(42,33,27,0.55)" }}>{item.name.slice(0, 2)}</Text>
-                        </View>
-                      )}
-                      {!editingMenu && (inCart.get(item.id) ?? 0) > 0 && (
-                        <Pop value={inCart.get(item.id)} style={{ position: "absolute", top: 8, right: 8 }}>
-                          <FadeIn from={0} scale={0.4} duration={160} style={{ minWidth: 30, height: 30, borderRadius: 15, paddingHorizontal: 8, backgroundColor: c.accent,
-                            alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: c.surface }}>
-                            <Text style={{ color: c.accentInk, fontWeight: "800" }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>{inCart.get(item.id)}</Text>
-                          </FadeIn>
+                      style={{ width: tileW, minHeight: 56, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8,
+                        borderRadius: r.sm, backgroundColor: (inCart.get(item.id) ?? 0) > 0 && !editingMenu ? c.accentSoft : c.surface, borderWidth: 1, borderColor: (inCart.get(item.id) ?? 0) > 0 && !editingMenu ? c.accent : c.line, opacity: out ? 0.55 : 1 }}>
+                      {/* Compact menu row: name on the left, price on the right, how many are on the order. */}
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: 14 }} numberOfLines={2}>{item.name}</Text>
+                        {out && <Text style={{ color: c.danger, fontSize: 12 }}>{t("Out of stock")}</Text>}
+                      </View>
+                      <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={1}>{priceLabel(item)}</Text>
+                      {editingMenu ? <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink2} />
+                        : (inCart.get(item.id) ?? 0) > 0 && (
+                        <Pop value={inCart.get(item.id)}>
+                          <View style={{ minWidth: 26, height: 26, borderRadius: 6, paddingHorizontal: 7, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
+                            <Text style={{ color: c.accentInk, fontWeight: "800", fontSize: 12 }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>{inCart.get(item.id)}</Text>
+                          </View>
                         </Pop>
                       )}
-                      {editingMenu && (
-                        <View style={{ position: "absolute", top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" }}>
-                          <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink} />
-                        </View>
-                      )}
-                      <View style={{ padding: 10, gap: 2 }}>
-                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: 15 }} numberOfLines={tight ? 3 : 2}>{item.name}</Text>
-                        <Text style={{ color: c.ink2 }}>{out ? t("Out of stock") : priceLabel(item)}</Text>
-                      </View>
                     </Tap>
                   );
                 })())}
@@ -345,7 +407,7 @@ export function Sell() {
           <SafeAreaView style={{ flex: 1, backgroundColor: c.surface }} edges={["top", "bottom", "left", "right"]}>
             <Tap onPress={() => setCartOpen(false)} accessibilityRole="button" scaleTo={0.98} style={phone.back}>
               <MaterialCommunityIcons name="chevron-left" size={26} color={c.accent} />
-              <Text style={{ color: c.accent, fontWeight: "800", fontSize: 16 }}>{t("Back to menu")}</Text>
+              <Text style={{ color: c.accent, fontWeight: "800", fontSize: 14 }}>{t("Back to menu")}</Text>
             </Tap>
             {cartBody}
           </SafeAreaView>
@@ -362,6 +424,8 @@ export function Sell() {
       {modal?.kind === "line" && <LineSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "note" && <NoteSheet lineId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === "charge" && <ChargeSheet onClose={() => { setModal(null); if (!getState().order?.lines.length) setCartOpen(false); }} />}
+      {modal?.kind === "billPreview" && order && <BillPreviewSheet onClose={() => setModal(null)} />}
+      {modal?.kind === "ticketPreview" && order && <BillPreviewSheet ticket onClose={() => setModal(null)} />}
       {modal?.kind === "bills" && <BillsSheet onClose={() => setModal(null)} />}
       {modal?.kind === "save" && <SaveBillSheet onClose={() => setModal(null)} />}
       {modal?.kind === "discount" && <BillDiscountSheet onClose={() => setModal(null)} />}
@@ -375,14 +439,14 @@ export function Sell() {
       {modal?.kind === "customers" && <CustomerSheet onClose={() => setModal(null)} />}
       {modal?.kind === "salesType" && (
         <Sheet visible onClose={() => setModal(null)} title={t("Sales type")} width={460}>
-          <Muted style={{ fontSize: 14 }}>{hasLines ? t("For the items you add next. Items already on the order keep theirs; tap an item to change it.") : t("For the items on this order.")}</Muted>
+          <Muted style={{ fontSize: 13 }}>{hasLines ? t("For the items you add next. Items already on the order keep theirs; tap an item to change it.") : t("For the items on this order.")}</Muted>
           <View style={{ gap: 8 }}>
             {catalog.sales_types.map((s) => {
               const on = s.id === salesTypeId;
               return (
                 <Tap key={s.id} onPress={() => { setSalesType(s.id); setModal(null); }} accessibilityRole="radio" accessibilityState={{ selected: on }} scaleTo={0.98}
                   style={[drop.row, on && { borderColor: c.accent, backgroundColor: c.accentSoft }]}>
-                  <Text style={{ flex: 1, fontSize: 18, fontWeight: "700", color: c.ink }} numberOfLines={1}>{s.name}</Text>
+                  <Text style={{ flex: 1, fontSize: 16, fontWeight: "700", color: c.ink }} numberOfLines={1}>{s.name}</Text>
                   {on && <MaterialCommunityIcons name="check-circle" size={24} color={c.accent} />}
                 </Tap>
               );
@@ -413,7 +477,7 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
   return (
     <Sheet visible onClose={onClose} title={t("Custom amount")} width={420}
       footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} /><Btn style={{ flex: 1 }} title={t("Add {v0}", { v0: money(amount) })} disabled={!amount} onPress={() => { addCustom(amount); onClose(); }} /></>}>
-      <Text style={{ fontSize: 34, fontWeight: "800", color: c.ink, textAlign: "center" }}>{money(amount)}</Text>
+      <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink, textAlign: "center" }}>{money(amount)}</Text>
       <View style={{ alignItems: "center" }}>
         <Keypad onKey={(k) => setDigits((d) => (k === "⌫" ? d.slice(0, -1) : (d + k).replace(/^0+/, "").slice(0, 10)))} />
       </View>
@@ -425,11 +489,11 @@ function CustomAmount({ onClose }: { onClose: () => void }) {
 /** Width of the menu grid the last time it was measured (the layout doesn't change between visits). */
 let lastGridW: number | null = null;
 
-const noteBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, alignSelf: "flex-start" as const, minHeight: 40, marginTop: 4,
-  paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderStyle: "dashed" as const, borderColor: c.line };
-const qtyBtn = { width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: c.line, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: c.surface };
+const noteBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 4, alignSelf: "flex-start" as const, minHeight: 30,
+  paddingHorizontal: 8, borderRadius: 4, borderWidth: 1, borderStyle: "dashed" as const, borderColor: c.line };
+const qtyBtn = { width: 42, height: 42, borderRadius: 6, borderWidth: 1, borderColor: c.line, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: c.surface };
 type GridRow = { kind: "header"; key: string; name: string; count: number } | { kind: "row"; key: string; items: Item[] };
-const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 52, paddingHorizontal: 16, borderRadius: 26,
+const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 52, paddingHorizontal: 16, borderRadius: 6,
   borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
 
 /** Placeholder first tile while editing the menu. */
@@ -469,32 +533,32 @@ function ToolButton({ icon, label, onPress, disabled, danger }: { icon: IconName
   return (
     <Tap onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} scaleTo={0.95}
       style={[tile.tool, danger && { borderColor: c.danger }, disabled && { opacity: 0.4 }]}>
-      <MaterialCommunityIcons name={icon} size={22} color={tone} />
-      <Text style={{ fontSize: 14, fontWeight: "700", color: tone }} numberOfLines={1}>{label}</Text>
+      <MaterialCommunityIcons name={icon} size={19} color={tone} />
+      <Text style={{ fontSize: 12, fontWeight: "700", color: tone }} numberOfLines={1}>{label}</Text>
     </Tap>
   );
 }
 
 const tile = StyleSheet.create({
-  box: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", gap: 3, height: 60, paddingHorizontal: 8, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
-  text: { fontSize: 14, fontWeight: "700" },
-  tool: { flex: 1, minWidth: 0, height: 64, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  box: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", gap: 2, height: 52, paddingHorizontal: 8, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  text: { fontSize: 13, fontWeight: "700" },
+  tool: { flex: 1, minWidth: 0, height: 48, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
 });
 /** Square icon button (phones), with the full label for screen readers. */
-function IconBtn({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+function IconBtn({ icon, label, onPress, size = 52 }: { icon: IconName; label: string; onPress: () => void; size?: number }) {
   return (
-    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={label} scaleTo={0.92} style={phone.icon}>
-      <MaterialCommunityIcons name={icon} size={24} color={c.ink} />
+    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={label} scaleTo={0.92} style={[phone.icon, { width: size, height: size, borderRadius: 6 }]}>
+      <MaterialCommunityIcons name={icon} size={size < 48 ? 21 : 24} color={c.ink} />
     </Tap>
   );
 }
 
 const phone = StyleSheet.create({
-  icon: { width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
+  icon: { width: 52, height: 52, borderRadius: 6, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   bar: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingHorizontal: 16, borderRadius: r.md, backgroundColor: c.accent },
-  barTitle: { color: c.accentInk, fontSize: 16, fontWeight: "800" },
-  barSub: { color: c.accentInk, opacity: 0.85, fontSize: 13, fontWeight: "600" },
-  barTotal: { color: c.accentInk, fontSize: 18, fontWeight: "800" },
+  barTitle: { color: c.accentInk, fontSize: 14, fontWeight: "800" },
+  barSub: { color: c.accentInk, opacity: 0.85, fontSize: 12, fontWeight: "600" },
+  barTotal: { color: c.accentInk, fontSize: 16, fontWeight: "800" },
   back: { flexDirection: "row", alignItems: "center", gap: 2, height: 52, paddingHorizontal: 8, borderBottomWidth: 1, borderColor: c.line },
 });
 const typeTag = StyleSheet.create({
@@ -502,8 +566,63 @@ const typeTag = StyleSheet.create({
   text: { color: c.accent, fontSize: 12, fontWeight: "800" },
 });
 const drop = StyleSheet.create({
-  box: { flexDirection: "row", alignItems: "center", gap: 10, height: 52, paddingHorizontal: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
-  label: { color: c.ink2, fontSize: 15, fontWeight: "600" },
-  value: { flex: 1, textAlign: "right", color: c.ink, fontSize: 17, fontWeight: "800" },
+  box: { flexDirection: "row", alignItems: "center", gap: 10, height: 46, paddingHorizontal: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  label: { color: c.ink2, fontSize: 14, fontWeight: "600" },
+  value: { flex: 1, textAlign: "right", color: c.ink, fontSize: 15, fontWeight: "800" },
   row: { flexDirection: "row", alignItems: "center", minHeight: 60, paddingHorizontal: 18, borderRadius: r.md, borderWidth: 2, borderColor: c.line, backgroundColor: c.surface },
 });
+
+/**
+ * Search by initials too: "ah" or "a h" finds "Air Hangat", and "air ha" matches word starts in order.
+ */
+function byInitials(name: string, term: string) {
+  const words = name.toLowerCase().split(/[\s/()+-]+/).filter(Boolean);
+  const squeezed = term.replace(/\s+/g, "");
+  if (squeezed.length >= 2 && words.map((w) => w[0]).join("").startsWith(squeezed)) return true;
+  const parts = term.split(/\s+/);
+  if (parts.length < 2) return false;
+  let w = 0;
+  for (const p of parts) {
+    while (w < words.length && !words[w]!.startsWith(p)) w++;
+    if (w++ >= words.length) return false;
+  }
+  return true;
+}
+
+/** "Print bill": shows exactly what will be printed, then prints it. */
+function BillPreviewSheet({ onClose, ticket }: { onClose: () => void; ticket?: boolean }) {
+  const order = useStore((s) => s.order)!;
+  const catalog = useStore((s) => s.catalog)!;
+  const [busy, setBusy] = useState(false);
+  const p = printerSettings();
+  const noPrinter = p.connection === "none";
+  // "Print order" (saved bills only): the items not sent to the kitchen yet; when everything was sent
+  // already, the whole order again marked as a reprint. Worked out once when the preview opens, so a
+  // retry after a failed print prints the same items.
+  const [tk] = useState(() => {
+    const fresh = newItems(order);
+    const anySent = order.lines.some((l) => printedQty(l) > 0);
+    return { items: fresh.length ? fresh : allItems(order), added: fresh.length > 0 && anySent, reprint: fresh.length === 0 };
+  });
+  const lines = ticket ? ticketLines(order, tk.items, lineWidth(p.paper), tk.added, tk.reprint) : toReceipt(order, catalog, undefined, lineWidth(p.paper));
+  const n = ticket ? p.ticketCopies ?? 3 : p.copies;
+  const print = async () => {
+    setBusy(true);
+    try {
+      if (ticket) {
+        markSent();                          // lock the items first: a failed print can't leave them removable without a void
+        await printTicket(order, tk.items, tk.added, tk.reprint);
+        notify(t("Order ticket printed."));
+      } else { await printReceipt(order, catalog); notify(t("Bill printed.")); }
+      onClose();
+    } catch (e) { notify((e as Error).message); setBusy(false); }
+  };
+  return (
+    <Sheet visible onClose={onClose} title={ticket ? t("Print order") : t("Print bill")} width={p.paper === 80 ? 520 : 440}
+      footer={<><Btn kind="secondary" title={t("Close")} onPress={onClose} />
+        <Btn style={{ flex: 1 }} title={busy ? t("Printing…") : n > 1 ? t("Print {n} copies", { n }) : t("Print")} disabled={busy || noPrinter} onPress={() => void print()} /></>}>
+      {noPrinter && <Muted style={{ marginBottom: 8 }}>{t("No printer is set up on this tablet.")}</Muted>}
+      <ScrollView contentContainerStyle={{ paddingVertical: 8 }}><ReceiptView lines={lines} /></ScrollView>
+    </Sheet>
+  );
+}

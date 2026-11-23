@@ -6,7 +6,7 @@ import * as db from "./db";
 import { currentLang, setLangValue, t, type Lang } from "./i18n";
 import Constants from "expo-constants";
 import { supabase } from "./supabase";
-import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice } from "./order";
+import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice, printedQty } from "./order";
 import type { Catalog, Customer, QuickNote, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
 
 type Phase = "loading" | "setup" | "locked" | "selling";
@@ -29,13 +29,19 @@ export type State = {
   page: Page;
   /** An action waiting for a manager's PIN. */
   approval: { perm: string; label: string } | null;
+  /** A void or refund slip waiting to be printed (shown as a preview with a Print button). */
+  slip: Slip | null;
+  /** The saved bill on screen has changes the cashier hasn't confirmed with Done yet (printing waits for that). */
+  billChanged: boolean;
   lang: Lang;
 };
+export type Slip = { kind: "void" | "refund" | "cancel"; reprint?: boolean; order: OrderDoc; items: { name: string; qty: number; amount: number }[]; reason: string;
+  by: string | null; at: string; method?: string };
 
 let state: State = {
   phase: "loading", device: null, catalog: null, employee: null, order: null, openOrders: [], shift: null,
   sync: { online: false, pending: 0, rejected: 0, lastSync: null, error: null, problem: null }, notice: null,
-  page: "pos", approval: null, lang: currentLang(),
+  page: "pos", approval: null, slip: null, billChanged: false, lang: currentLang(),
 };
 const listeners = new Set<() => void>();
 function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
@@ -48,7 +54,16 @@ export function useStore<T>(select: (s: State) => T): T {
   return useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l); }, () => select(state));
 }
 
-const refreshLocal = () => set((s) => ({ openOrders: db.listOrders("open"), sync: { ...s.sync, pending: db.pendingCount(), rejected: db.rejectedCount() } }));
+// Only replace what actually changed, so a background sync doesn't redraw the whole screen.
+const sameOrders = (a: OrderDoc[], b: OrderDoc[]) => a.length === b.length && a.every((o, i) => o.id === b[i]!.id && o.version === b[i]!.version && o.total === b[i]!.total && o.table_id === b[i]!.table_id);
+const refreshLocal = () => {
+  const openOrders = db.listOrders("open");
+  const pending = db.pendingCount(), rejected = db.rejectedCount();
+  const s = state;
+  const ordersChanged = !sameOrders(s.openOrders, openOrders);
+  if (!ordersChanged && s.sync.pending === pending && s.sync.rejected === rejected) return;
+  set({ ...(ordersChanged ? { openOrders } : {}), sync: { ...s.sync, pending, rejected } });
+};
 export const can = (perm: string) => !!state.employee?.permissions.includes(perm);
 let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 /** Show a short message at the bottom of the screen; it clears itself after 6 seconds. */
@@ -183,7 +198,7 @@ export async function approveWithPin(pin: string): Promise<"ok" | "wrong" | "not
   run?.();
   return "ok";
 }
-export function lock() { set({ employee: null, phase: "locked" }); }
+export function lock() { saveOpenBill(false); set({ employee: null, phase: "locked" }); }
 
 // ───────────────────────────────────────────── navigation
 export function go(page: Page) { set({ page }); }
@@ -198,9 +213,12 @@ export type PrinterSettings = {
   name: string;               // shown in settings
   paper: 58 | 80;             // mm
   autoPrint: boolean;         // print a receipt after every sale
-  copies: number;
+  copies: number;             // customer bill / receipt
+  ticketCopies: number;       // order tickets: item list for kitchen, checker… (no prices)
+  autoTicket: boolean;        // print order tickets when a bill is saved, new items are added, or an order is charged
+  slipCopies: number;         // void / refund slips (e.g. one for the kitchen, one for the cashier)
 };
-export const defaultPrinter: PrinterSettings = { connection: "none", address: "", name: "", paper: 58, autoPrint: false, copies: 1 };
+export const defaultPrinter: PrinterSettings = { connection: "none", address: "", name: "", paper: 58, autoPrint: false, copies: 1, slipCopies: 1, ticketCopies: 3, autoTicket: false };
 export const printerSettings = (): PrinterSettings => ({ ...defaultPrinter, ...(db.kvGet<PrinterSettings>("printer") ?? {}) });
 export function savePrinterSettings(p: PrinterSettings) { db.kvSet("printer", p); }
 
@@ -234,7 +252,37 @@ function ensureOrder(): OrderDoc {
 }
 function update(fn: (o: OrderDoc) => OrderDoc) {
   const next = reprice(fn(ensureOrder()), state.catalog!);
-  set({ order: next });
+  set({ order: next, billChanged: true });
+  if (next.version > 0) scheduleBillSave();
+}
+/** "Done": the cashier confirms the bill's changes; printing is allowed again. */
+export function confirmBill() {
+  const o = state.order;
+  if (o && o.version > 0) set({ order: { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) } });
+  saveOpenBill(false);
+  set({ billChanged: false });
+}
+
+// Saved bills keep themselves up to date: changes are written a moment after the last tap, so
+// other tablets see them and nothing is lost when another bill is opened. No "Update bill" step.
+let billTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleBillSave() {
+  if (billTimer) clearTimeout(billTimer);
+  billTimer = setTimeout(() => saveOpenBill(false), 1200);
+}
+/**
+ * Write the saved bill on screen. `done` also takes it off the screen and marks its items as
+ * sent (taking them off afterwards is a void with a reason).
+ */
+export function saveOpenBill(done: boolean) {
+  if (billTimer) { clearTimeout(billTimer); billTimer = null; }
+  const o = state.order;
+  if (!o || o.version === 0) return;
+  const next: OrderDoc = { ...o, version: o.version + 1, lines: done ? o.lines.map((l) => ({ ...l, saved_qty: l.qty })) : o.lines };
+  db.saveOrder(next);
+  set({ order: done ? null : next, ...(done ? { billChanged: false } : {}) });
+  refreshLocal();
+  void syncNow();
 }
 
 export function addItem(item: Item, variant: Variant, opts: { modifiers: ModifierChoice[]; qty: number; note: string | null; discount: AppliedDiscount | null }) {
@@ -265,10 +313,24 @@ export function setQty(lineId: string, qty: number, voidReason?: string) {
     }] : o.voids;
     const lines = qty <= 0
       ? o.lines.filter((l) => l.id !== lineId)
-      : o.lines.map((l) => (l.id === lineId ? { ...l, qty, saved_qty: Math.min(saved, qty) } : l));
+      : o.lines.map((l) => (l.id === lineId ? { ...l, qty, saved_qty: Math.min(saved, qty), printed_qty: Math.min(printedQty(l), qty) } : l));
+    if (voided > 0) {
+      const v = voids[voids.length - 1]!;
+      set({ slip: { kind: "void", order: o, items: [{ name: v.item_name, qty: v.qty, amount: v.amount }], reason: v.reason, by: v.employee_name, at: v.voided_at } });
+    }
     return { ...o, lines, voids };
   });
 }
+export const closeSlip = () => set({ slip: null });
+/** The kitchen has the order: its items now count as sent (taking them off is a void with a reason). */
+export function markSent() {
+  const o = state.order;
+  if (!o || o.version === 0) return;
+  set({ order: { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty, printed_qty: l.qty })) }, billChanged: false });
+  saveOpenBill(false);
+}
+/** Show a slip again (reprint from the billing list). */
+export const showSlip = (slip: Slip) => set({ slip });
 export function setLineDetails(lineId: string, patch: { note?: string | null; discount?: AppliedDiscount | null }) {
   update((o) => ({ ...o, lines: o.lines.map((l) => (l.id === lineId ? { ...l, ...patch } : l)) }));
 }
@@ -310,12 +372,13 @@ export function setLineNote(lineId: string, note: string | null, all: boolean) {
     if (all || line.qty <= 1) return { ...o, lines: o.lines.map((l) => (l.id === lineId ? { ...l, note } : l)) };
     const saved = line.saved_qty ?? 0;
     const movedSaved = saved > 0 ? 1 : 0;          // keep the saved count the same overall
-    const one = { ...line, id: randomUUID(), qty: 1, note, saved_qty: movedSaved };
+    const printed = printedQty(line), movedPrinted = printed > 0 ? 1 : 0;
+    const one = { ...line, id: randomUUID(), qty: 1, note, saved_qty: movedSaved, printed_qty: movedPrinted };
     const target = o.lines.find((l) => l.id !== lineId && sameLine(l, one));
-    const rest = { ...line, qty: line.qty - 1, saved_qty: saved - movedSaved };
+    const rest = { ...line, qty: line.qty - 1, saved_qty: saved - movedSaved, printed_qty: printed - movedPrinted };
     const lines = o.lines.flatMap((l) => {
       if (l.id === lineId) return target ? [rest] : [rest, one];
-      if (target && l.id === target.id) return [{ ...l, qty: l.qty + 1, saved_qty: (l.saved_qty ?? 0) + movedSaved }];
+      if (target && l.id === target.id) return [{ ...l, qty: l.qty + 1, saved_qty: (l.saved_qty ?? 0) + movedSaved, printed_qty: printedQty(l) + movedPrinted }];
       return [l];
     });
     return { ...o, lines };
@@ -343,6 +406,7 @@ export function setLineSalesType(lineId: string, id: string) {
     ...o,
     lines: o.lines.map((l) => {
       if (l.id !== lineId) return l;
+      if ((l.saved_qty ?? 0) > 0) return l;                 // saved items keep their type (and price): void and add again
       const v = l.variant_id ? variants.get(l.variant_id) : undefined;
       return { ...l, sales_type_id: st.id, sales_type_name: st.name, unit_price: v ? variantPrice(v, st.id) : l.unit_price };
     }),
@@ -386,9 +450,10 @@ export function clearOrder() {
 // ───────────────────────────────────────────── bills
 export function saveBill(name: string) {
   const o = state.order!;
+  // Saving locks the items (taking them off later is a void); printing for the kitchen is tracked separately.
   const next: OrderDoc = { ...o, bill_name: name, status: "open", version: o.version + 1, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) };
   db.saveOrder(next);
-  set({ order: null });
+  set({ order: next, billChanged: false }); // stay on the bill, ready to print the order or the bill
   refreshLocal();
   void syncNow();
 }
@@ -406,8 +471,11 @@ export function saveBillAt(opts: { table: DiningTable | null; guests: number | n
   saveBill(name);
 }
 export function openBill(id: string) {
+  if (state.order && state.order.version > 0 && state.order.id !== id) saveOpenBill(true);
   const o = db.getOrder(id);
-  if (o) set({ order: reprice(o, state.catalog!) });
+  // A saved bill opens with everything locked (as when it was closed), even after the app was
+  // closed or crashed mid-change, so nothing on it can be taken off without a void.
+  if (o) set({ order: reprice(o.version > 0 ? { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) } : o, state.catalog!), billChanged: false });
 }
 export function cancelBill(reason: string) {
   const o = state.order!;
@@ -431,8 +499,8 @@ export const billsAt = (tableId: string) => state.openOrders.filter((o) => o.tab
  */
 export function seatAtTable(table: DiningTable, guests: number | null, customer: string | null) {
   const cur = state.order;
-  if (cur && cur.version > 0) throw new Error(t("Save or close the bill on screen first."));
-  const base = cur ?? ensureOrder();
+  if (cur && cur.version > 0) saveOpenBill(true);           // put the bill on screen away first
+  const base = (cur && cur.version > 0 ? null : cur) ?? ensureOrder();
   const seated: OrderDoc = reprice({ ...base, table_id: table.id, table_name: table.name, guests, customer_name: customer,
     bill_name: customer ? `${table.name} · ${customer}` : table.name }, state.catalog!);
   set({ order: seated });
@@ -606,6 +674,10 @@ export const recentSales = () => db.listOrders("completed", 100);
 /** Cancelled bills kept on this tablet, newest first. */
 export const cancelledBills = () => db.listOrders("cancelled", 100);
 /** Every item void on bills this tablet knows about (open, paid or cancelled), newest first. */
+/** Refunds on this tablet with the sale they belong to (billing list). */
+export function refundLog() {
+  return db.recentRefunds().flatMap((r) => { const order = db.getOrder(r.order_id); return order ? [{ ...r, order }] : []; });
+}
 export function voidLog() {
   const orders = [...state.openOrders, ...db.listOrders("completed", 300), ...db.listOrders("cancelled", 100)];
   const seen = new Set<string>();
@@ -711,6 +783,7 @@ export function refund(order: OrderDoc, picks: Record<string, number>, reason: s
     lines: q.lines.map((l) => ({ id: randomUUID(), order_line_id: l.line.id, item_id: l.line.item_id, item_name: lineLabel(l.line), qty: l.qty, amount: l.amount })),
   };
   db.saveRefund(r);
+  set({ slip: { kind: "refund", order, items: r.lines.map((l) => ({ name: l.item_name, qty: l.qty, amount: l.amount })), reason, by: r.employee_name, at: r.refunded_at, method: r.method_name } });
   refreshLocal();
   void syncNow();
   return r;
@@ -720,6 +793,7 @@ export function refund(order: OrderDoc, picks: Record<string, number>, reason: s
 let timer: ReturnType<typeof setInterval> | null = null;
 let running: Promise<void> | null = null;
 let lastCatalogPull = 0;
+let lastCatalogJson = "";
 let failures = 0;           // consecutive transient failures → backoff
 let nextAttemptAt = 0;
 
@@ -729,8 +803,12 @@ function stopSync() { if (timer) clearInterval(timer); timer = null; }
 async function pullCatalog() {
   const { data, error } = await supabase.rpc("pos_catalog", { p_device: state.device!.id });
   if (error) throw error;
-  db.kvSet("catalog", data);
   lastCatalogPull = Date.now();
+  // Unchanged menu: keep the same object so nothing redraws.
+  const json = JSON.stringify(data);
+  if (json === lastCatalogJson) return;
+  lastCatalogJson = json;
+  db.kvSet("catalog", data);
   set({ catalog: data as unknown as Catalog });
 }
 

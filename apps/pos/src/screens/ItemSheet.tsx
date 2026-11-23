@@ -104,7 +104,7 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
                   <Text style={{ color: c.ink, fontWeight: "600" }} numberOfLines={1}>
                     {lineLabel(l)}{l.modifiers.length ? ` · ${l.modifiers.map((m) => m.option).join(", ")}` : ""}
                   </Text>
-                  {(l.note || l.discount) && <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={1}>{[l.note && `“${l.note}”`, l.discount?.name].filter(Boolean).join(" · ")}</Text>}
+                  {(l.note || l.discount) && <Text style={{ color: c.ink2, fontSize: 12 }} numberOfLines={1}>{[l.note && `“${l.note}”`, l.discount?.name].filter(Boolean).join(" · ")}</Text>}
                 </View>
                 <Pressable onPress={() => setNoteFor(l.id)} accessibilityRole="button" hitSlop={4}
                   accessibilityLabel={l.note ? t("Note: {note}. Change", { note: l.note }) : t("Add a note to {v0}", { v0: lineLabel(l) })}
@@ -124,7 +124,7 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
               </View>
             ))}
           </View>
-          {lines.some((l) => (l.saved_qty ?? 0) > 0) && <Muted style={{ fontSize: 13 }}>{t("Items already saved on the bill are reduced from the cart (a void needs a reason).")}</Muted>}
+          {lines.some((l) => (l.saved_qty ?? 0) > 0) && <Muted style={{ fontSize: 12 }}>{t("Items already saved on the bill are reduced from the cart (a void needs a reason).")}</Muted>}
         </View>
       )}
       {stockLeft !== null && <Muted>{stockLeft} in stock</Muted>}
@@ -186,7 +186,7 @@ function ItemForm({ item, sets, salesType, onAdded, canAdd }: {
         <View key={s.id} style={{ gap: 10 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <Label>{s.name}</Label>
-            <Text style={{ color: missing.includes(s) ? c.danger : c.ink2, fontSize: 13 }}>{rule(s.min_select, s.max_select)}</Text>
+            <Text style={{ color: missing.includes(s) ? c.danger : c.ink2, fontSize: 12 }}>{rule(s.min_select, s.max_select)}</Text>
           </View>
           <View style={st.wrap}>
             {s.options.map((o) => (
@@ -220,13 +220,13 @@ const st = StyleSheet.create({
   combo: { width: 156, minHeight: 92, borderRadius: r.md, borderWidth: 1.5, borderColor: c.line, backgroundColor: c.surface, overflow: "hidden" },
   comboOn: { borderColor: c.accent, backgroundColor: c.accentSoft },
   comboTap: { flex: 1, padding: 12, gap: 4, justifyContent: "center" },
-  comboName: { fontSize: 17, fontWeight: "800", color: c.ink },
+  comboName: { fontSize: 15, fontWeight: "800", color: c.ink },
   counter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 6, paddingBottom: 6 },
-  minus: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
-  count: { minWidth: 36, height: 30, borderRadius: 15, paddingHorizontal: 8, backgroundColor: c.accent, color: c.accentInk, fontWeight: "800", fontSize: 16, textAlign: "center", lineHeight: 30, overflow: "hidden" },
+  minus: { width: 36, height: 36, borderRadius: 6, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
+  count: { minWidth: 36, height: 30, borderRadius: 15, paddingHorizontal: 8, backgroundColor: c.accent, color: c.accentInk, fontWeight: "800", fontSize: 14, textAlign: "center", lineHeight: 30, overflow: "hidden" },
   list: { borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   lineRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 12 },
-  small: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
+  small: { width: 36, height: 36, borderRadius: 6, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  noteBtn: { flexDirection: "row", alignItems: "center", gap: 4, height: 36, paddingHorizontal: 10, borderRadius: 18, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, marginRight: 4 },
+  noteBtn: { flexDirection: "row", alignItems: "center", gap: 4, height: 36, paddingHorizontal: 10, borderRadius: 6, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, marginRight: 4 },
 });

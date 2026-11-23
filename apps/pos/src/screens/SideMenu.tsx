@@ -5,6 +5,7 @@ import { billsAt, can, go, guard, lock, useStore, type Page } from "../lib/store
 import { Tap } from "../ui/motion";
 import { c } from "../ui/theme";
 import { t } from "../lib/i18n";
+import { useLayout } from "../ui/layout";
 
 type Icon = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -17,6 +18,7 @@ const hover = c.surface2;
 /** Side menu: a fixed rail with a label under every icon, and the outlet's name at the top. */
 export function SideMenu({ bottom }: { bottom?: boolean }) {
   const page = useStore((s) => s.page);
+  const { short } = useLayout();
   const catalog = useStore((s) => s.catalog)!;
   const employee = useStore((s) => s.employee)!;
   const shift = useStore((s) => s.shift);
@@ -59,10 +61,10 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
   );
 
   return (
-    <View style={st.rail}>
+    <View style={[st.rail, short && { paddingTop: 8, paddingBottom: 8 }]}>
       <View style={[st.outlet, { gap: 6 }]} accessibilityRole="header" accessibilityLabel={`Outlet ${catalog.location.name}`}>
         {catalog.location.logo
-          ? <View style={st.logoTile}><Image source={{ uri: catalog.location.logo }} resizeMode="contain" accessibilityLabel={`${catalog.location.name} logo`} style={{ width: "100%", height: "100%" }} /></View>
+          ? <View style={[st.logoTile, short && { width: 46, height: 46 }]}><Image source={{ uri: catalog.location.logo }} resizeMode="contain" accessibilityLabel={`${catalog.location.name} logo`} style={{ width: "100%", height: "100%" }} /></View>
           : <>
             {/* No logo yet: show the outlet's name instead. */}
             <MaterialCommunityIcons name="storefront-outline" size={24} color={ink} />
@@ -70,15 +72,15 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
           </>}
       </View>
 
-      <View style={{ gap: 6, paddingHorizontal: 10, paddingTop: 12 }}>
+      <View style={{ gap: 4, paddingHorizontal: 6, paddingTop: 10 }}>
         {items.filter((i) => i.show).map((i) => {
           const active = page === i.page;
           return (
             <Tap key={i.page} scaleTo={0.94} onPress={() => open(i.page)} accessibilityRole="tab" accessibilityState={{ selected: active }}
               accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? t(", no shift open") : ""}`}
-              style={[st.item, active && st.itemActive]}>
+              style={[st.item, short && { height: 52, gap: 2 }, active && st.itemActive]}>
               <View>
-                <MaterialCommunityIcons name={i.icon} size={26} color={active ? c.accentInk : ink} />
+                <MaterialCommunityIcons name={i.icon} size={22} color={active ? c.accentInk : ink} />
                 {i.dot && <View style={st.dot} />}
                 {i.badge && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
               </View>
@@ -94,7 +96,7 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
         <Text style={st.who} numberOfLines={1}>{employee.name}</Text>
         <Pressable onPress={lock} hitSlop={8} accessibilityRole="button" accessibilityLabel="Lock (switch employee)"
           style={({ pressed }) => [st.lockBtn, pressed && { backgroundColor: hover }]}>
-          <MaterialCommunityIcons name="lock-outline" size={24} color={ink} />
+          <MaterialCommunityIcons name="lock-outline" size={21} color={ink} />
           <Text style={st.label}>{t("Lock")}</Text>
         </Pressable>
       </View>
@@ -105,21 +107,21 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
 const st = StyleSheet.create({
   bar: { flexDirection: "row", backgroundColor: rail, borderTopWidth: 1, borderColor: c.line, paddingHorizontal: 4, paddingTop: 6, paddingBottom: 8 },
   barItem: { flex: 1, alignItems: "center", gap: 2, minHeight: 56, justifyContent: "center" },
-  barIcon: { width: 52, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  barIcon: { width: 52, height: 32, borderRadius: 6, alignItems: "center", justifyContent: "center" },
   barLabel: { color: ink, fontSize: 12, fontWeight: "700" },
-  rail: { width: 96, backgroundColor: rail, paddingTop: 14, paddingBottom: 14, borderRightWidth: 1, borderColor: c.line },
-  outlet: { alignItems: "center", gap: 4, paddingHorizontal: 6, paddingBottom: 12, marginHorizontal: 10, borderBottomWidth: 1, borderColor: c.line },
-  logoTile: { width: 84, height: 84 },          // logos are uploaded with a see-through background
-  outletName: { color: ink, fontSize: 13, fontWeight: "800", textAlign: "center", lineHeight: 16 },
-  item: { alignItems: "center", justifyContent: "center", gap: 4, height: 70, borderRadius: 12 },
+  rail: { width: 72, backgroundColor: rail, paddingTop: 14, paddingBottom: 14, borderRightWidth: 1, borderColor: c.line },
+  outlet: { alignItems: "center", gap: 4, paddingHorizontal: 2, paddingBottom: 10, marginHorizontal: 6, borderBottomWidth: 1, borderColor: c.line },
+  logoTile: { width: 58, height: 58 },          // logos are uploaded with a see-through background
+  outletName: { color: ink, fontSize: 11, fontWeight: "800", textAlign: "center", lineHeight: 16 },
+  item: { alignItems: "center", justifyContent: "center", gap: 3, height: 60, borderRadius: 6 },
   itemActive: { backgroundColor: c.accent },
-  label: { color: ink, fontSize: 13, fontWeight: "700" },
+  label: { color: ink, fontSize: 11, fontWeight: "700" },
   miniBadge: { position: "absolute", top: -6, right: -12, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: c.accent, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: rail },
   miniBadgeText: { color: c.accentInk, fontSize: 11, fontWeight: "800" },
   dot: { position: "absolute", top: -2, right: -3, width: 10, height: 10, borderRadius: 5, backgroundColor: "#e0a23b", borderWidth: 2, borderColor: rail },
-  foot: { alignItems: "center", gap: 6, paddingTop: 12, borderTopWidth: 1, borderColor: c.line, marginHorizontal: 10 },
-  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" },
+  foot: { alignItems: "center", gap: 4, paddingTop: 10, borderTopWidth: 1, borderColor: c.line, marginHorizontal: 6 },
+  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" },
   avatarText: { color: ink, fontWeight: "800" },
-  who: { color: inkDim, fontSize: 12, fontWeight: "600", maxWidth: 76 },
-  lockBtn: { width: 76, minHeight: 60, borderRadius: 12, alignItems: "center", justifyContent: "center", gap: 2 },
+  who: { color: inkDim, fontSize: 11, fontWeight: "600", maxWidth: 62 },
+  lockBtn: { width: 60, minHeight: 50, borderRadius: 6, alignItems: "center", justifyContent: "center", gap: 2 },
 });

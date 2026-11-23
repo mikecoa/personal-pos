@@ -57,6 +57,8 @@ export type OrderLine = {
   discount: AppliedDiscount | null; discount_amount: number; line_total: number;
   /** qty already saved in a bill; reducing below this needs a void with a reason. */
   saved_qty?: number;
+  /** qty already printed for the kitchen (order ticket). Missing on older lines: treated as `saved_qty`. */
+  printed_qty?: number;
   /** This item's sales type (a bill can mix Dine In and Take Away). Missing on older lines: use the order's. */
   sales_type_id?: string | null; sales_type_name?: string | null;
 };

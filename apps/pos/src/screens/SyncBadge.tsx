@@ -36,7 +36,7 @@ export function SyncBadge() {
   return (
     <>
       <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={`${text}. Tap for sync details`}
-        style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, height: 36, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, alignSelf: "flex-start" }}>
+        style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, height: 36, borderRadius: 6, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, alignSelf: "flex-start" }}>
         <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
         <Text style={{ color: c.ink, fontWeight: "600" }}>{text}</Text>
       </Pressable>

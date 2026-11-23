@@ -64,8 +64,8 @@ export function ActivityPage() {
         {!(compact && sel) && <View style={[st.list, compact && { width: "100%", borderRightWidth: 0 }]}>
           <View style={st.search}>
             <MaterialCommunityIcons name="magnify" size={24} color={c.ink2} />
-            <TextInput value={q} onChangeText={setQ} placeholder={t("Receipt number")} placeholderTextColor="#a3968a" accessibilityLabel="Search by receipt number"
-              autoCapitalize="characters" style={{ flex: 1, fontSize: 17, color: c.ink, height: 52 }} />
+            <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Receipt number")} placeholderTextColor="#98a29c" accessibilityLabel="Search by receipt number"
+              autoCapitalize="characters" style={{ flex: 1, fontSize: 15, color: c.ink, height: 52 }} />
           </View>
           <FlatList data={rows} keyExtractor={(row) => (row.kind === "day" ? `d${row.key}` : row.sale.id)}
             ListEmptyComponent={<Muted style={{ padding: 20 }}>{sales.length ? t("No sale with that receipt number.") : t("No sales yet.")}</Muted>}
@@ -103,8 +103,8 @@ function SaleRow({ sale, active, onPress }: { sale: OrderDoc; active: boolean; o
       <MaterialCommunityIcons name={payIcon(sale.payments[0])} size={24} color={sub} />
       <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-          <Text style={{ fontSize: 18, color: fg, fontWeight: "600" }}>{money(sale.total)}</Text>
-          <Text style={{ fontSize: 15, color: fg }}>{time(sale.completed_at!)}</Text>
+          <Text style={{ fontSize: 16, color: fg, fontWeight: "600" }}>{money(sale.total)}</Text>
+          <Text style={{ fontSize: 14, color: fg }}>{time(sale.completed_at!)}</Text>
         </View>
         <Text style={{ color: sub, opacity: active ? 0.9 : 1 }} numberOfLines={1}>{itemsText(sale)}</Text>
         {refunded > 0 && <Text style={{ color: active ? c.accentInk : c.danger, fontSize: 12, fontWeight: "700" }}>Refunded {money(refunded)}</Text>}
@@ -126,8 +126,8 @@ function DetailRow({ icon, label, value }: { icon: Icon; label: string; value: s
   return (
     <View style={st.detail}>
       <MaterialCommunityIcons name={icon} size={24} color={c.ink2} />
-      <Text style={{ flex: 1, fontSize: 17, color: c.ink }}>{label}</Text>
-      <Text style={{ fontSize: 17, color: c.ink }} selectable>{value}</Text>
+      <Text style={{ flex: 1, fontSize: 15, color: c.ink }}>{label}</Text>
+      <Text style={{ fontSize: 15, color: c.ink }} selectable>{value}</Text>
     </View>
   );
 }
@@ -158,19 +158,19 @@ function Details({ sale }: { sale: OrderDoc }) {
             <View style={st.item}>
               <View style={[st.thumb, { backgroundColor: tileColor(l.item_name) }]}><Text style={st.thumbText}>{l.item_name.slice(0, 2)}</Text></View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 17, color: c.ink }} numberOfLines={2}>
+                <Text style={{ fontSize: 15, color: c.ink }} numberOfLines={2}>
                   {l.item_name}{l.variant_name && l.variant_name !== "Regular" ? ` (${l.variant_name})` : ""}{l.qty > 1 ? ` x ${l.qty}` : ""}
                 </Text>
-                {mixedSalesTypes(sale) ? <Text style={{ color: c.accent, fontSize: 13, fontWeight: "700" }}>{lineSalesType(l, sale)}</Text> : null}
+                {mixedSalesTypes(sale) ? <Text style={{ color: c.accent, fontSize: 12, fontWeight: "700" }}>{lineSalesType(l, sale)}</Text> : null}
                 {l.note ? <Text style={{ color: c.ink2, fontStyle: "italic" }} numberOfLines={2}>“{l.note}”</Text> : null}
-                {l.discount_amount > 0 ? <Text style={{ color: c.accent, fontSize: 13 }}>{l.discount?.name ?? t("Discount")} −{money(l.discount_amount)}</Text> : null}
+                {l.discount_amount > 0 ? <Text style={{ color: c.accent, fontSize: 12 }}>{l.discount?.name ?? t("Discount")} −{money(l.discount_amount)}</Text> : null}
               </View>
-              <Text style={{ fontSize: 17, color: c.ink }}>{money(l.line_total)}</Text>
+              <Text style={{ fontSize: 15, color: c.ink }}>{money(l.line_total)}</Text>
             </View>
             {l.modifiers.map((m, i) => (
               <View key={i} style={st.mod}>
-                <Text style={{ flex: 1, fontSize: 16, color: c.ink }}>[{m.set}] {m.option}</Text>
-                <Text style={{ fontSize: 16, color: c.ink }}>{money(m.price * l.qty)}</Text>
+                <Text style={{ flex: 1, fontSize: 14, color: c.ink }}>[{m.set}] {m.option}</Text>
+                <Text style={{ fontSize: 14, color: c.ink }}>{money(m.price * l.qty)}</Text>
               </View>
             ))}
           </View>
@@ -212,16 +212,16 @@ function ReceiptSheet({ sale, onClose }: { sale: OrderDoc; onClose: () => void }
 
 const st = StyleSheet.create({
   top: { height: 64, alignItems: "center", justifyContent: "center", borderBottomWidth: 1, borderColor: c.line, backgroundColor: c.surface2 },
-  title: { fontSize: 22, fontWeight: "800", color: c.ink },
+  title: { fontSize: 19, fontWeight: "800", color: c.ink },
   list: { width: 380, borderRightWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   search: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18, borderBottomWidth: 1, borderColor: c.line },
-  day: { paddingHorizontal: 18, paddingVertical: 12, backgroundColor: c.surface2, color: c.ink2, fontWeight: "800", fontSize: 14, letterSpacing: 0.5 },
+  day: { paddingHorizontal: 18, paddingVertical: 12, backgroundColor: c.surface2, color: c.ink2, fontWeight: "800", fontSize: 13, letterSpacing: 0.5 },
   row: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderColor: c.line },
-  section: { fontSize: 15, fontWeight: "800", color: c.ink, letterSpacing: 0.5, paddingVertical: 12, paddingHorizontal: 12 },
+  section: { fontSize: 14, fontWeight: "800", color: c.ink, letterSpacing: 0.5, paddingVertical: 12, paddingHorizontal: 12 },
   detail: { flexDirection: "row", alignItems: "center", gap: 16, minHeight: 60, paddingHorizontal: 12, borderBottomWidth: 1, borderColor: c.line },
-  salesType: { textAlign: "center", fontSize: 16, color: c.ink, paddingVertical: 10, borderBottomWidth: 1, borderColor: c.line },
+  salesType: { textAlign: "center", fontSize: 14, color: c.ink, paddingVertical: 10, borderBottomWidth: 1, borderColor: c.line },
   item: { flexDirection: "row", alignItems: "center", gap: 16, minHeight: 64, paddingRight: 12, borderBottomWidth: 1, borderColor: c.line },
   thumb: { width: 64, alignSelf: "stretch", alignItems: "center", justifyContent: "center" },
-  thumbText: { fontSize: 22, fontWeight: "600", color: "rgba(42,33,27,0.55)" },
+  thumbText: { fontSize: 19, fontWeight: "600", color: "rgba(22,32,27,0.5)" },
   mod: { flexDirection: "row", alignItems: "center", minHeight: 52, paddingLeft: 80, paddingRight: 12, borderBottomWidth: 1, borderColor: c.line },
 });

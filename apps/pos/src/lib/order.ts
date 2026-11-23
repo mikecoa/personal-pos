@@ -51,7 +51,7 @@ export function makeLine(item: Item, variant: Variant, o: OrderDoc, catalog: Cat
     id: randomUUID(), sort_order: o.lines.length + 1, item_id: item.id, variant_id: variant.id,
     item_name: item.name, variant_name: variant.name, category_name: cat?.name ?? null,
     unit_price: variantPrice(variant, o.sales_type_id), modifiers: opts.modifiers, modifiers_price: 0,
-    qty: opts.qty, note: opts.note, discount: opts.discount, discount_amount: 0, line_total: 0,
+    qty: opts.qty, note: opts.note, discount: opts.discount, discount_amount: 0, line_total: 0, printed_qty: 0,
     sales_type_id: o.sales_type_id, sales_type_name: o.sales_type_name,
   };
 }
@@ -60,7 +60,7 @@ export function customLine(o: OrderDoc, amount: number, name = "Custom amount"):
   return {
     id: randomUUID(), sort_order: o.lines.length + 1, item_id: null, variant_id: null, item_name: name, variant_name: "",
     category_name: null, unit_price: amount, modifiers: [], modifiers_price: 0, qty: 1, note: null, discount: null,
-    discount_amount: 0, line_total: 0, sales_type_id: o.sales_type_id, sales_type_name: o.sales_type_name,
+    discount_amount: 0, line_total: 0, printed_qty: 0, sales_type_id: o.sales_type_id, sales_type_name: o.sales_type_name,
   };
 }
 
@@ -76,3 +76,6 @@ export const lineSalesType = (l: OrderLine, o: Pick<OrderDoc, "sales_type_name">
 export const mixedSalesTypes = (o: OrderDoc) => new Set(o.lines.map((l) => lineSalesType(l, o) ?? "")).size > 1;
 
 export const lineLabel = (l: Pick<OrderLine, "item_name" | "variant_name">) => (l.variant_name ? `${l.item_name} (${l.variant_name})` : l.item_name);
+
+/** How many of a line the kitchen already has (older lines without the field: what was saved). */
+export const printedQty = (l: { printed_qty?: number; saved_qty?: number }) => l.printed_qty ?? l.saved_qty ?? 0;

@@ -40,7 +40,7 @@ export function ShiftPage() {
             <MaterialCommunityIcons name="treasure-chest-outline" size={36} color={shift ? c.accent : c.ink2} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: "800", color: c.ink }}>{shift ? t("Shift open") : t("No shift open")}</Text>
-              <Muted style={{ fontSize: 13 }}>{shift ? t("Starting cash {v0}", { v0: money(shift.starting_cash) }) : t("Start one to begin selling")}</Muted>
+              <Muted style={{ fontSize: 12 }}>{shift ? t("Starting cash {v0}", { v0: money(shift.starting_cash) }) : t("Start one to begin selling")}</Muted>
             </View>
           </View>
           <Text style={st.navHead}>{t("SHIFT MANAGEMENT")}</Text>
@@ -71,7 +71,7 @@ function NavItem({ label, right, active, onPress }: { label: string; right?: str
 function Pane({ title, children }: { title: string; children: ReactNode }) {
   return (
     <ScrollView contentContainerStyle={{ padding: 24, gap: 16, maxWidth: 820 }} keyboardShouldPersistTaps="handled">
-      <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }}>{title}</Text>
+      <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }}>{title}</Text>
       {children}
     </ScrollView>
   );
@@ -82,7 +82,7 @@ function Line({ label, children, onPress, active }: { label: string; children: R
   return (
     <Pressable disabled={!onPress} onPress={onPress} accessibilityRole={onPress ? "button" : undefined} accessibilityLabel={label}
       style={({ pressed }) => [st.line, active && { borderColor: c.accent, borderWidth: 2 }, pressed && { backgroundColor: c.surface2 }]}>
-      <Text style={{ flex: 1, fontSize: 17, color: c.ink }}>{label}</Text>
+      <Text style={{ flex: 1, fontSize: 15, color: c.ink }}>{label}</Text>
       {children}
     </Pressable>
   );
@@ -110,7 +110,7 @@ function ShiftOption() {
           trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface} accessibilityLabel="Start shift automatically" />
       </Line>
       <Line label={t("Default starting cash in drawer")} active={editingCash} onPress={allowed ? () => setEditingCash(!editingCash) : undefined}>
-        <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink }}>{money(editingCash ? Number(digits || 0) : settings.default_starting_cash)}</Text>
+        <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{money(editingCash ? Number(digits || 0) : settings.default_starting_cash)}</Text>
       </Line>
       {editingCash && (
         <View style={{ flexDirection: "row", gap: 20, alignItems: "flex-start" }}>
@@ -121,7 +121,7 @@ function ShiftOption() {
           </View>
         </View>
       )}
-      <Muted style={{ fontSize: 14 }}>
+      <Muted style={{ fontSize: 13 }}>
         A shift tracks the cash, card and other payments going in and out of the drawer. With automatic start, the first person to unlock the tablet
         starts a shift with the default starting cash. These options apply to every tablet at this location.
       </Muted>
@@ -146,7 +146,7 @@ function CurrentShift() {
   if (!shift) return (
     <Pane title={t("Current shift")}>
       <Line label={t("Starting cash in drawer")} active>
-        <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }} testID="starting-cash">{money(Number(digits || 0))}</Text>
+        <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }} testID="starting-cash">{money(Number(digits || 0))}</Text>
       </Line>
       <View style={{ flexDirection: "row", gap: 20, alignItems: "flex-start" }}>
         <Keypad compact onKey={keyInto(setDigits)} />
@@ -180,10 +180,10 @@ function ClosedShift({ shift, onDone }: { shift: ShiftDoc; onDone?: () => void }
         <View style={[st.banner, { borderColor: diff === 0 ? c.accent : c.danger }]}>
           <MaterialCommunityIcons name={diff === 0 ? "check-circle" : "alert-circle"} size={30} color={diff === 0 ? c.accent : c.danger} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink }} testID="cash-difference">
+            <Text style={{ fontSize: 16, fontWeight: "800", color: c.ink }} testID="cash-difference">
               {diff === 0 ? t("Shift closed. The drawer matches.") : (diff > 0 ? t("Shift closed. Cash over by {amount}.", { amount: money(Math.abs(diff)) }) : t("Shift closed. Cash short by {amount}.", { amount: money(Math.abs(diff)) }))}
             </Text>
-            <Muted style={{ fontSize: 14 }}>{t("The report is saved and uploads automatically.")}</Muted>
+            <Muted style={{ fontSize: 13 }}>{t("The report is saved and uploads automatically.")}</Muted>
           </View>
           <Btn title={t("Done")} onPress={onDone} />
         </View>
@@ -202,7 +202,7 @@ function ShiftHistory() {
     <Pane title={t("Shift history")}>
       <Pressable onPress={() => setSel(null)} accessibilityRole="button" accessibilityLabel="Back to all shifts" style={st.back}>
         <MaterialCommunityIcons name="arrow-left" size={22} color={c.accent} />
-        <Text style={{ color: c.accent, fontWeight: "700", fontSize: 16 }}>{t("All shifts")}</Text>
+        <Text style={{ color: c.accent, fontWeight: "700", fontSize: 14 }}>{t("All shifts")}</Text>
       </Pressable>
       <ClosedShift shift={sel} />
     </Pane>
@@ -218,8 +218,8 @@ function ShiftHistory() {
                 accessibilityLabel={`Shift ${when(s.opened_at)} to ${when(s.closed_at!)}`}
                 style={({ pressed }) => [st.histRow, pressed && { backgroundColor: c.surface2 }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 16, color: c.ink }}>{when(s.opened_at)} – {when(s.closed_at!)}</Text>
-                  <Text style={{ color: diff === 0 ? c.ink2 : c.danger, fontSize: 13 }}>
+                  <Text style={{ fontSize: 14, color: c.ink }}>{when(s.opened_at)} – {when(s.closed_at!)}</Text>
+                  <Text style={{ color: diff === 0 ? c.ink2 : c.danger, fontSize: 12 }}>
                     {s.opened_by_name} · {diff === 0 ? t("cash exact") : t("cash {v0}{v1}", { v0: diff > 0 ? "+" : "−", v1: money(Math.abs(diff)) })}
                   </Text>
                 </View>
@@ -238,7 +238,7 @@ const st = StyleSheet.create({
   status: { flexDirection: "row", alignItems: "center", gap: 14, padding: 20 },
   navHead: { fontSize: 12, fontWeight: "800", color: c.ink2, letterSpacing: 0.5, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: c.surface2 },
   navItem: { flexDirection: "row", alignItems: "center", height: 56, paddingHorizontal: 20 },
-  navText: { flex: 1, fontSize: 17, color: c.ink, fontWeight: "600" },
+  navText: { flex: 1, fontSize: 15, color: c.ink, fontWeight: "600" },
   line: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingHorizontal: 20, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   banner: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: r.md, borderWidth: 2, backgroundColor: c.surface },
   back: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingVertical: 6 },

@@ -76,11 +76,11 @@ function base64(bytes: Uint8Array) {
 }
 
 /** Sends receipt lines to the tablet's printer. Throws a readable message when it can't. */
-export async function printLines(p: PrinterSettings, lines: string[]) {
+export async function printLines(p: PrinterSettings, lines: string[], copies = p.copies) {
   if (!PosPrinter) throw new Error(t("Printing needs the POS app (not Expo Go)."));
   if (p.connection === "none" || !p.address) throw new Error(t("No printer is set up on this tablet."));
   try {
-    await PosPrinter.print(p.connection, p.address, base64(escpos(lines, p.copies)));
+    await PosPrinter.print(p.connection, p.address, base64(escpos(lines, copies)));
   } catch (e) {
     const m = String((e as Error).message ?? e);
     if (m.includes("BLUETOOTH_PERMISSION")) throw new Error(t("Bluetooth printers need the “Nearby devices” permission."));

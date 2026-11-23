@@ -35,7 +35,7 @@ export function ApprovalSheet() {
       footer={<><View style={{ flex: 1 }} /><Btn kind="secondary" title={t("Cancel")} onPress={close} /></>}>
       <View style={{ alignItems: "center", gap: 14 }}>
         <MaterialCommunityIcons name="shield-key-outline" size={40} color={c.accent} />
-        <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink, textAlign: "center" }}>{t(approval.label)}</Text>
+        <Text style={{ fontSize: 18, fontWeight: "800", color: c.ink, textAlign: "center" }}>{t(approval.label)}</Text>
         <Muted style={{ textAlign: "center" }}>{t("{v0} needs a manager to approve this. Manager, enter your PIN.", { v0: employee?.name ?? t("This employee") })}</Muted>
         <View style={{ flexDirection: "row", gap: 14 }} accessibilityLabel={`${pin.length} of 4 digits entered`}>
           {[0, 1, 2, 3].map((i) => (
