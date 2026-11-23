@@ -65,8 +65,9 @@ export function LineSheet({ lineId, onClose }: { lineId: string; onClose: () => 
         <View style={{ gap: 10 }}>
           <Label>{t("Sales type")}</Label>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-            {salesTypes.map((s) => <Chip key={s.id} label={s.name} active={typeId === s.id} onPress={() => setTypeId(s.id)} />)}
+            {salesTypes.map((s) => <Chip key={s.id} label={s.name} active={typeId === s.id} onPress={() => (saved > 0 ? undefined : setTypeId(s.id))} />)}
           </View>
+          {saved > 0 && <Muted style={{ fontSize: 12 }}>{t("Saved items keep their sales type. To change it, void the item and add it again.")}</Muted>}
         </View>
       )}
       <Field label={t("Note")} value={note} onChangeText={setNote} maxLength={120} />

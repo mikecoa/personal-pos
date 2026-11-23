@@ -406,6 +406,7 @@ export function setLineSalesType(lineId: string, id: string) {
     ...o,
     lines: o.lines.map((l) => {
       if (l.id !== lineId) return l;
+      if ((l.saved_qty ?? 0) > 0) return l;                 // saved items keep their type (and price): void and add again
       const v = l.variant_id ? variants.get(l.variant_id) : undefined;
       return { ...l, sales_type_id: st.id, sales_type_name: st.name, unit_price: v ? variantPrice(v, st.id) : l.unit_price };
     }),
@@ -472,7 +473,9 @@ export function saveBillAt(opts: { table: DiningTable | null; guests: number | n
 export function openBill(id: string) {
   if (state.order && state.order.version > 0 && state.order.id !== id) saveOpenBill(true);
   const o = db.getOrder(id);
-  if (o) set({ order: reprice(o, state.catalog!), billChanged: false });
+  // A saved bill opens with everything locked (as when it was closed), even after the app was
+  // closed or crashed mid-change, so nothing on it can be taken off without a void.
+  if (o) set({ order: reprice(o.version > 0 ? { ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.qty })) } : o, state.catalog!), billChanged: false });
 }
 export function cancelBill(reason: string) {
   const o = state.order!;

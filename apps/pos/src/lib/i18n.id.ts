@@ -628,4 +628,5 @@ export const ID: Record<string, string> = {
   "Save the bill to print the order or the bill.": "Simpan bill untuk mencetak pesanan atau bill.",
   "Printed": "Dicetak",
   "{n} of {m} printed": "{n} dari {m} dicetak",
+  "Saved items keep their sales type. To change it, void the item and add it again.": "Item yang sudah disimpan tetap dengan tipe penjualannya. Untuk mengubahnya, void item lalu tambahkan lagi.",
 };
