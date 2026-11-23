@@ -6,6 +6,8 @@ import { Btn, Field, Label, money, Muted, Sheet, Stepper } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { FloorBoard } from "./FloorBoard";
 import { t } from "../lib/i18n";
+import { lineLabel } from "../lib/order";
+import { SplitPrintSheet } from "./BillActions";
 import { useLayout } from "../ui/layout";
 
 const NO_AREA = "none";
@@ -246,19 +248,44 @@ function SeatPanel({ table, onCancel, onDone }: { table: DiningTable; onCancel: 
   );
 }
 
+/**
+ * A table with several bills (e.g. a split bill): everything ordered at the table in one list,
+ * grouped by bill, with the table total. Open a bill to add items or charge it; print the bills.
+ */
 function BillsPanel({ table, bills, onPick, onCancel }: { table: DiningTable; bills: OrderDoc[]; onPick: (id: string) => void; onCancel: () => void }) {
+  const [printing, setPrinting] = useState(false);
+  const sorted = [...bills].sort((a, b) => tableLabel(a).localeCompare(tableLabel(b), undefined, { numeric: true }) || a.opened_at.localeCompare(b.opened_at));
+  const total = bills.reduce((s, b) => s + b.total, 0);
   return (
-    <PanelShell title={t("Table {name}", { name: table.name })} sub={t("{length} open bills", { length: bills.length })} footer={<Btn kind="secondary" style={{ flex: 1 }} title={t("Back")} onPress={onCancel} />}>
-      {bills.map((b) => (
-        <Pressable key={b.id} onPress={() => onPick(b.id)} accessibilityRole="button" accessibilityLabel={`Open ${b.customer_name ?? b.number}`}
-          style={({ pressed }) => [st.billRow, pressed && { backgroundColor: c.surface2 }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: "700", color: c.ink }}>{b.customer_name ?? b.number}</Text>
-            <Muted style={{ fontSize: 12 }}>{`${b.guests ? `${t("{n} guests", { n: b.guests })} · ` : ""}${ago(b.opened_at)}`}</Muted>
-          </View>
-          <Text style={{ fontWeight: "700", color: c.ink }}>{money(b.total)}</Text>
-        </Pressable>
+    <PanelShell title={t("Table {name}", { name: table.name })} sub={t("{length} open bills", { length: bills.length })}
+      footer={<><Btn kind="secondary" title={t("Back")} onPress={onCancel} />
+        {can("bill_print") && <Btn style={{ flex: 1 }} title={t("Print bills")} onPress={() => setPrinting(true)} />}</>}>
+      <View style={st.tableTotal}>
+        <Text style={{ color: c.ink2, fontSize: 12 }}>{t("Whole table · {n} bills", { n: bills.length })}</Text>
+        <Text style={{ color: c.ink, fontSize: 18, fontWeight: "800" }}>{money(total)}</Text>
+      </View>
+      {sorted.map((b) => (
+        <View key={b.id} style={st.billGroup}>
+          <Pressable onPress={() => onPick(b.id)} accessibilityRole="button" accessibilityLabel={t("Open {name}", { name: tableLabel(b) })}
+            style={({ pressed }) => [st.billHead, pressed && { backgroundColor: c.surface2 }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{t("Table {name}", { name: tableLabel(b) })}{b.customer_name ? ` · ${b.customer_name}` : ""}</Text>
+              <Muted style={{ fontSize: 12 }}>{`${b.number} · ${ago(b.opened_at)}`}</Muted>
+            </View>
+            <Text style={{ fontWeight: "800", color: c.ink, fontSize: 14 }}>{money(b.total)}</Text>
+            <Text style={{ color: c.accent, fontWeight: "800", fontSize: 13, marginLeft: 8 }}>{t("Open")} ›</Text>
+          </Pressable>
+          {b.lines.length === 0 && <Muted style={{ fontSize: 12, paddingHorizontal: 10, paddingBottom: 8 }}>{t("No items yet")}</Muted>}
+          {b.lines.map((l) => (
+            <View key={l.id} style={st.billLine}>
+              <Text style={{ color: c.ink, fontSize: 13, fontWeight: "700", minWidth: 26 }}>{l.qty}×</Text>
+              <Text style={{ flex: 1, color: c.ink, fontSize: 13 }} numberOfLines={2}>{lineLabel(l)}{l.note ? `  “${l.note}”` : ""}</Text>
+              <Text style={{ color: c.ink2, fontSize: 12 }}>{money(l.line_total)}</Text>
+            </View>
+          ))}
+        </View>
       ))}
+      {printing && <SplitPrintSheet bills={sorted} onClose={() => setPrinting(false)} />}
     </PanelShell>
   );
 }
@@ -454,6 +481,10 @@ const st = StyleSheet.create({
   side: { width: 360, borderLeftWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   sideFoot: { padding: 16, borderTopWidth: 1, borderColor: c.line, flexDirection: "row", gap: 12 },
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  tableTotal: { padding: 12, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, gap: 2, marginBottom: 4 },
+  billGroup: { borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, overflow: "hidden" },
+  billHead: { flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderBottomWidth: 1, borderColor: c.line },
+  billLine: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 5 },
   billRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line },
   option: { paddingHorizontal: 18, height: 48, borderRadius: 6, borderWidth: 1, borderColor: c.line, justifyContent: "center", backgroundColor: c.surface },
   optionOn: { backgroundColor: c.accent, borderColor: c.accent },

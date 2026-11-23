@@ -667,4 +667,8 @@ export const ID: Record<string, string> = {
   "Print {n} selected": "Cetak {n} yang dipilih",
   "Whole table · {n} bills": "Seluruh meja · {n} bill",
   "Tick the bills to print. Tap a bill to preview it.": "Centang bill yang akan dicetak. Ketuk bill untuk melihat pratinjau.",
+  "Print bills": "Cetak bill",
+  "Open {name}": "Buka {name}",
+  "Open": "Buka",
+  "No items yet": "Belum ada item",
 };
