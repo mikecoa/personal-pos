@@ -33,7 +33,7 @@ export type State = {
   slip: Slip | null;
   lang: Lang;
 };
-export type Slip = { kind: "void" | "refund"; order: OrderDoc; items: { name: string; qty: number; amount: number }[]; reason: string;
+export type Slip = { kind: "void" | "refund" | "cancel"; reprint?: boolean; order: OrderDoc; items: { name: string; qty: number; amount: number }[]; reason: string;
   by: string | null; at: string; method?: string };
 
 let state: State = {
@@ -302,6 +302,8 @@ export function setQty(lineId: string, qty: number, voidReason?: string) {
   });
 }
 export const closeSlip = () => set({ slip: null });
+/** Show a slip again (reprint from the billing list). */
+export const showSlip = (slip: Slip) => set({ slip });
 export function setLineDetails(lineId: string, patch: { note?: string | null; discount?: AppliedDiscount | null }) {
   update((o) => ({ ...o, lines: o.lines.map((l) => (l.id === lineId ? { ...l, ...patch } : l)) }));
 }

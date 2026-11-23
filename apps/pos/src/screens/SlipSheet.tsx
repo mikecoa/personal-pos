@@ -22,8 +22,8 @@ export function SlipSheet() {
     setBusy(false);
   };
   return (
-    <Sheet visible onClose={closeSlip} title={slip.kind === "void" ? t("Print void slip") : t("Print refund slip")} width={p.paper === 80 ? 520 : 440}
-      footer={<><Btn kind="secondary" title={t("Skip")} onPress={closeSlip} />
+    <Sheet visible onClose={closeSlip} title={slip.kind === "void" ? t("Print void slip") : slip.kind === "cancel" ? t("Print cancelled bill") : t("Print refund slip")} width={p.paper === 80 ? 520 : 440}
+      footer={<><Btn kind="secondary" title={slip.reprint ? t("Close") : t("Skip")} onPress={closeSlip} />
         <Btn style={{ flex: 1 }} disabled={busy || p.connection === "none"} title={busy ? t("Printing…") : n > 1 ? t("Print {n} copies", { n }) : t("Print")} onPress={() => void print()} /></>}>
       {p.connection === "none" && <Muted style={{ marginBottom: 8 }}>{t("No printer is set up on this tablet.")}</Muted>}
       <ScrollView contentContainerStyle={{ paddingVertical: 8 }}><ReceiptView lines={slipLines(slip, catalog, lineWidth(p.paper))} /></ScrollView>

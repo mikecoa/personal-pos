@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { cancelledBills, openBill, tableLabel, useStore, voidLog } from "../lib/store";
+import { cancelledBills, openBill, showSlip, tableLabel, useStore, voidLog } from "../lib/store";
 import type { OrderDoc } from "../lib/types";
 import { Btn, money, Muted, Sheet } from "../ui/kit";
 import { lineLabel } from "../lib/order";
@@ -189,6 +189,10 @@ function BillDetail({ order: o, voidId, onBack }: { order: OrderDoc; voidId?: st
                   <Text style={{ color: c.danger, fontWeight: "700" }}>−{money(v.amount)}</Text>
                 </View>
                 <Text style={{ color: c.ink2, fontSize: 13 }}>{when(v.voided_at)} · {t(v.reason)}{v.employee_name ? ` · ${t("by {name}", { name: v.employee_name })}` : ""}</Text>
+                <Pressable accessibilityRole="button" hitSlop={6} style={{ alignSelf: "flex-start", marginTop: 4 }}
+                  onPress={() => showSlip({ kind: "void", reprint: true, order: o, items: [{ name: v.item_name, qty: v.qty, amount: v.amount }], reason: v.reason, by: v.employee_name, at: v.voided_at })}>
+                  <Text style={{ color: c.accent, fontWeight: "700" }}>{t("Reprint void slip")}</Text>
+                </Pressable>
               </View>
             ))}
           </>}
@@ -212,7 +216,14 @@ function BillDetail({ order: o, voidId, onBack }: { order: OrderDoc; voidId?: st
           <View style={[st.kv, { marginTop: 4 }]}><Text style={{ fontWeight: "800", color: c.ink }}>{t("Total")}</Text><Text style={{ fontWeight: "800", color: c.ink }}>{money(o.total)}</Text></View>
         </View>
       </View>
-      <View style={{ alignItems: "flex-start", marginTop: 12 }}><Btn kind="secondary" title={t("Back")} onPress={onBack} /></View>
+      <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+        <Btn kind="secondary" title={t("Back")} onPress={onBack} />
+        {o.status === "cancelled" && (
+          <Btn title={t("Reprint cancelled bill")} onPress={() => showSlip({ kind: "cancel", reprint: true, order: o,
+            items: o.lines.map((l) => ({ name: lineLabel(l), qty: l.qty, amount: l.line_total })), reason: o.cancel_reason ? t(o.cancel_reason) : "—",
+            by: o.closed_by_name, at: o.cancelled_at ?? o.opened_at })} />
+        )}
+      </View>
     </View>
   );
 }

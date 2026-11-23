@@ -597,4 +597,7 @@ export const ID: Record<string, string> = {
   "Print void slip": "Cetak slip void",
   "Print refund slip": "Cetak slip refund",
   "Skip": "Lewati",
+  "Reprint void slip": "Cetak ulang slip void",
+  "Reprint cancelled bill": "Cetak ulang bill batal",
+  "Print cancelled bill": "Cetak bill batal",
 };

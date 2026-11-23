@@ -45,7 +45,8 @@ export function slipLines(sl: Slip, catalog: Catalog, width = 32): string[] {
   return [
     center(catalog.receipt.header_name || catalog.location.name),
     "",
-    center(sl.kind === "void" ? "*** VOID ***" : "*** REFUND ***"),
+    center(sl.kind === "void" ? "*** VOID ***" : sl.kind === "cancel" ? "*** CANCELLED BILL ***" : "*** REFUND ***"),
+    ...(sl.reprint ? [center("(REPRINT)")] : []),
     rule,
     pair(at.toLocaleDateString("en-GB"), at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })),
     pair("No.", o.number),
