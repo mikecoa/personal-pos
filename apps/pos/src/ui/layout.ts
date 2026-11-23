@@ -14,7 +14,7 @@ export function useLayout() {
   return {
     w, h, compact, narrow,
     short: !compact && h < 700,
-    railW: compact ? 0 : 96,
+    railW: compact ? 0 : 72,
     cartW: compact ? 0 : narrow ? 340 : 400,
     pad: compact ? 12 : 16,
   };
