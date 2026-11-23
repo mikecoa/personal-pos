@@ -3,7 +3,7 @@ import { type ComponentProps, useMemo, useState } from "react";
 import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { can, clearOrder, getState, guard, notify, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
+import { can, clearOrder, getState, guard, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, lineSalesType, mixedSalesTypes, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
 import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
@@ -207,10 +207,12 @@ export function Sell() {
           <View style={{ flexDirection: "row", gap: 8 }}>
             <ToolButton icon="tag-outline" label={t("Discount")} disabled={!hasLines}
               onPress={() => guard("discounts_apply", "Apply a discount", () => setModal({ kind: "discount" }))} />
-            {catalog.settings.save_bill_enabled && (
-              <ToolButton icon="content-save-outline" label={order?.version ? t("Update bill") : t("Save bill")} disabled={!hasLines}
-                onPress={() => guard("open_bills_manage", order?.version ? t("Update the bill") : t("Save the bill"), () => setModal({ kind: "save" }))} />
-            )}
+            {order?.version
+              ? <ToolButton icon="check" label={t("Done")} onPress={() => saveOpenBill(true)} />
+              : catalog.settings.save_bill_enabled && (
+                <ToolButton icon="content-save-outline" label={t("Save bill")} disabled={!hasLines}
+                  onPress={() => guard("open_bills_manage", t("Save the bill"), () => setModal({ kind: "save" }))} />
+              )}
             {can("bill_print") && (
               <ToolButton icon="printer-outline" label={t("Print bill")} disabled={!hasLines}
                 onPress={() => guard("bill_print", t("Print bill"), () => setModal({ kind: "billPreview" }))} />

@@ -183,7 +183,7 @@ export async function approveWithPin(pin: string): Promise<"ok" | "wrong" | "not
   run?.();
   return "ok";
 }
-export function lock() { set({ employee: null, phase: "locked" }); }
+export function lock() { saveOpenBill(false); set({ employee: null, phase: "locked" }); }
 
 // ───────────────────────────────────────────── navigation
 export function go(page: Page) { set({ page }); }
@@ -235,6 +235,29 @@ function ensureOrder(): OrderDoc {
 function update(fn: (o: OrderDoc) => OrderDoc) {
   const next = reprice(fn(ensureOrder()), state.catalog!);
   set({ order: next });
+  if (next.version > 0) scheduleBillSave();
+}
+
+// Saved bills keep themselves up to date: changes are written a moment after the last tap, so
+// other tablets see them and nothing is lost when another bill is opened. No "Update bill" step.
+let billTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleBillSave() {
+  if (billTimer) clearTimeout(billTimer);
+  billTimer = setTimeout(() => saveOpenBill(false), 1200);
+}
+/**
+ * Write the saved bill on screen. `done` also takes it off the screen and marks its items as
+ * sent (taking them off afterwards is a void with a reason).
+ */
+export function saveOpenBill(done: boolean) {
+  if (billTimer) { clearTimeout(billTimer); billTimer = null; }
+  const o = state.order;
+  if (!o || o.version === 0) return;
+  const next: OrderDoc = { ...o, version: o.version + 1, lines: done ? o.lines.map((l) => ({ ...l, saved_qty: l.qty })) : o.lines };
+  db.saveOrder(next);
+  set({ order: done ? null : next });
+  refreshLocal();
+  void syncNow();
 }
 
 export function addItem(item: Item, variant: Variant, opts: { modifiers: ModifierChoice[]; qty: number; note: string | null; discount: AppliedDiscount | null }) {
@@ -406,6 +429,7 @@ export function saveBillAt(opts: { table: DiningTable | null; guests: number | n
   saveBill(name);
 }
 export function openBill(id: string) {
+  if (state.order && state.order.version > 0 && state.order.id !== id) saveOpenBill(true);
   const o = db.getOrder(id);
   if (o) set({ order: reprice(o, state.catalog!) });
 }
@@ -431,8 +455,8 @@ export const billsAt = (tableId: string) => state.openOrders.filter((o) => o.tab
  */
 export function seatAtTable(table: DiningTable, guests: number | null, customer: string | null) {
   const cur = state.order;
-  if (cur && cur.version > 0) throw new Error(t("Save or close the bill on screen first."));
-  const base = cur ?? ensureOrder();
+  if (cur && cur.version > 0) saveOpenBill(true);           // put the bill on screen away first
+  const base = (cur && cur.version > 0 ? null : cur) ?? ensureOrder();
   const seated: OrderDoc = reprice({ ...base, table_id: table.id, table_name: table.name, guests, customer_name: customer,
     bill_name: customer ? `${table.name} · ${customer}` : table.name }, state.catalog!);
   set({ order: seated });
