@@ -217,7 +217,6 @@ function BillDetail({ order: o, voidId, onBack }: { order: OrderDoc; voidId?: st
         </View>
       </View>
       <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
-        <Btn kind="secondary" title={t("Back")} onPress={onBack} />
         {o.status === "cancelled" && (
           <Btn title={t("Reprint cancelled bill")} onPress={() => showSlip({ kind: "cancel", reprint: true, order: o,
             items: o.lines.map((l) => ({ name: lineLabel(l), qty: l.qty, amount: l.line_total })), reason: o.cancel_reason ? t(o.cancel_reason) : "—",
