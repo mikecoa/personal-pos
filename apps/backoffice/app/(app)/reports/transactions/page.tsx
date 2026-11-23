@@ -4,16 +4,19 @@ import { PRESETS, reportScope, resolveRange, TZ, withFilters } from "@/lib/repor
 import { ReportFilters } from "@/components/report-filters";
 import { ReportTable, Tabs, type Col } from "@/components/report-table";
 import { ButtonLink, PageHeader } from "@/components/ui";
+import { HistoryTable } from "./history-table";
+import type { HistoryKind } from "./actions";
 
 const PAGE = 50;
 const m = (n: number) => formatRupiah(rp(n));
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: TZ, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-const TABS = [{ id: "completed", label: "Sales" }, { id: "cancelled", label: "Cancelled bills" }, { id: "voids", label: "Voided items" }, { id: "refunds", label: "Refunds" }];
+const TABS = [{ id: "completed", label: "Sales" }, { id: "cancelled_orders", label: "Cancelled orders" }, { id: "cancelled", label: "Cancelled bills" }, { id: "voids", label: "Voided items" }, { id: "refunds", label: "Refunds" }];
+const HISTORY: string[] = ["cancelled_orders", "cancelled", "voids"];
 type Row = Record<string, string | number | boolean | null>;
 type SP = { loc?: string; range?: string; from?: string; to?: string; kind?: string; q?: string; page?: string };
 
 export default async function TransactionsPage({ searchParams }: { searchParams: Promise<SP> }) {
-  await requireManage();
+  const { isOwner } = await requireManage();
   const sp = await searchParams;
   const kind = TABS.some((t) => t.id === sp.kind) ? sp.kind! : "completed";
   const page = Math.max(0, Number(sp.page ?? 0) || 0);
@@ -38,9 +41,17 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       { key: "by", label: "Cashier", render: (x) => <span className="text-ink-2">{x.cashier}</span> },
       { key: "t", label: "Total", align: "right", render: (x) => <>{m(Number(x.total))}{Number(x.refunded) > 0 && <span className="block text-xs text-danger">−{m(Number(x.refunded))} refunded</span>}</> },
     ],
+    cancelled_orders: [
+      { key: "at", label: "Cleared", render: (x) => when(String(x.at)) }, ...loc,
+      { key: "no", label: "Order", render: (x) => <span className="font-medium">{x.number}</span> },
+      { key: "items", label: "Items", render: (x) => <span className="line-clamp-1 max-w-[340px] text-ink-2">{x.items ?? "—"}</span> },
+      { key: "by", label: "By", render: (x) => <span className="text-ink-2">{x.by}</span> },
+      { key: "t", label: "Order value", align: "right", render: (x) => m(Number(x.total)) },
+    ],
     cancelled: [
       { key: "at", label: "Cancelled", render: (x) => when(String(x.at)) }, ...loc,
       { key: "bill", label: "Bill", render: (x) => <span className="font-medium">{x.bill ?? x.number}</span> },
+      { key: "items", label: "Items", render: (x) => <span className="line-clamp-1 max-w-[280px] text-ink-2">{x.items ?? "—"}</span> },
       { key: "r", label: "Reason", render: (x) => x.reason },
       { key: "by", label: "By", render: (x) => <span className="text-ink-2">{x.by}</span> },
       { key: "t", label: "Bill value", align: "right", render: (x) => m(Number(x.total)) },
@@ -79,7 +90,16 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           <button className="h-10 rounded-lg border border-line bg-surface px-4 text-sm font-semibold transition hover:bg-surface-2 active:scale-[0.98]">Search</button>
         </form>
       )}
-      <ReportTable rows={rows} cols={cols[kind]!} empty={sp.q ? `No receipt matching “${sp.q}”.` : "Nothing in this period."} />
+      {kind === "cancelled_orders" && (
+        <p className="mb-3 text-sm text-ink-2">Orders a cashier rang up and then cleared without saving or charging. (Recorded from tablet app 1.0.2 on.)</p>
+      )}
+      {isOwner && HISTORY.includes(kind) ? (
+        <HistoryTable kind={kind as HistoryKind} empty="Nothing in this period."
+          head={cols[kind]!.map((c) => c.label)} align={cols[kind]!.map((c) => (c.align === "right" ? "right" : "left"))}
+          rows={rows.map((x) => ({ id: String(x.id), cells: cols[kind]!.map((c) => c.render(x)) }))} />
+      ) : (
+        <ReportTable rows={rows} cols={cols[kind]!} empty={sp.q ? `No receipt matching “${sp.q}”.` : "Nothing in this period."} />
+      )}
       {(page > 0 || more) && (
         <div className="mt-4 flex items-center gap-3 text-sm">
           {page > 0 && <ButtonLink variant="secondary" href={withFilters("/reports/transactions", sp, { kind, q: sp.q, page: String(page - 1) })}>← Newer</ButtonLink>}

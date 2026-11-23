@@ -36,13 +36,14 @@ export async function GET(req: NextRequest) {
       default: header = ["Day", "Transactions", "Gross", "Net"]; rows = r.by_day.map((x) => [x.day, x.transactions, x.gross, x.net]);
     }
   } else if (q.report === "transactions") {
-    const kind = ["completed", "cancelled", "voids", "refunds"].includes(q.section ?? "") ? q.section! : "completed";
+    const kind = ["completed", "cancelled_orders", "cancelled", "voids", "refunds"].includes(q.section ?? "") ? q.section! : "completed";
     const { data, error } = await supabase.rpc("report_transactions", { ...base, p_kind: kind, p_limit: 20000, p_offset: 0 });
     if (error) return new NextResponse(error.message, { status: 500 });
     const list = (data as unknown as Row[]) ?? [];
     const spec: Record<string, [string, string][]> = {
       completed: [["Time", "at"], ["Location", "location"], ["Receipt", "number"], ["Bill", "bill"], ["Sales type", "sales_type"], ["Items", "items"], ["Paid with", "payments"], ["Cashier", "cashier"], ["Total", "total"], ["Refunded", "refunded"]],
-      cancelled: [["Cancelled", "at"], ["Location", "location"], ["Receipt", "number"], ["Bill", "bill"], ["Reason", "reason"], ["By", "by"], ["Bill value", "total"]],
+      cancelled_orders: [["Cleared", "at"], ["Location", "location"], ["Order", "number"], ["Items", "items"], ["By", "by"], ["Order value", "total"]],
+      cancelled: [["Cancelled", "at"], ["Location", "location"], ["Receipt", "number"], ["Bill", "bill"], ["Items", "items"], ["Reason", "reason"], ["By", "by"], ["Bill value", "total"]],
       voids: [["Voided", "at"], ["Location", "location"], ["Receipt", "number"], ["Bill", "bill"], ["Item", "item"], ["Qty", "qty"], ["Value", "amount"], ["Reason", "reason"], ["By", "by"]],
       refunds: [["Refunded", "at"], ["Location", "location"], ["Receipt", "number"], ["Items", "items"], ["Paid back as", "method"], ["Amount", "amount"], ["Reason", "reason"], ["By", "by"], ["Restocked", "restock"]],
     };
