@@ -1,5 +1,5 @@
-import { type ReactNode } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle, KeyboardAvoidingView } from "react-native";
+import { useEffect, useRef, type ReactNode } from "react";
+import { ActivityIndicator, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle, KeyboardAvoidingView } from "react-native";
 import { formatRupiah, rp } from "@pos/core";
 import { c, r } from "./theme";
 import { FadeIn, Tap } from "./motion";
@@ -92,6 +92,35 @@ export function Stepper({ value, onChange, min = 0 }: { value: number; onChange:
   );
 }
 
+/** On/off switch drawn by the app (not the system's), same look on every tablet. */
+export function Toggle({ value, onValueChange, disabled, accessibilityLabel }: {
+  value: boolean; onValueChange: (v: boolean) => void; disabled?: boolean; accessibilityLabel?: string;
+}) {
+  const x = useRef(new Animated.Value(value ? 1 : 0)).current;
+  useEffect(() => { Animated.timing(x, { toValue: value ? 1 : 0, duration: 160, useNativeDriver: false }).start(); }, [value, x]);
+  return (
+    <Pressable onPress={() => onValueChange(!value)} disabled={disabled} hitSlop={8}
+      accessibilityRole="switch" accessibilityState={{ checked: value, disabled }} accessibilityLabel={accessibilityLabel}
+      style={{ opacity: disabled ? 0.45 : 1 }}>
+      <Animated.View style={[s.toggle, { backgroundColor: x.interpolate({ inputRange: [0, 1], outputRange: [c.line, c.accent] }) }]}>
+        <Animated.View style={[s.toggleThumb, { transform: [{ translateX: x.interpolate({ inputRange: [0, 1], outputRange: [0, 20] }) }] }]} />
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+/** Yes/no question in the app's own pop-up (instead of the system dialog). */
+export function Confirm({ title, body, confirmLabel, cancelLabel, danger, onConfirm, onCancel }: {
+  title: string; body: string; confirmLabel: string; cancelLabel: string; danger?: boolean; onConfirm: () => void; onCancel: () => void;
+}) {
+  return (
+    <Sheet visible onClose={onCancel} title={title} width={480}
+      footer={<><Btn kind="secondary" title={cancelLabel} onPress={onCancel} /><Btn style={{ flex: 1 }} kind={danger ? "danger" : "primary"} title={confirmLabel} onPress={onConfirm} /></>}>
+      <Text style={{ fontSize: 15, lineHeight: 22, color: c.ink }}>{body}</Text>
+    </Sheet>
+  );
+}
+
 /** Numeric keypad for PINs and cash amounts. */
 /** Number pad. `fill`: stretch across the available width (phones). */
 export function Keypad({ onKey, extra = "00", compact: small, fill }: { onKey: (k: string) => void; extra?: string; compact?: boolean; fill?: boolean }) {
@@ -112,6 +141,8 @@ export function Keypad({ onKey, extra = "00", compact: small, fill }: { onKey: (
 }
 
 const s = StyleSheet.create({
+  toggle: { width: 48, height: 28, borderRadius: 14, padding: 3, justifyContent: "center" },
+  toggleThumb: { width: 22, height: 22, borderRadius: 11, backgroundColor: c.surface, elevation: 2, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } },
   btn: { minHeight: 54, paddingHorizontal: 20, borderRadius: r.md, alignItems: "center", justifyContent: "center", borderWidth: 1 },
   btnBig: { minHeight: 68 },
   btnText: { fontSize: 14, fontWeight: "700", letterSpacing: 0.1 },

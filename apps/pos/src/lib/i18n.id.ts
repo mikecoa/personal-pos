@@ -699,4 +699,7 @@ export const ID: Record<string, string> = {
   "Add custom amounts": "Menambah nominal bebas",
   "A price typed by hand instead of a menu item": "Harga yang diketik manual, bukan item menu",
   "Add a custom amount": "Tambah nominal bebas",
+  "Sign out this tablet?": "Keluarkan tablet ini?",
+  "Reset this tablet?": "Reset tablet ini?",
+  "Are you sure?": "Yakin?",
 };

@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { MoneyBox } from "@/components/money-input";
 import { Button, Checkbox, Field, Select, TextArea, Toggle } from "@/components/ui";
+import { SearchPicker } from "@/components/controls";
 import { useT } from "@/components/lang";
 
 export type EditorItem = {
@@ -197,13 +198,16 @@ function PackageSection({ on, disabled, groups, menuItems, onToggle, onChange }:
                       aria-label={t("Choice group {n} name", { n: gi + 1 })}
                       className="h-10 w-full rounded-lg border border-line bg-surface px-3 outline-none focus:border-accent" />
                   </label>
-                  <label className="w-28">
+                  <div className="w-32">
                     <span className="mb-1 block text-xs text-ink-2">{t("Customer picks")}</span>
-                    <input type="number" min={1} max={Math.max(1, Math.min(10, g.options.length))} value={g.choose}
-                      onChange={(e) => set(g.key, { choose: Math.max(1, Math.min(10, Number(e.target.value) || 1)) })}
-                      aria-label={t("How many to pick in group {n}", { n: gi + 1 })}
-                      className="h-10 w-full rounded-lg border border-line bg-surface px-3 outline-none focus:border-accent" />
-                  </label>
+                    <div className="flex h-10 items-center gap-1" role="group" aria-label={t("How many to pick in group {n}", { n: gi + 1 })}>
+                      <button type="button" disabled={g.choose <= 1} onClick={() => set(g.key, { choose: g.choose - 1 })} aria-label={t("Fewer")}
+                        className="grid h-9 w-9 place-items-center rounded-lg border border-line bg-surface text-base font-semibold transition hover:border-accent hover:text-accent disabled:opacity-40 disabled:hover:border-line disabled:hover:text-current">−</button>
+                      <span className="w-7 text-center font-semibold tabular-nums" aria-live="polite">{g.choose}</span>
+                      <button type="button" disabled={g.choose >= Math.min(10, Math.max(1, g.options.length))} onClick={() => set(g.key, { choose: g.choose + 1 })} aria-label={t("More")}
+                        className="grid h-9 w-9 place-items-center rounded-lg border border-line bg-surface text-base font-semibold transition hover:border-accent hover:text-accent disabled:opacity-40 disabled:hover:border-line disabled:hover:text-current">+</button>
+                    </div>
+                  </div>
                   <button type="button" onClick={() => onChange(groups.filter((x) => x.key !== g.key))} aria-label={t("Remove choice group")}
                     className="h-10 px-2 text-ink-2 hover:text-danger">✕</button>
                 </div>
@@ -221,15 +225,12 @@ function PackageSection({ on, disabled, groups, menuItems, onToggle, onChange }:
                     </li>
                   ))}
                 </ul>
-                <select value="" onChange={(e) => { if (e.target.value) set(g.key, { options: [...g.options, { item_id: e.target.value, price: 0 }] }); }}
-                  aria-label={t("Add an item to group {n}", { n: gi + 1 })}
-                  className="mt-2 h-10 w-full rounded-lg border border-dashed border-line bg-surface px-3 text-sm text-ink-2 outline-none focus:border-accent">
-                  <option value="">{g.options.length ? t("+ Add another item…") : t("+ Add an item to choose from…")}</option>
-                  {byCategory.map(([cat, list]) => {
-                    const left = list.filter((m) => avail.some((a) => a.id === m.id));
-                    return left.length ? <optgroup key={cat} label={cat}>{left.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</optgroup> : null;
-                  })}
-                </select>
+                <div className="mt-2">
+                  <SearchPicker placeholder={g.options.length ? t("+ Add another item…") : t("+ Add an item to choose from…")}
+                    ariaLabel={t("Add an item to group {n}", { n: gi + 1 })} emptyText={t("No items left to add")}
+                    options={byCategory.flatMap(([cat, list]) => list.filter((m) => avail.some((a) => a.id === m.id)).map((m) => ({ value: m.id, label: m.name, group: cat })))}
+                    onPick={(id) => set(g.key, { options: [...g.options, { item_id: id, price: 0 }] })} />
+                </div>
                 <p className="mt-2 text-xs text-ink-2">
                   {g.options.length ? t("Customer picks {n} of these {m}.", { n: g.choose, m: g.options.length }) : t("Add the items the customer can choose from.")}
                 </p>

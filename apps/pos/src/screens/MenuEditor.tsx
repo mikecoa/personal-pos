@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { saveCategory, saveMenuItem, useStore } from "../lib/store";
 import type { Item } from "../lib/types";
-import { Btn, Chip, Field, Label, money, Muted, Sheet } from "../ui/kit";
+import { Btn, Chip, Field, Label, money, Muted, Sheet, Toggle } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { t } from "../lib/i18n";
 
@@ -108,7 +108,7 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
           <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>{t("Track stock")}</Text>
           <Muted style={{ fontSize: 12 }}>{item?.track_stock ? t("{stock} in stock now. Stock counts are adjusted in the backoffice.", { stock: item.stock }) : t("Count how many are left after each sale.")}</Muted>
         </View>
-        <Switch value={track} onValueChange={setTrack} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface} accessibilityLabel="Track stock" />
+        <Toggle value={track} onValueChange={setTrack} accessibilityLabel="Track stock" />
       </View>
       {track && !item && <Field label={t("Starting stock")} value={stock} onChangeText={(v) => setStock(digits(v))} keyboardType="number-pad" placeholder="0" />}
 

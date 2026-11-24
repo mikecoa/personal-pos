@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { FLOOR_MAX_COLS, FLOOR_MAX_ROW, floorLayout, floorMinSize, floorRows, floorSize, moveOnFloor, type FloorSize } from "@pos/core";
 import { saveAreaGrid, saveLayout } from "./actions";
 import { useT } from "@/components/lang";
+import { Tip } from "@/components/controls";
 
 export type MapTable = { id: string; name: string; seats: number; is_active: boolean; pos_x: number | null; pos_y: number | null; busy: boolean };
 export type MapArea = { id: string; grid_cols: number; grid_rows: number };
@@ -161,7 +162,6 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
                       onPointerCancel={() => { setDrag(null); setOver(null); }}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`${editHref}${t.id}`, { scroll: false }); } }}
                       style={dragId === t.id ? { transform: `translate(${drag!.dx}px, ${drag!.dy}px) scale(1.05)`, zIndex: 10, position: "relative" } : undefined}
-                      title={tr("Table {name}: drag to move, click to edit", { name: t.name })}
                       className={`flex h-full w-full cursor-grab flex-col items-center justify-center border bg-surface transition hover:border-accent active:cursor-grabbing
                         rounded-xl ${t.busy ? "border-accent bg-accent-soft" : "border-line"}
                         touch-none select-none ${t.is_active ? "" : "opacity-50"} ${dragId === t.id ? "shadow-xl" : ""}`}>
@@ -176,17 +176,17 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
           </div>
           {area && <>
             {/* Right edge: columns. Bottom edge: rows. Corner: both. */}
-            <button type="button" {...handleProps("x")} aria-label={tr("Drag to change the number of columns")} title={tr("Drag to add or remove columns")}
+            <button type="button" {...handleProps("x")} aria-label={tr("Drag to change the number of columns")}
               className={`group absolute top-0 flex w-5 cursor-ew-resize touch-none items-center justify-center rounded-md hover:bg-accent-soft focus-visible:bg-accent-soft ${resize?.edge === "x" ? "bg-accent-soft" : ""}`}
               style={{ left: gridW + 4, height: gridH }}>
               <span className={`h-10 w-1 rounded-full ${resize?.edge === "x" ? "bg-accent" : "bg-line group-hover:bg-accent"}`} />
             </button>
-            <button type="button" {...handleProps("y")} aria-label={tr("Drag to change the number of rows")} title={tr("Drag to add or remove rows")}
+            <button type="button" {...handleProps("y")} aria-label={tr("Drag to change the number of rows")}
               className={`group absolute left-0 flex h-5 cursor-ns-resize touch-none items-center justify-center rounded-md hover:bg-accent-soft focus-visible:bg-accent-soft ${resize?.edge === "y" ? "bg-accent-soft" : ""}`}
               style={{ top: gridH + 4, width: gridW }}>
               <span className={`h-1 w-10 rounded-full ${resize?.edge === "y" ? "bg-accent" : "bg-line group-hover:bg-accent"}`} />
             </button>
-            <button type="button" {...handleProps("xy")} aria-label={tr("Drag to change columns and rows")} title={tr("Drag to resize the grid")}
+            <button type="button" {...handleProps("xy")} aria-label={tr("Drag to change columns and rows")}
               className={`group absolute flex h-5 w-5 cursor-nwse-resize touch-none items-center justify-center rounded-md hover:bg-accent-soft ${resize?.edge === "xy" ? "bg-accent-soft" : ""}`}
               style={{ left: gridW + 4, top: gridH + 4 }}>
               <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className={resize?.edge === "xy" ? "text-accent" : "text-ink-2 group-hover:text-accent"}>
@@ -218,7 +218,9 @@ function Stepper({ label, value, canDown, canUp, disabled, onChange, downTitle }
   return (
     <div className="flex items-center gap-2">
       <span className="text-ink-2">{label}</span>
-      <button type="button" className={btn} disabled={disabled || !canDown} onClick={() => onChange(-1)} aria-label={`${label} −`} title={downTitle}>−</button>
+      {downTitle && !canDown
+        ? <Tip label={downTitle}><button type="button" className={btn} disabled aria-label={`${label} −`}>−</button></Tip>
+        : <button type="button" className={btn} disabled={disabled || !canDown} onClick={() => onChange(-1)} aria-label={`${label} −`}>−</button>}
       <span className="w-6 text-center font-semibold tabular-nums" aria-live="polite">{value}</span>
       <button type="button" className={btn} disabled={disabled || !canUp} onClick={() => onChange(1)} aria-label={`${label} +`}>+</button>
     </div>

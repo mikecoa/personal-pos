@@ -1,4 +1,5 @@
 import { type BackofficePage } from "@pos/core";
+import { Tip } from "@/components/controls";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { canOpen, currentPath, getSession } from "@/lib/session";
@@ -89,9 +90,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </svg>
           </Link>
           <form action="/auth/signout" method="post">
-            <button title={t("Sign out")} aria-label={t("Sign out")} className="grid h-11 w-10 place-items-center rounded-lg text-ink-2 transition-colors hover:bg-danger/10 hover:text-danger">
+            <Tip label={t("Sign out")}>
+            <button aria-label={t("Sign out")} className="grid h-11 w-10 place-items-center rounded-lg text-ink-2 transition-colors hover:bg-danger/10 hover:text-danger">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
             </button>
+            </Tip>
           </form>
         </div>
       </AppShell>

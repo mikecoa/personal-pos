@@ -759,4 +759,9 @@ export const ID: Record<string, string> = {
   "Add the items the customer can choose from.": "Tambahkan item yang bisa dipilih pelanggan.",
   "+ Add choice group": "+ Tambah grup pilihan",
   "Package": "Paket",
+  "Fewer": "Kurangi",
+  "More": "Tambah",
+  "No items left to add": "Tidak ada item lagi untuk ditambahkan",
+  "Search…": "Cari…",
+  "Nothing matches": "Tidak ada yang cocok",
 };
