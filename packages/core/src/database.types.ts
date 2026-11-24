@@ -561,6 +561,64 @@ isOneToOne: false
       referencedColumns: ["id","location_id"]
     }
                   ]
+                },"package_groups": {
+                  Row: {
+                    "account_id": string,"choose": number,"created_at": string,"id": string,"item_id": string,"location_id": string,"name": string,"sort_order": number,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"choose"?: number,"created_at"?: string,"id"?: string,"item_id": string,"location_id": string,"name": string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "account_id"?: string,"choose"?: number,"created_at"?: string,"id"?: string,"item_id"?: string,"location_id"?: string,"name"?: string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "package_groups_item_id_location_id_fkey"
+      columns: ["item_id","location_id"]
+isOneToOne: false
+      referencedRelation: "items"
+      referencedColumns: ["id","location_id"]
+    },{
+      foreignKeyName: "package_groups_location_id_account_id_fkey"
+      columns: ["location_id","account_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id","account_id"]
+    }
+                  ]
+                },"package_options": {
+                  Row: {
+                    "account_id": string,"group_id": string,"id": string,"item_id": string,"location_id": string,"price": number,"sort_order": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"group_id": string,"id"?: string,"item_id": string,"location_id": string,"price"?: number,"sort_order"?: number
+                  }
+                  Update: {
+                    "account_id"?: string,"group_id"?: string,"id"?: string,"item_id"?: string,"location_id"?: string,"price"?: number,"sort_order"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "package_options_group_id_location_id_fkey"
+      columns: ["group_id","location_id"]
+isOneToOne: false
+      referencedRelation: "package_groups"
+      referencedColumns: ["id","location_id"]
+    },{
+      foreignKeyName: "package_options_item_id_location_id_fkey"
+      columns: ["item_id","location_id"]
+isOneToOne: false
+      referencedRelation: "items"
+      referencedColumns: ["id","location_id"]
+    },{
+      foreignKeyName: "package_options_location_id_account_id_fkey"
+      columns: ["location_id","account_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id","account_id"]
+    }
+                  ]
                 },"payment_methods": {
                   Row: {
                     "account_id": string,"created_at": string,"id": string,"is_active": boolean,"kind": "cash"|"qr"|"card"|"delivery"|"other"|"invoice","location_id": string,"name": string,"sort_order": number,"updated_at": string
@@ -908,6 +966,9 @@ isOneToOne: false
                            },
 "save_item":
 { Args: { "p_item": Json }; Returns: string
+                           },
+"save_package":
+{ Args: { "p": Json,"p_item": string }; Returns: undefined
                            },
 "set_employee_pin":
 { Args: { "p_employee": string,"p_pin": string }; Returns: undefined

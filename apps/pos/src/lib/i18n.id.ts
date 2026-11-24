@@ -173,6 +173,7 @@ export const ID: Record<string, string> = {
   "Note": "Catatan",
   "Items already saved on the bill are reduced from the cart (a void needs a reason).": "Item yang sudah tersimpan di bill dikurangi dari keranjang (void butuh alasan).",
   "Choose 1": "Pilih 1",
+  "Choose {n}": "Pilih {n}",
   "Choose at least {min}, up to {max}": "Pilih minimal {min}, maksimal {max}",
   "Choose at least {min}": "Pilih minimal {min}",
   "Optional, up to {max}": "Opsional, maksimal {max}",

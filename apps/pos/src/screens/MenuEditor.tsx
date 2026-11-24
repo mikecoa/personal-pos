@@ -21,7 +21,9 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
   const [rows, setRows] = useState<VariantRow[]>(() => item
     ? item.variants.map((v) => ({ key: String(keySeq++), id: v.id, name: v.name, price: String(v.price), sku: v.sku, prices: v.prices ?? {} }))
     : [{ key: String(keySeq++), name: "", price: "", sku: null, prices: {} }]);
-  const [sets, setSets] = useState<string[]>(item?.modifier_set_ids ?? []);
+  // Package choice groups are set up on the website, so only real modifier groups are edited here.
+  const realSets = catalog.modifier_sets.filter((m) => !m.package);
+  const [sets, setSets] = useState<string[]>((item?.modifier_set_ids ?? []).filter((id) => realSets.some((m) => m.id === id)));
   const [track, setTrack] = useState(item?.track_stock ?? false);
   const [stock, setStock] = useState("");
   const [busy, setBusy] = useState(false);
@@ -90,11 +92,11 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
         )}
       </View>
 
-      {catalog.modifier_sets.length > 0 && (
+      {realSets.length > 0 && (
         <View style={{ gap: 8 }}>
           <Label>{t("Choices (modifiers)")}</Label>
           <View style={st.wrap}>
-            {catalog.modifier_sets.map((m) => (
+            {realSets.map((m) => (
               <Chip key={m.id} label={m.name} active={sets.includes(m.id)} onPress={() => setSets((s) => (s.includes(m.id) ? s.filter((x) => x !== m.id) : [...s, m.id]))} />
             ))}
           </View>

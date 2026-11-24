@@ -16,7 +16,8 @@
 
 export type DiscountKind = "percent" | "amount";
 export type AppliedDiscount = { id?: string | null; name: string; kind: DiscountKind; value: number };
-export type ModifierChoice = { set: string; option: string; price: number };
+/** item_id: set when the choice is a menu item inside a package (its stock is used). */
+export type ModifierChoice = { set: string; option: string; price: number; item_id?: string };
 
 export type CartLine = {
   id: string;

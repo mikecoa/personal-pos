@@ -32,7 +32,7 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
     let acc: { mods: ModifierChoice[]; names: string[]; price: number }[] = [{ mods: [], names: [], price: 0 }];
     for (const s of sets) {
       if (!quickSets.includes(s)) continue;
-      acc = acc.flatMap((a) => s.options.map((o) => ({ mods: [...a.mods, { set: s.name, option: o.name, price: o.price }], names: [...a.names, o.name], price: a.price + o.price })));
+      acc = acc.flatMap((a) => s.options.map((o) => ({ mods: [...a.mods, { set: s.name, option: o.name, price: o.price, ...(o.item_id ? { item_id: o.item_id } : {}) }], names: [...a.names, o.name], price: a.price + o.price })));
     }
     return item.variants.flatMap((v) => acc.map((a) => {
       const names = [...(item.variants.length > 1 ? [v.name] : []), ...a.names];
@@ -73,7 +73,7 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
                 <View key={cb.key} style={[st.combo, n > 0 && st.comboOn]}>
                   <Pressable onPress={() => addCombo(cb)} accessibilityRole="button" accessibilityLabel={`Add ${cb.label}, ${money(cb.price)}${n ? `. ${n} on the order` : ""}`}
                     style={({ pressed }) => [st.comboTap, pressed && { opacity: 0.6 }]}>
-                    <Text style={st.comboName} numberOfLines={2}>{cb.label}</Text>
+                    <Text style={st.comboName} numberOfLines={3}>{cb.label}</Text>
                     <Text style={{ color: c.ink2 }}>{money(cb.price)}</Text>
                   </Pressable>
                   {n > 0 && (
@@ -156,13 +156,13 @@ function ItemForm({ item, sets, salesType, onAdded, canAdd }: {
   const missing = sets.filter((s) => (picked[s.id]?.length ?? 0) < s.min_select);
   const modifiers: ModifierChoice[] = sets.flatMap((s) => (picked[s.id] ?? []).map((id) => {
     const o = s.options.find((x) => x.id === id)!;
-    return { set: s.name, option: o.name, price: o.price };
+    return { set: s.name, option: o.name, price: o.price, ...(o.item_id ? { item_id: o.item_id } : {}) };
   }));
   const unit = variantPrice(variant, salesType) + modifiers.reduce((sum, m) => sum + m.price, 0);
   const d = discounts.find((x) => x.id === discountId);
   const discount: AppliedDiscount | null = d ? { id: d.id, name: d.name, kind: d.kind, value: d.value } : null;
   const rule = (min: number, max: number | null) =>
-    min > 0 && max === 1 ? t("Choose 1") : min > 0 ? (max ? t("Choose at least {min}, up to {max}", { min, max }) : t("Choose at least {min}", { min })) : max ? t("Optional, up to {max}", { max }) : t("Optional");
+    min > 0 && max === 1 ? t("Choose 1") : min > 1 && max === min ? t("Choose {n}", { n: min }) : min > 0 ? (max ? t("Choose at least {min}, up to {max}", { min, max }) : t("Choose at least {min}", { min })) : max ? t("Optional, up to {max}", { max }) : t("Optional");
 
   const add = () => {
     if (!canAdd(qty)) return;
