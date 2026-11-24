@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireManage } from "@/lib/session";
+import { requireWrite } from "@/lib/session";
 import { bool, fail, ok, str, type ActionState } from "@/lib/actions";
 
 const schema = z.object({
@@ -12,7 +12,7 @@ const schema = z.object({
 });
 
 export async function savePaymentMethod(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("settings_payments");
   const parsed = schema.safeParse({ name: str(form, "name"), kind: str(form, "kind"), is_active: bool(form, "is_active"), sort_order: str(form, "sort_order") || 0 });
   if (!parsed.success) return fail(parsed.error);
   const id = str(form, "id");
@@ -25,7 +25,7 @@ export async function savePaymentMethod(_: ActionState, form: FormData): Promise
 }
 
 export async function deletePaymentMethod(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("settings_payments");
   const { error } = await supabase.from("payment_methods").delete().eq("id", str(form, "id")).eq("location_id", location.id);
   if (error) return fail(error);
   revalidatePath("/settings/payments");

@@ -1,4 +1,5 @@
 "use client";
+import { useCanWrite } from "@/components/access";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { FLOOR_MAX_COLS, FLOOR_MAX_ROW, floorLayout, floorMinSize, floorRows, floorSize, moveOnFloor, type FloorSize } from "@pos/core";
@@ -22,6 +23,7 @@ const MIN_PITCH = 72;   // below this the map scrolls sideways instead
 export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area: MapArea | null; editHref: string }) {
   const router = useRouter();
   const tr = useT();
+  const canWrite = useCanWrite();         // view-only: tables open their (read-only) details; nothing moves
   const [items, setItems] = useState(tables);
   const saved = floorSize(area);
   const [size, setSize] = useState<FloorSize>(saved);
@@ -45,7 +47,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const HANDLE = area ? 28 : 0;   // room for the drag handle on the right
+  const HANDLE = area && canWrite ? 28 : 0;   // room for the drag handle on the right
   const fitPitch = boxW ? Math.floor((boxW - 16 - HANDLE + GAP) / Math.max(size.cols, 8)) : 96;
   const pitch = resize?.pitch ?? Math.max(MIN_PITCH, Math.min(MAX_PITCH, fitPitch));   // frozen while resizing so the edge follows the pointer
   const cellW = pitch - GAP, cellH = Math.round(cellW * 0.9);
@@ -125,7 +127,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
 
   return (
     <div>
-      {area && (
+      {area && canWrite && (
         <div className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
           <Stepper label={tr("Columns")} value={size.cols} canDown={size.cols > min.cols} canUp={size.cols < FLOOR_MAX_COLS} disabled={pending}
             onChange={(d) => saveSize({ ...size, cols: size.cols + d })} downTitle={size.cols <= min.cols ? tr("A table is in the last column") : undefined} />
@@ -135,7 +137,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
         </div>
       )}
       <div ref={boxRef} className={`overflow-x-auto rounded-2xl bg-surface-2 p-2 ${resizing ? "select-none" : ""}`}>
-        <div className="relative" style={{ width: gridW + HANDLE, paddingBottom: area ? 24 : 0 }}>
+        <div className="relative" style={{ width: gridW + HANDLE, paddingBottom: area && canWrite ? 24 : 0 }}>
           <div className="grid gap-2" style={{ width: gridW, gridTemplateColumns: `repeat(${size.cols}, ${cellW}px)`, gridAutoRows: `${cellH}px` }}>
             {Array.from({ length: rows * size.cols }, (_, i) => {
               const x = i % size.cols, y = Math.floor(i / size.cols);
@@ -147,7 +149,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
                     <button type="button"
                       onPointerDown={(e) => { if (e.button !== 0) return; e.currentTarget.setPointerCapture(e.pointerId); setDrag({ id: t.id, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, moved: false }); }}
                       onPointerMove={(e) => {
-                        if (!drag || drag.id !== t.id) return;
+                        if (!drag || drag.id !== t.id || !canWrite) return;
                         const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
                         const moved = drag.moved || Math.hypot(dx, dy) > 6;
                         setDrag({ ...drag, dx, dy, moved });
@@ -174,7 +176,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
               );
             })}
           </div>
-          {area && <>
+          {area && canWrite && <>
             {/* Right edge: columns. Bottom edge: rows. Corner: both. */}
             <button type="button" {...handleProps("x")} aria-label={tr("Drag to change the number of columns")}
               className={`group absolute top-0 flex w-5 cursor-ew-resize touch-none items-center justify-center rounded-md hover:bg-accent-soft focus-visible:bg-accent-soft ${resize?.edge === "x" ? "bg-accent-soft" : ""}`}
@@ -204,6 +206,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
       </div>
       <p className="mt-2 text-xs text-ink-2" role={error ? "alert" : undefined}>
         {error ? <span className="text-danger">{error}</span> : pending ? tr("Saving…")
+          : !canWrite ? tr("Click a table to see its details.")
           : area ? tr("Drag a table to move it; drop it on another table to swap. Click a table to edit it. Drag the grid's edge to add or remove columns and rows.")
           : tr("Drag a table to move it; drop it on another table to swap. Click a table to edit it.")}
       </p>

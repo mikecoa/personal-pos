@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WriteOnly } from "@/components/access";
 import { formatRupiah, rp } from "@pos/core";
 import { requireManage } from "@/lib/session";
 import { ButtonLink, EmptyState, PageHeader, Panel, RowLink, Table } from "@/components/ui";
@@ -22,7 +23,7 @@ export default async function DiscountsPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader title={t("Discounts")} description={t("Discounts cashiers can apply at checkout.")} actions={<ButtonLink href={`${BASE}?new=1`}>{t("New discount")}</ButtonLink>} />
+      <PageHeader title={t("Discounts")} description={t("Discounts cashiers can apply at checkout.")} actions={<WriteOnly><ButtonLink href={`${BASE}?new=1`}>{t("New discount")}</ButtonLink></WriteOnly>} />
       {rows?.length ? (
         <Table head={[t("Name"), t("Value"), t("Applies to"), t("On POS")]} rows="link">
           {rows.map((r) => (

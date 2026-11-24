@@ -1,4 +1,5 @@
 "use client";
+import { useCanWrite } from "@/components/access";
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { formatRupiah, rp } from "@pos/core";
@@ -23,7 +24,8 @@ export function ItemList({ items, targets, editHrefTemplate }: {
   const [chosen, setChosen] = useState<string[]>([]);
   const [state, action, pending] = useActionState(copyItems, undefined);
   const all = selected.length === items.length && items.length > 0;
-  const canCopy = targets.length > 0;
+  const canWrite = useCanWrite();
+  const canCopy = targets.length > 0 && canWrite;   // copying adds items elsewhere: needs change access
   useEffect(() => { if (state?.ok) { toast(`Copied ${state.copied} item(s)`); setSelected([]); setChosen([]); } }, [state]);
 
   return (

@@ -54,7 +54,7 @@ export function HistoryTable({ kind, head, align, rows, empty }: {
     <div>
       <div className={`mb-3 flex min-h-10 flex-wrap items-center gap-3 rounded-xl px-3 py-2 transition-colors ${selected.length ? "bg-accent-soft" : "bg-surface-2/60"}`}>
         <p className="text-sm text-ink-2">
-          {selected.length ? <b className="text-ink">{t("{what} selected", { what: label(selected.length) })}</b> : t("As the owner, you can tick records to delete them from the history.")}
+          {selected.length ? <b className="text-ink">{t("{what} selected", { what: label(selected.length) })}</b> : t("You can tick records to delete them from the history.")}
         </p>
         {selected.length > 0 && (
           <div className="ml-auto flex items-center gap-2">

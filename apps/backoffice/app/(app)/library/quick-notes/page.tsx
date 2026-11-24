@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WriteOnly } from "@/components/access";
 import { requireManage } from "@/lib/session";
 import { ButtonLink, Checkbox, EmptyState, Field, PageHeader, Panel, RowLink, Table } from "@/components/ui";
 import { EditorForm } from "@/components/editor-form";
@@ -23,7 +24,7 @@ export default async function QuickNotesPage({ searchParams }: { searchParams: P
     <div className="mx-auto max-w-4xl">
       <PageHeader title={t("Quick notes")}
         description={<>{t("One-tap note buttons on the tablet at")} <b>{location.name}</b> {t("(e.g. “Less sugar”). The first ones are the quickest to reach.")}</>}
-        actions={<ButtonLink href={`${BASE}?new=1`}>{t("New note")}</ButtonLink>} />
+        actions={<WriteOnly><ButtonLink href={`${BASE}?new=1`}>{t("New note")}</ButtonLink></WriteOnly>} />
       {notes?.length ? (
         <Table head={[t("Note"), t("Shows on"), t("Order")]} rows="link">
           {notes.map((n, i) => (
@@ -31,12 +32,12 @@ export default async function QuickNotesPage({ searchParams }: { searchParams: P
               <td className="px-4 py-3.5 font-medium"><Link href={`${BASE}?edit=${n.id}`} scroll={false}>{n.text}</Link></td>
               <td className="px-4 py-3.5 text-ink-2">{n.category_ids.length ? n.category_ids.map((id: string) => catName.get(id)).filter(Boolean).join(", ") : t("All items")}</td>
               <td className="px-4 py-2.5">
-                <div className="flex gap-1">
+                <WriteOnly><div className="flex gap-1">
                   <form action={moveQuickNote}><input type="hidden" name="id" value={n.id} /><input type="hidden" name="dir" value="up" />
                     <button className={arrow} disabled={i === 0} aria-label={`Move ${n.text} up`}>↑</button></form>
                   <form action={moveQuickNote}><input type="hidden" name="id" value={n.id} /><input type="hidden" name="dir" value="down" />
                     <button className={arrow} disabled={i === notes.length - 1} aria-label={`Move ${n.text} down`}>↓</button></form>
-                </div>
+                </div></WriteOnly>
               </td>
             </RowLink>
           ))}

@@ -28,7 +28,7 @@ type SP = { loc?: string; range?: string; from?: string; to?: string; kind?: str
 export default async function TransactionsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const t = await getT();
   const when = whenIn(dateLocale((await getPrefs()).lang));
-  const { isOwner } = await requireManage();
+  const { writes } = await requireManage();
   const sp = await searchParams;
   const kind = TABS.some((t) => t.id === sp.kind) ? sp.kind! : "completed";
   const page = Math.max(0, Number(sp.page ?? 0) || 0);
@@ -123,7 +123,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       {kind === "cancelled_orders" && (
         <p className="mb-3 text-sm text-ink-2">{t("Orders a cashier rang up and then cleared without saving or charging. (Recorded from tablet app 1.0.2 on.)")}</p>
       )}
-      {isOwner && HISTORY.includes(kind) ? (
+      {writes.has("reports_transactions") && HISTORY.includes(kind) ? (
         <HistoryTable kind={kind as HistoryKind} empty={t("Nothing in this period.")}
           head={cols[kind]!.map((c) => c.label)} align={cols[kind]!.map((c) => (c.align === "right" ? "right" : "left"))}
           rows={rows.map((x) => ({ id: String(x.id), cells: cols[kind]!.map((c) => c.render(x)) }))} />

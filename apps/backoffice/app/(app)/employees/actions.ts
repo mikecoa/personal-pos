@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireOwner } from "@/lib/session";
+import { requireWriteAccount } from "@/lib/session";
 import { bool, fail, ok, str, type ActionState } from "@/lib/actions";
 
 const schema = z.object({
@@ -13,7 +13,7 @@ const schema = z.object({
 });
 
 export async function saveEmployee(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, membership } = await requireOwner();
+  const { supabase, membership } = await requireWriteAccount("employees");
   const parsed = schema.safeParse({ name: str(form, "name"), phone: str(form, "phone") || null, email: str(form, "email") || null, role_id: str(form, "role_id"), is_active: bool(form, "is_active") });
   if (!parsed.success) return fail(parsed.error);
   const pin = str(form, "pin");
@@ -33,8 +33,8 @@ export async function saveEmployee(_: ActionState, form: FormData): Promise<Acti
 }
 
 export async function deleteEmployee(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase } = await requireOwner();
-  const { error } = await supabase.from("employees").delete().eq("id", str(form, "id"));
+  const { supabase } = await requireWriteAccount("employees");
+  const { error } = await supabase.rpc("delete_employee", { p_employee: str(form, "id") });
   if (error) return fail(error);
   revalidatePath("/employees", "layout");
   return ok();

@@ -1,4 +1,5 @@
 import { formatRupiah, rp } from "@pos/core";
+import { WriteOnly } from "@/components/access";
 import { requireManage } from "@/lib/session";
 import { ButtonLink, EmptyState, PageHeader, Panel } from "@/components/ui";
 import { EditorForm } from "@/components/editor-form";
@@ -77,7 +78,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Promis
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title={t("Items")} description={<>{t("{n} items at", { n: list.length })} <b>{location.name}</b></>}
-        actions={<><ButtonLink href="/library/import" variant="secondary">{t("Import CSV")}</ButtonLink><ButtonLink href={qs({ new: "1" })}>{t("New item")}</ButtonLink></>} />
+        actions={<><WriteOnly><ButtonLink href="/library/import" variant="secondary">{t("Import CSV")}</ButtonLink></WriteOnly><WriteOnly><ButtonLink href={qs({ new: "1" })}>{t("New item")}</ButtonLink></WriteOnly></>} />
 
       <ItemFilters categories={categories ?? []} />
 

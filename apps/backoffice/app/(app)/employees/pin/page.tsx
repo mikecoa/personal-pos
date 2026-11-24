@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PIN_LOCKABLE } from "@pos/core";
-import { requireLocation, requireOwner } from "@/lib/session";
+import { requireLocation } from "@/lib/session";
 import { Badge, Card, Checkbox, PageHeader } from "@/components/ui";
 import { SettingsForm } from "@/components/settings-form";
 import { savePinApproval } from "./actions";
@@ -8,7 +8,6 @@ import { getT } from "@/lib/prefs";
 
 export default async function PinAccessPage() {
   const t = await getT();
-  await requireOwner();
   const { supabase, location } = await requireLocation();
   const [{ data: s }, { data: emps }] = await Promise.all([
     supabase.from("location_settings").select("pin_required_actions").eq("location_id", location.id).single(),

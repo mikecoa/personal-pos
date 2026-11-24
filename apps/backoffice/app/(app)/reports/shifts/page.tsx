@@ -26,7 +26,7 @@ const diffBadge = (d: number | null, t: T) =>
 export default async function ShiftsReportPage({ searchParams }: { searchParams: Promise<SP> }) {
   const t = await getT();
   const when = whenIn(dateLocale((await getPrefs()).lang));
-  const { isOwner } = await requireManage();
+  const { writes } = await requireManage();
   const sp = await searchParams;
   const range = await resolveRange(sp);
   const { supabase, scope, locations } = await reportScope(sp);
@@ -97,7 +97,7 @@ export default async function ShiftsReportPage({ searchParams }: { searchParams:
               ))}
             </ul>
           ) : <p className="text-sm text-ink-2">{t("None.")}</p>}
-          <ShiftActions id={sel.id} open={sel.status === "open"} isOwner={isOwner} closeHref={close} />
+          {writes.has("reports_shifts") && <ShiftActions id={sel.id} open={sel.status === "open"} isOwner closeHref={close} />}
         </Panel>
       )}
     </div>

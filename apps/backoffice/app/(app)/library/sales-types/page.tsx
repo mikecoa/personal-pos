@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WriteOnly } from "@/components/access";
 import { requireManage } from "@/lib/session";
 import { ButtonLink, EmptyState, Field, PageHeader, Panel, RowLink, Table, Toggle } from "@/components/ui";
 import { StatusSwitch } from "@/components/status-switch";
@@ -21,7 +22,7 @@ export default async function SalesTypesPage({ searchParams }: { searchParams: P
       <PageHeader
         title={t("Sales types")}
         description={t("How an order is served, e.g. Dine In, Take Away, GoFood. Items can have a different price per sales type.")}
-        actions={<ButtonLink href={`${BASE}?new=1`}>{t("New sales type")}</ButtonLink>}
+        actions={<WriteOnly><ButtonLink href={`${BASE}?new=1`}>{t("New sales type")}</ButtonLink></WriteOnly>}
       />
       {rows?.length ? (
         <Table head={[t("Name"), t("On POS"), t("Order on POS")]} rows="link">

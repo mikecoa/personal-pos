@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireManage } from "@/lib/session";
+import { requireWrite } from "@/lib/session";
 import { fail, ok, str, type ActionState } from "@/lib/actions";
 
 const BASE = "/library/quick-notes";
@@ -11,7 +11,7 @@ const schema = z.object({
 });
 
 export async function saveQuickNote(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_quick_notes");
   const parsed = schema.safeParse({ text: str(form, "text"), category_ids: form.getAll("category_ids").map(String) });
   if (!parsed.success) return fail(parsed.error);
   // Only this location's categories.
@@ -30,7 +30,7 @@ export async function saveQuickNote(_: ActionState, form: FormData): Promise<Act
 }
 
 export async function deleteQuickNote(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_quick_notes");
   const { error } = await supabase.from("quick_notes").delete().eq("id", str(form, "id")).eq("location_id", location.id);
   if (error) return fail(error);
   revalidatePath(BASE);
@@ -39,7 +39,7 @@ export async function deleteQuickNote(_: ActionState, form: FormData): Promise<A
 
 /** Move a note one place up or down (swaps order with its neighbour). */
 export async function moveQuickNote(form: FormData): Promise<void> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_quick_notes");
   const { data: notes } = await supabase.from("quick_notes").select("id, sort_order").eq("location_id", location.id).order("sort_order").order("text");
   const list = notes ?? [];
   const i = list.findIndex((n) => n.id === str(form, "id"));

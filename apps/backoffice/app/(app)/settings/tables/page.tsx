@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WriteOnly } from "@/components/access";
 import { requireManage } from "@/lib/session";
 import { Badge, ButtonLink, EmptyState, Field, PageHeader, Panel, Select, Toggle } from "@/components/ui";
 import { EditorForm } from "@/components/editor-form";
@@ -29,9 +30,9 @@ export default async function TablesPage({ searchParams }: { searchParams: Promi
     <div className="mx-auto max-w-5xl">
       <PageHeader title={t("Tables")} description={<>{t("Floor map for")} <b>{location.name}</b>{t(", the same one the tablets show. Cashiers seat customers and move bills between tables on the tablet.")}</>}
         actions={<>
-          <ButtonLink variant="secondary" href={`${BASE}?new=area`}>{t("New area")}</ButtonLink>
-          <ButtonLink variant="secondary" href={`${BASE}?new=bulk`}>{t("Add several")}</ButtonLink>
-          <ButtonLink href={`${BASE}?new=table`}>{t("New table")}</ButtonLink>
+          <WriteOnly><ButtonLink variant="secondary" href={`${BASE}?new=area`}>{t("New area")}</ButtonLink></WriteOnly>
+          <WriteOnly><ButtonLink variant="secondary" href={`${BASE}?new=bulk`}>{t("Add several")}</ButtonLink></WriteOnly>
+          <WriteOnly><ButtonLink href={`${BASE}?new=table`}>{t("New table")}</ButtonLink></WriteOnly>
         </>} />
 
       {!tables?.length && !areas?.length ? (

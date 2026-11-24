@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireManage } from "@/lib/session";
+import { requireWrite } from "@/lib/session";
 import { fail, ok, str, type ActionState } from "@/lib/actions";
 
 const money = z.coerce.number().int().min(0);
@@ -36,7 +36,7 @@ const payload = z.object({
 });
 
 export async function saveItem(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_items");
   let raw: unknown;
   try { raw = JSON.parse(str(form, "payload")); } catch { return fail("Could not read the form"); }
   const parsed = payload.safeParse(raw);
@@ -51,7 +51,7 @@ export async function saveItem(_: ActionState, form: FormData): Promise<ActionSt
 }
 
 export async function deleteItem(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_items");
   const { error } = await supabase.from("items").delete().eq("id", str(form, "id")).eq("location_id", location.id);
   if (error) return fail(error);
   revalidatePath("/library", "layout");
@@ -59,7 +59,7 @@ export async function deleteItem(_: ActionState, form: FormData): Promise<Action
 }
 
 export async function copyItems(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase } = await requireManage();
+  const { supabase } = await requireWrite("library_items");
   const items = form.getAll("item").map(String), targets = form.getAll("target").map(String);
   if (!items.length) return fail("Select at least one item");
   if (!targets.length) return fail("Choose at least one location to copy to");
