@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const LOCATION_COOKIE = "pos_location";
+export const PREVIEW_COOKIE = "pos_preview_role";
 
 export type Role = "owner" | "admin" | "staff";
 
@@ -38,14 +39,34 @@ export const getSession = cache(async () => {
   const location = active.find((l) => l.id === chosen) ?? active[0] ?? null;
 
   const role = membership.role as Role;
-  // Backoffice pages: owners (and admins not linked to an employee slot) see everything; staff who
-  // signed in through their employee slot see what their role allows (Employee access).
+  // Backoffice pages: owners (and admins not linked to an employee slot) see and change everything;
+  // staff who signed in through their employee slot get what their role allows (Employee access):
+  // pages to view, and the ones they may also change.
   let pages = new Set<BackofficePage>(ALL_BACKOFFICE_PAGES);
+  let writes = new Set<BackofficePage>(ALL_BACKOFFICE_PAGES);
+  let myRole: { id: string; name: string } | null = null;
   if (role !== "owner") {
-    const { data: emp } = await supabase.from("employees").select("roles(backoffice_pages)")
+    const { data: emp } = await supabase.from("employees").select("roles(id, name, backoffice_pages, backoffice_write)")
       .eq("account_id", membership.account_id).eq("user_id", user.id).maybeSingle();
-    const granted = (emp?.roles as { backoffice_pages?: string[] } | null)?.backoffice_pages;
-    if (emp) pages = new Set((granted ?? []) as BackofficePage[]);
+    const r = emp?.roles as { id: string; name: string; backoffice_pages?: string[]; backoffice_write?: string[] } | null;
+    if (emp) {
+      pages = new Set((r?.backoffice_pages ?? []) as BackofficePage[]);
+      writes = new Set((r?.backoffice_write ?? []) as BackofficePage[]);
+      myRole = r ? { id: r.id, name: r.name } : null;
+    }
+  }
+
+  // Preview: see the backoffice as a role below you (Employee access → Preview). View-only.
+  let preview: { id: string; name: string } | null = null;
+  const previewId = (await cookies()).get(PREVIEW_COOKIE)?.value;
+  if (previewId) {
+    const { data: below } = await supabase.rpc("role_preview", { p_role: previewId });
+    const r = below as { id: string; name: string; backoffice_pages: string[] } | null;
+    if (r?.id) {
+      preview = { id: r.id, name: r.name };
+      pages = new Set(r.backoffice_pages as BackofficePage[]);
+      writes = new Set();
+    }
   }
   return {
     supabase,
@@ -58,15 +79,42 @@ export const getSession = cache(async () => {
     locations: active,
     allLocations: locations,
     location,
+    /** Pages this person can open. */
     pages,
+    /** Pages this person can also change (none while previewing a role). */
+    writes,
+    myRole,
+    preview,
   };
 });
+
+/** Can this person change backoffice page `page`? */
+export async function canWrite(page: BackofficePage) {
+  const s = await getSession();
+  return s.writes.has(page);
+}
+
+/**
+ * For server actions that change a page's data: the person must be allowed to change that page
+ * (the database checks again). Returns the session with the selected location.
+ */
+export async function requireWrite(page: BackofficePage) {
+  const session = await requireLocation();
+  if (!session.writes.has(page)) redirect("/");      // the page hides its edit controls, so only tampering gets here
+  return session;
+}
+/** Same, for business-wide pages (employees, roles): no location needed. */
+export async function requireWriteAccount(page: BackofficePage) {
+  const session = await getSession();
+  if (!session.writes.has(page)) redirect("/");
+  return session;
+}
 
 /** Can this person open the backoffice page at `path`? */
 export async function canOpen(path: string) {
   const s = await getSession();
   const key = pageForPath(path);
-  if (key === "owner") return s.isOwner;
+  if (key === "owner") return s.isOwner && !s.preview;
   if (key === null) return true;
   return s.pages.has(key);
 }

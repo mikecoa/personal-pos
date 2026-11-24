@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button, ErrorNote } from "./ui";
 import { checkForm, toast, useConfirm } from "./controls";
 import { useT } from "./lang";
+import { useCanWrite } from "./access";
 
 type State = { error?: string; ok?: boolean; at?: number } | undefined;
 type Action = (prev: State, form: FormData) => Promise<State>;
@@ -14,11 +15,15 @@ type Action = (prev: State, form: FormData) => Promise<State>;
  */
 export function EditorForm({
   action, deleteAction, closeHref, submitLabel, deleteLabel,
-  confirmDelete, hidden, children,
+  confirmDelete, hidden, children, readOnly: forceReadOnly, readOnlyNote,
 }: {
   action: Action; deleteAction?: Action; closeHref: string; submitLabel?: string; deleteLabel?: string;
   confirmDelete?: string; hidden?: Record<string, string | undefined>; children: ReactNode;
+  /** This record can't be changed by this person (e.g. an employee above them). */
+  readOnly?: boolean; readOnlyNote?: string;
 }) {
+  // View-only page (role access) or record: every field is shown but disabled, no Save / Delete.
+  const readOnly = !useCanWrite() || !!forceReadOnly;
   const router = useRouter();
   const t = useT();
   submitLabel ??= t("Save");
@@ -55,9 +60,15 @@ export function EditorForm({
     <>
       <form onSubmit={submit} noValidate className="space-y-5">
         {hiddenInputs}
-        {children}
+        <fieldset disabled={readOnly} className="contents">{children}</fieldset>
         <ErrorNote message={invalid ?? state?.error ?? delState?.error} />
         <div className="sticky bottom-0 -mx-6 mt-6 flex items-center gap-2 border-t border-line bg-surface/95 px-6 py-4 backdrop-blur">
+          {readOnly ? (
+            <>
+              <Button type="button" variant="secondary" onClick={() => router.replace(closeHref, { scroll: false })}>{t("Close")}</Button>
+              <p className="text-sm text-ink-2">{readOnlyNote ?? t("View only: you can't change this.")}</p>
+            </>
+          ) : <>
           <Button type="submit" disabled={pending}>{pending ? t("Saving…") : submitLabel}</Button>
           <Button type="button" variant="secondary" onClick={() => router.replace(closeHref, { scroll: false })}>{t("Cancel")}</Button>
           {deleteAction && (
@@ -74,6 +85,7 @@ export function EditorForm({
               {deleting ? t("Deleting…") : deleteLabel}
             </Button>
           )}
+          </>}
         </div>
       </form>
       {deleteAction && <form ref={delForm} action={delAction} className="hidden">{hiddenInputs}</form>}

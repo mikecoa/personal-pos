@@ -294,6 +294,14 @@ function scheduleBillSave() {
  * Write the saved bill on screen. `done` also takes it off the screen and marks its items as
  * sent (taking them off afterwards is a void with a reason).
  */
+/**
+ * A bill as the server sends it: locked / printed counts are stored there now. Bills saved by older
+ * app versions have none, so everything saved counts as locked and printed (as before).
+ */
+const fromServer = (o: OrderDoc): OrderDoc => ({
+  ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.saved_qty ?? l.qty, printed_qty: l.printed_qty ?? undefined })),
+});
+
 export function saveOpenBill(done: boolean) {
   if (billTimer) { clearTimeout(billTimer); billTimer = null; }
   const o = state.order;
@@ -531,6 +539,7 @@ export function splitBill(picks: Record<string, number>): OrderDoc {
     served_by: src.served_by, served_by_name: src.served_by_name,
     tax_name: src.tax_name, tax_rate_bp: src.tax_rate_bp, gratuity_name: src.gratuity_name, gratuity_rate_bp: src.gratuity_rate_bp,
     prices_include_tax: src.prices_include_tax, tax_after_discount: src.tax_after_discount, lines: newLines,
+    discounts: percentCopies(src.discounts),                 // e.g. 10% off the whole bill stays 10% off every part
   }, state.catalog!);
   const kept: OrderDoc = reprice({ ...src, version: src.version + 1, lines: keptLines }, state.catalog!);
   db.saveOrder(created);
@@ -540,6 +549,8 @@ export function splitBill(picks: Record<string, number>): OrderDoc {
   void syncNow();
   return created;
 }
+/** Percentage bill discounts carry over to the new bills of a split (amount discounts stay where they are). */
+const percentCopies = (ds: OrderDoc["discounts"]) => ds.filter((d) => d.kind === "percent").map((d) => ({ ...d, id: randomUUID(), amount: 0 }));
 /** Split into several bills at once: one `picks` map per new bill (the rest stays on this bill). */
 export function splitBillMany(groups: Record<string, number>[]): OrderDoc[] {
   const o = state.order!;
@@ -562,7 +573,10 @@ const stripPart = (n: string | null | undefined) => (n ?? "").replace(/ \(\d+(?:
 export function splitParts(o: OrderDoc): OrderDoc[] {
   const base = stripPart(o.bill_name ?? o.number);
   const parts = db.listOrders("open")
-    .filter((b) => (o.table_id ? b.table_id === o.table_id : true) && stripPart(b.bill_name ?? b.number) === base)
+    // Same table (or both without one) and same name. Without a table the name is all there is, so
+    // only numbered bills ("Ojol (2/3)") count: another customer's plain "Ojol" bill is never pulled in.
+    .filter((b) => (b.table_id ?? null) === (o.table_id ?? null) && stripPart(b.bill_name ?? b.number) === base
+      && (o.table_id || b.id === o.id || hasPartSuffix(b)))
     .sort((a, b) => a.opened_at.localeCompare(b.opened_at) || a.number.localeCompare(b.number))
     .map((b) => (state.order?.id === b.id ? state.order : db.getOrder(b.id) ?? b));
   return parts.length ? parts : [o];
@@ -654,10 +668,12 @@ export function resplit(parts: OrderDoc[], entries: { line: OrderDoc["lines"][nu
     }
   }
   const kept: OrderDoc[] = [];
+  const orphaned: OrderDoc["discounts"] = [];      // amount discounts of bills that end up empty move to the first bill
   linesFor.forEach((lines, b) => {
     const part = fresh[b];
     if (part) {
       if (!lines.length) {
+        orphaned.push(...part.discounts.filter((d) => d.kind !== "percent"));
         db.saveOrder(reprice({ ...part, status: "cancelled", version: part.version + 1, lines: [], discounts: [], cancelled_at: now(),
           cancel_reason: "Split changed (items moved to the other bills)", closed_by: state.employee!.id, closed_by_name: state.employee!.name }, state.catalog!));
         return;
@@ -672,11 +688,16 @@ export function resplit(parts: OrderDoc[], entries: { line: OrderDoc["lines"][nu
         served_by: src.served_by, served_by_name: src.served_by_name,
         tax_name: src.tax_name, tax_rate_bp: src.tax_rate_bp, gratuity_name: src.gratuity_name, gratuity_rate_bp: src.gratuity_rate_bp,
         prices_include_tax: src.prices_include_tax, tax_after_discount: src.tax_after_discount, lines,
+        discounts: percentCopies(src.discounts),
       }, state.catalog!);
       db.saveOrder(created); kept.push(created);
     }
   });
   if (!kept.length) throw new Error(t("Every new bill needs at least one item."));
+  if (orphaned.length) {
+    const withDisc = reprice({ ...kept[0]!, version: kept[0]!.version + 1, discounts: [...kept[0]!.discounts, ...orphaned] }, state.catalog!);
+    db.saveOrder(withDisc); kept[0] = withDisc;
+  }
   if (kept.length === 1) {
     const only = { ...kept[0]!, bill_name: base, version: kept[0]!.version + 1 };
     db.saveOrder(only); kept[0] = only;
@@ -1106,7 +1127,7 @@ export function syncNow(opts: { catalog?: boolean; auto?: boolean } = {}): Promi
           if (res.status === "saved") db.markClean(o.id, o.version);
           else {
             // Server is ahead (another tablet changed or closed this bill): take the server copy.
-            db.saveOrder(res.order, false);
+            db.saveOrder(fromServer(res.order), false);
             if (res.status === "stale") notify(t("Bill {name} was changed on another tablet; showing the latest version.", { name: o.bill_name ?? o.number }));
           }
         });
@@ -1121,7 +1142,7 @@ export function syncNow(opts: { catalog?: boolean; auto?: boolean } = {}): Promi
       const ids = new Set(serverOpen.map((o) => o.id));
       for (const so of serverOpen) {
         const local = db.getOrder(so.id);
-        if (!local || (!local.dirty && local.version <= so.version) || so.version > local.version) db.saveOrder({ ...so, lines: so.lines.map((l) => ({ ...l, saved_qty: l.qty })) }, false);
+        if (!local || (!local.dirty && local.version <= so.version) || so.version > local.version) db.saveOrder(fromServer(so), false);
       }
       for (const lo of db.listOrders("open")) {
         const l = db.getOrder(lo.id)!;

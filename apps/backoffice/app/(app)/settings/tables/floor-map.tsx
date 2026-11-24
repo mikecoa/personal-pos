@@ -1,9 +1,11 @@
 "use client";
+import { useCanWrite } from "@/components/access";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { FLOOR_MAX_COLS, FLOOR_MAX_ROW, floorLayout, floorMinSize, floorRows, floorSize, moveOnFloor, type FloorSize } from "@pos/core";
 import { saveAreaGrid, saveLayout } from "./actions";
 import { useT } from "@/components/lang";
+import { Tip } from "@/components/controls";
 
 export type MapTable = { id: string; name: string; seats: number; is_active: boolean; pos_x: number | null; pos_y: number | null; busy: boolean };
 export type MapArea = { id: string; grid_cols: number; grid_rows: number };
@@ -21,6 +23,7 @@ const MIN_PITCH = 72;   // below this the map scrolls sideways instead
 export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area: MapArea | null; editHref: string }) {
   const router = useRouter();
   const tr = useT();
+  const canWrite = useCanWrite();         // view-only: tables open their (read-only) details; nothing moves
   const [items, setItems] = useState(tables);
   const saved = floorSize(area);
   const [size, setSize] = useState<FloorSize>(saved);
@@ -44,7 +47,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const HANDLE = area ? 28 : 0;   // room for the drag handle on the right
+  const HANDLE = area && canWrite ? 28 : 0;   // room for the drag handle on the right
   const fitPitch = boxW ? Math.floor((boxW - 16 - HANDLE + GAP) / Math.max(size.cols, 8)) : 96;
   const pitch = resize?.pitch ?? Math.max(MIN_PITCH, Math.min(MAX_PITCH, fitPitch));   // frozen while resizing so the edge follows the pointer
   const cellW = pitch - GAP, cellH = Math.round(cellW * 0.9);
@@ -124,7 +127,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
 
   return (
     <div>
-      {area && (
+      {area && canWrite && (
         <div className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
           <Stepper label={tr("Columns")} value={size.cols} canDown={size.cols > min.cols} canUp={size.cols < FLOOR_MAX_COLS} disabled={pending}
             onChange={(d) => saveSize({ ...size, cols: size.cols + d })} downTitle={size.cols <= min.cols ? tr("A table is in the last column") : undefined} />
@@ -134,7 +137,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
         </div>
       )}
       <div ref={boxRef} className={`overflow-x-auto rounded-2xl bg-surface-2 p-2 ${resizing ? "select-none" : ""}`}>
-        <div className="relative" style={{ width: gridW + HANDLE, paddingBottom: area ? 24 : 0 }}>
+        <div className="relative" style={{ width: gridW + HANDLE, paddingBottom: area && canWrite ? 24 : 0 }}>
           <div className="grid gap-2" style={{ width: gridW, gridTemplateColumns: `repeat(${size.cols}, ${cellW}px)`, gridAutoRows: `${cellH}px` }}>
             {Array.from({ length: rows * size.cols }, (_, i) => {
               const x = i % size.cols, y = Math.floor(i / size.cols);
@@ -146,7 +149,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
                     <button type="button"
                       onPointerDown={(e) => { if (e.button !== 0) return; e.currentTarget.setPointerCapture(e.pointerId); setDrag({ id: t.id, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, moved: false }); }}
                       onPointerMove={(e) => {
-                        if (!drag || drag.id !== t.id) return;
+                        if (!drag || drag.id !== t.id || !canWrite) return;
                         const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
                         const moved = drag.moved || Math.hypot(dx, dy) > 6;
                         setDrag({ ...drag, dx, dy, moved });
@@ -161,7 +164,6 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
                       onPointerCancel={() => { setDrag(null); setOver(null); }}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`${editHref}${t.id}`, { scroll: false }); } }}
                       style={dragId === t.id ? { transform: `translate(${drag!.dx}px, ${drag!.dy}px) scale(1.05)`, zIndex: 10, position: "relative" } : undefined}
-                      title={tr("Table {name}: drag to move, click to edit", { name: t.name })}
                       className={`flex h-full w-full cursor-grab flex-col items-center justify-center border bg-surface transition hover:border-accent active:cursor-grabbing
                         rounded-xl ${t.busy ? "border-accent bg-accent-soft" : "border-line"}
                         touch-none select-none ${t.is_active ? "" : "opacity-50"} ${dragId === t.id ? "shadow-xl" : ""}`}>
@@ -174,19 +176,19 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
               );
             })}
           </div>
-          {area && <>
+          {area && canWrite && <>
             {/* Right edge: columns. Bottom edge: rows. Corner: both. */}
-            <button type="button" {...handleProps("x")} aria-label={tr("Drag to change the number of columns")} title={tr("Drag to add or remove columns")}
+            <button type="button" {...handleProps("x")} aria-label={tr("Drag to change the number of columns")}
               className={`group absolute top-0 flex w-5 cursor-ew-resize touch-none items-center justify-center rounded-md hover:bg-accent-soft focus-visible:bg-accent-soft ${resize?.edge === "x" ? "bg-accent-soft" : ""}`}
               style={{ left: gridW + 4, height: gridH }}>
               <span className={`h-10 w-1 rounded-full ${resize?.edge === "x" ? "bg-accent" : "bg-line group-hover:bg-accent"}`} />
             </button>
-            <button type="button" {...handleProps("y")} aria-label={tr("Drag to change the number of rows")} title={tr("Drag to add or remove rows")}
+            <button type="button" {...handleProps("y")} aria-label={tr("Drag to change the number of rows")}
               className={`group absolute left-0 flex h-5 cursor-ns-resize touch-none items-center justify-center rounded-md hover:bg-accent-soft focus-visible:bg-accent-soft ${resize?.edge === "y" ? "bg-accent-soft" : ""}`}
               style={{ top: gridH + 4, width: gridW }}>
               <span className={`h-1 w-10 rounded-full ${resize?.edge === "y" ? "bg-accent" : "bg-line group-hover:bg-accent"}`} />
             </button>
-            <button type="button" {...handleProps("xy")} aria-label={tr("Drag to change columns and rows")} title={tr("Drag to resize the grid")}
+            <button type="button" {...handleProps("xy")} aria-label={tr("Drag to change columns and rows")}
               className={`group absolute flex h-5 w-5 cursor-nwse-resize touch-none items-center justify-center rounded-md hover:bg-accent-soft ${resize?.edge === "xy" ? "bg-accent-soft" : ""}`}
               style={{ left: gridW + 4, top: gridH + 4 }}>
               <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className={resize?.edge === "xy" ? "text-accent" : "text-ink-2 group-hover:text-accent"}>
@@ -204,6 +206,7 @@ export function FloorMap({ tables, area, editHref }: { tables: MapTable[]; area:
       </div>
       <p className="mt-2 text-xs text-ink-2" role={error ? "alert" : undefined}>
         {error ? <span className="text-danger">{error}</span> : pending ? tr("Saving…")
+          : !canWrite ? tr("Click a table to see its details.")
           : area ? tr("Drag a table to move it; drop it on another table to swap. Click a table to edit it. Drag the grid's edge to add or remove columns and rows.")
           : tr("Drag a table to move it; drop it on another table to swap. Click a table to edit it.")}
       </p>
@@ -218,7 +221,9 @@ function Stepper({ label, value, canDown, canUp, disabled, onChange, downTitle }
   return (
     <div className="flex items-center gap-2">
       <span className="text-ink-2">{label}</span>
-      <button type="button" className={btn} disabled={disabled || !canDown} onClick={() => onChange(-1)} aria-label={`${label} −`} title={downTitle}>−</button>
+      {downTitle && !canDown
+        ? <Tip label={downTitle}><button type="button" className={btn} disabled aria-label={`${label} −`}>−</button></Tip>
+        : <button type="button" className={btn} disabled={disabled || !canDown} onClick={() => onChange(-1)} aria-label={`${label} −`}>−</button>}
       <span className="w-6 text-center font-semibold tabular-nums" aria-live="polite">{value}</span>
       <button type="button" className={btn} disabled={disabled || !canUp} onClick={() => onChange(1)} aria-label={`${label} +`}>+</button>
     </div>

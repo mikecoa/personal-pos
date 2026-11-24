@@ -1,4 +1,5 @@
 import { formatRupiah, rp } from "@pos/core";
+import { WriteOnly } from "@/components/access";
 import { requireManage } from "@/lib/session";
 import { ButtonLink, EmptyState, PageHeader, Panel } from "@/components/ui";
 import { EditorForm } from "@/components/editor-form";
@@ -16,17 +17,20 @@ export default async function ItemsPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
 
   let query = supabase.from("items")
-    .select("id, name, category_id, description, is_active, track_stock, stock, stock_alert, avg_cost, categories(name), item_variants(id, name, price, sku, sort_order, variant_sales_type_prices(sales_type_id, price)), item_modifier_sets(modifier_set_id, sort_order)")
+    .select("id, name, category_id, description, is_active, track_stock, stock, stock_alert, avg_cost, categories(name), item_variants(id, name, price, sku, sort_order, variant_sales_type_prices(sales_type_id, price)), item_modifier_sets(modifier_set_id, sort_order), package_groups(name, choose, sort_order, package_options(item_id, price, sort_order))")
     .eq("location_id", location.id).order("name");
   if (sp.q) query = query.ilike("name", `%${sp.q.replace(/[%_]/g, "")}%`);
   if (sp.cat === "none") query = query.is("category_id", null);
   else if (sp.cat) query = query.eq("category_id", sp.cat);
 
-  const [{ data: items, error }, { data: categories }, { data: salesTypes }, { data: sets }] = await Promise.all([
+  const [{ data: items, error }, { data: categories }, { data: salesTypes }, { data: sets }, { data: allItems }, { data: pkgOptions }] = await Promise.all([
     query,
     supabase.from("categories").select("id, name").eq("location_id", location.id).order("sort_order").order("name"),
     supabase.from("sales_types").select("id, name").eq("location_id", location.id).eq("is_active", true).order("sort_order"),
     supabase.from("modifier_sets").select("id, name, modifier_options(name, price, sort_order)").eq("location_id", location.id).order("sort_order").order("name"),
+    // For package editing: every item here (whatever the filter), which ones are packages, and which are chosen inside one.
+    supabase.from("items").select("id, name, categories(name), package_groups(id)").eq("location_id", location.id).order("name"),
+    supabase.from("package_options").select("item_id").eq("location_id", location.id),
   ]);
   if (error) throw error;
 
@@ -44,6 +48,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Promis
       id: i.id, name: i.name, category: i.categories?.name ?? null, is_active: i.is_active, track_stock: i.track_stock,
       stock: i.stock, stock_alert: i.stock_alert, min: Math.min(...prices), max: Math.max(...prices),
       variants: i.item_variants.length, perSalesType: i.item_variants.some((v) => v.variant_sales_type_prices.length > 0),
+      isPackage: i.package_groups.length > 0,
     };
   });
 
@@ -56,7 +61,14 @@ export default async function ItemsPage({ searchParams }: { searchParams: Promis
       prices: Object.fromEntries(v.variant_sales_type_prices.map((p) => [p.sales_type_id, p.price])),
     })),
     modifier_set_ids: [...row.item_modifier_sets].sort((a, b) => a.sort_order - b.sort_order).map((m) => m.modifier_set_id),
+    package_groups: [...row.package_groups].sort((a, b) => a.sort_order - b.sort_order).map((g) => ({
+      name: g.name, choose: g.choose,
+      options: [...g.package_options].sort((a, b) => a.sort_order - b.sort_order).map((o) => ({ item_id: o.item_id, price: o.price })),
+    })),
   };
+  // Items that can be chosen inside a package: everything except packages.
+  const menuItems = (allItems ?? []).filter((i) => !i.package_groups.length).map((i) => ({ id: i.id, name: i.name, category: i.categories?.name ?? null }));
+  const usedInPackage = !!editing && (pkgOptions ?? []).some((o) => o.item_id === editing.id);
   const modifierSets = (sets ?? []).map((s) => ({
     id: s.id, name: s.name,
     summary: [...s.modifier_options].sort((a, b) => a.sort_order - b.sort_order)
@@ -66,7 +78,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Promis
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title={t("Items")} description={<>{t("{n} items at", { n: list.length })} <b>{location.name}</b></>}
-        actions={<><ButtonLink href="/library/import" variant="secondary">{t("Import CSV")}</ButtonLink><ButtonLink href={qs({ new: "1" })}>{t("New item")}</ButtonLink></>} />
+        actions={<><WriteOnly><ButtonLink href="/library/import" variant="secondary">{t("Import CSV")}</ButtonLink></WriteOnly><WriteOnly><ButtonLink href={qs({ new: "1" })}>{t("New item")}</ButtonLink></WriteOnly></>} />
 
       <ItemFilters categories={categories ?? []} />
 
@@ -83,7 +95,7 @@ export default async function ItemsPage({ searchParams }: { searchParams: Promis
         <Panel title={editing ? t("Edit item") : t("New item")} closeHref={closeHref}>
           <EditorForm action={saveItem} deleteAction={editing ? deleteItem : undefined} closeHref={closeHref}
             confirmDelete={t("Delete “{name}”? Past sales keep their records.", { name: editing?.name ?? "" })} hidden={{ id: editing?.id }}>
-            <ItemEditor key={editing?.id ?? "new"} item={editing} categories={categories ?? []} salesTypes={salesTypes ?? []} modifierSets={modifierSets} />
+            <ItemEditor key={editing?.id ?? "new"} item={editing} categories={categories ?? []} salesTypes={salesTypes ?? []} modifierSets={modifierSets} menuItems={menuItems} usedInPackage={usedInPackage} />
           </EditorForm>
         </Panel>
       )}

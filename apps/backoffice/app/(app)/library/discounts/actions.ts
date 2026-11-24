@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireManage } from "@/lib/session";
+import { requireWrite } from "@/lib/session";
 import { bool, fail, ok, str, type ActionState } from "@/lib/actions";
 
 const schema = z.discriminatedUnion("kind", [
@@ -10,7 +10,7 @@ const schema = z.discriminatedUnion("kind", [
 ]);
 
 export async function saveDiscount(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_discounts");
   const name = str(form, "name");
   if (!name) return fail("Name is required");
   const parsed = schema.safeParse({ kind: str(form, "kind"), percent: str(form, "percent").replace(",", "."), amount: str(form, "amount") });
@@ -31,7 +31,7 @@ export async function saveDiscount(_: ActionState, form: FormData): Promise<Acti
 }
 
 export async function deleteDiscount(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_discounts");
   const { error } = await supabase.from("discounts").delete().eq("id", str(form, "id")).eq("location_id", location.id);
   if (error) return fail(error);
   revalidatePath("/library", "layout");

@@ -2,13 +2,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { FLOOR_MAX_COLS, FLOOR_MAX_ROW, FLOOR_MIN_COLS } from "@pos/core";
-import { requireManage } from "@/lib/session";
+import { requireWrite } from "@/lib/session";
 import { bool, fail, ok, str, type ActionState } from "@/lib/actions";
 
 const done = () => { revalidatePath("/settings/tables"); return ok(); };
 
 export async function saveArea(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("settings_tables");
   const name = str(form, "name");
   if (!name) return fail("Area name is required");
   const row = { name: name.slice(0, 40), sort_order: Number(str(form, "sort_order") || 0), is_active: bool(form, "is_active") };
@@ -20,7 +20,7 @@ export async function saveArea(_: ActionState, form: FormData): Promise<ActionSt
 }
 
 export async function deleteArea(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("settings_tables");
   const { error } = await supabase.from("table_areas").delete().eq("id", str(form, "id")).eq("location_id", location.id);
   return error ? fail(error) : done();
 }
@@ -35,7 +35,7 @@ const tableSchema = z.object({
 });
 
 export async function saveTable(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("settings_tables");
   const parsed = tableSchema.safeParse({
     name: str(form, "name"), area_id: str(form, "area_id") || null, seats: str(form, "seats") || 4,
     shape: "square", sort_order: str(form, "sort_order") || 0, is_active: bool(form, "is_active"),
@@ -49,14 +49,14 @@ export async function saveTable(_: ActionState, form: FormData): Promise<ActionS
 }
 
 export async function deleteTable(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("settings_tables");
   const { error } = await supabase.from("dining_tables").delete().eq("id", str(form, "id")).eq("location_id", location.id);
   return error ? fail(error) : done();
 }
 
 /** Add a numbered run of tables, e.g. prefix "T", 1–10 → T1 … T10. Existing names are skipped. */
 export async function addTables(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("settings_tables");
   const from = Number(str(form, "from")), to = Number(str(form, "to")), seats = Number(str(form, "seats") || 4);
   const prefix = str(form, "prefix").slice(0, 10);
   if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < from) return fail("Enter a valid number range");
@@ -81,7 +81,7 @@ const layoutSchema = z.array(z.object({
 
 /** Save positions on an area's floor map (called by the drag-and-drop map; not a form). */
 export async function saveLayout(cells: { id: string; x: number; y: number }[]): Promise<{ error?: string }> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("settings_tables");
   const parsed = layoutSchema.safeParse(cells);
   if (!parsed.success) return { error: "That layout isn't valid." };
   const results = await Promise.all(parsed.data.map((c) =>
@@ -102,7 +102,7 @@ const gridSchema = z.object({
  * so tables the map placed automatically stay where people saw them. Refuses to cut a table off.
  */
 export async function saveAreaGrid(grid: { area_id: string; cols: number; rows: number }, cells: { id: string; x: number; y: number }[]): Promise<{ error?: string }> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("settings_tables");
   const g = gridSchema.safeParse(grid);
   const c = layoutSchema.safeParse(cells);
   if (!g.success || !c.success) return { error: "That grid size isn't valid." };

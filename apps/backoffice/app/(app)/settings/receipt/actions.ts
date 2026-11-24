@@ -1,13 +1,13 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireManage } from "@/lib/session";
+import { requireWrite } from "@/lib/session";
 import { receiptLinks } from "@pos/core";
 import { bool, fail, ok, str, type ActionState } from "@/lib/actions";
 
 const okLogo = (v: string) => v.length <= 300_000 && /^data:image\/(png|jpeg|webp);base64,/.test(v);
 
 export async function saveReceipt(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location, isOwner } = await requireManage();
+  const { supabase, location, isOwner } = await requireWrite("settings_receipt");
   const header = str(form, "header_name");
   if (!header) return fail("Business name on receipt is required");
   // People paste full profile links; keep just the handle for Instagram and TikTok.

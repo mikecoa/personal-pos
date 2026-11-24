@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { saveCategory, saveMenuItem, useStore } from "../lib/store";
 import type { Item } from "../lib/types";
-import { Btn, Chip, Field, Label, money, Muted, Sheet } from "../ui/kit";
+import { Btn, Chip, Field, Label, money, Muted, Sheet, Toggle } from "../ui/kit";
 import { c, r } from "../ui/theme";
 import { t } from "../lib/i18n";
 
@@ -21,7 +21,9 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
   const [rows, setRows] = useState<VariantRow[]>(() => item
     ? item.variants.map((v) => ({ key: String(keySeq++), id: v.id, name: v.name, price: String(v.price), sku: v.sku, prices: v.prices ?? {} }))
     : [{ key: String(keySeq++), name: "", price: "", sku: null, prices: {} }]);
-  const [sets, setSets] = useState<string[]>(item?.modifier_set_ids ?? []);
+  // Package choice groups are set up on the website, so only real modifier groups are edited here.
+  const realSets = catalog.modifier_sets.filter((m) => !m.package);
+  const [sets, setSets] = useState<string[]>((item?.modifier_set_ids ?? []).filter((id) => realSets.some((m) => m.id === id)));
   const [track, setTrack] = useState(item?.track_stock ?? false);
   const [stock, setStock] = useState("");
   const [busy, setBusy] = useState(false);
@@ -90,11 +92,11 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
         )}
       </View>
 
-      {catalog.modifier_sets.length > 0 && (
+      {realSets.length > 0 && (
         <View style={{ gap: 8 }}>
           <Label>{t("Choices (modifiers)")}</Label>
           <View style={st.wrap}>
-            {catalog.modifier_sets.map((m) => (
+            {realSets.map((m) => (
               <Chip key={m.id} label={m.name} active={sets.includes(m.id)} onPress={() => setSets((s) => (s.includes(m.id) ? s.filter((x) => x !== m.id) : [...s, m.id]))} />
             ))}
           </View>
@@ -106,7 +108,7 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
           <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>{t("Track stock")}</Text>
           <Muted style={{ fontSize: 12 }}>{item?.track_stock ? t("{stock} in stock now. Stock counts are adjusted in the backoffice.", { stock: item.stock }) : t("Count how many are left after each sale.")}</Muted>
         </View>
-        <Switch value={track} onValueChange={setTrack} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface} accessibilityLabel="Track stock" />
+        <Toggle value={track} onValueChange={setTrack} accessibilityLabel="Track stock" />
       </View>
       {track && !item && <Field label={t("Starting stock")} value={stock} onChangeText={(v) => setStock(digits(v))} keyboardType="number-pad" placeholder="0" />}
 

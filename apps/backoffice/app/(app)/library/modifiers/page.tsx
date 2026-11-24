@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WriteOnly } from "@/components/access";
 import { formatRupiah, rp } from "@pos/core";
 import { requireManage } from "@/lib/session";
 import { ButtonLink, EmptyState, Field, PageHeader, Panel, RowLink, Table } from "@/components/ui";
@@ -35,7 +36,7 @@ export default async function ModifiersPage({ searchParams }: { searchParams: Pr
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader title={t("Modifiers")} description={t("Choices added to items, like temperature, spice level, toppings or combo picks.")}
-        actions={<ButtonLink href={`${BASE}?new=1`}>{t("New modifier set")}</ButtonLink>} />
+        actions={<WriteOnly><ButtonLink href={`${BASE}?new=1`}>{t("New modifier set")}</ButtonLink></WriteOnly>} />
       {sets?.length ? (
         <Table head={[t("Set"), t("Options"), t("Rule"), t("Used by")]} rows="link">
           {sets.map((s) => (

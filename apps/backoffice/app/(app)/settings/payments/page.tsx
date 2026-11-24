@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WriteOnly } from "@/components/access";
 import { requireManage } from "@/lib/session";
 import { ButtonLink, EmptyState, Field, PageHeader, Panel, RowLink, Select, Table, Toggle } from "@/components/ui";
 import { StatusSwitch } from "@/components/status-switch";
@@ -22,7 +23,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
     <div className="mx-auto max-w-4xl">
       <PageHeader title={t("Payment methods")}
         description={t("Buttons the cashier sees when charging. Add one per bank card machine or QR provider so shift totals are split correctly.")}
-        actions={<ButtonLink href={`${BASE}?new=1`}>{t("New method")}</ButtonLink>} />
+        actions={<WriteOnly><ButtonLink href={`${BASE}?new=1`}>{t("New method")}</ButtonLink></WriteOnly>} />
       {rows?.length ? (
         <Table head={[t("Name"), t("Type"), t("On POS"), t("Order on POS")]} rows="link">
           {rows.map((r) => (

@@ -1,6 +1,7 @@
 /**
- * Backoffice pages a role can be given (Employees → Employee access → Backoffice permissions).
- * Employees, Locations and account settings stay with the owner.
+ * Backoffice pages a role can be given (Employees → Employee access → Backoffice permissions), each
+ * to view (backoffice_pages) or also to change (backoffice_write). Exports count as viewing.
+ * Locations, the change log and account / business settings stay with the owner.
  */
 export const BACKOFFICE_GROUPS = [
   { label: "Dashboard", pages: [{ key: "dashboard", label: "View dashboard", paths: ["/"] }] },
@@ -33,7 +34,20 @@ export const BACKOFFICE_GROUPS = [
       { key: "settings_tablets", label: "POS tablets", paths: ["/settings/tablets"] },
     ],
   },
+  {
+    // Managed only below oneself (roles with fewer permissions). Granting backoffice access, and
+    // the logins that come with it, stays with the owner.
+    label: "Employees",
+    pages: [
+      { key: "employee_roles", label: "Employee access (roles)", paths: ["/employees/access", "/employees/roles"] },
+      { key: "employee_pin", label: "Manager PIN approval", paths: ["/employees/pin"] },
+      { key: "employees", label: "Employee slots", paths: ["/employees"] },
+    ],
+  },
 ] as const;
+
+/** Pages with nothing to change: viewing is all there is. */
+export const VIEW_ONLY_PAGES: readonly string[] = ["dashboard", "reports_sales"];
 
 export type BackofficePage = (typeof BACKOFFICE_GROUPS)[number]["pages"][number]["key"];
 export const ALL_BACKOFFICE_PAGES = BACKOFFICE_GROUPS.flatMap((g) => g.pages.map((p) => p.key)) as BackofficePage[];
@@ -45,6 +59,6 @@ export function pageForPath(path: string): BackofficePage | "owner" | null {
   for (const g of BACKOFFICE_GROUPS) for (const p of g.pages) {
     if (p.paths.some((x) => x !== "/" && (path === x || path.startsWith(`${x}/`)))) return p.key;
   }
-  if (path.startsWith("/employees") || path.startsWith("/settings/locations")) return "owner";
+  if (path.startsWith("/settings/locations") || path.startsWith("/changes")) return "owner";
   return null;
 }

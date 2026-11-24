@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireManage } from "@/lib/session";
+import { requireWrite } from "@/lib/session";
 import { fail, ok, str, type ActionState } from "@/lib/actions";
 
 const schema = z.object({
@@ -10,7 +10,7 @@ const schema = z.object({
 });
 
 export async function saveCategory(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_categories");
   const parsed = schema.safeParse({ name: str(form, "name"), sort_order: str(form, "sort_order") || 0 });
   if (!parsed.success) return fail(parsed.error);
   const id = str(form, "id");
@@ -23,7 +23,7 @@ export async function saveCategory(_: ActionState, form: FormData): Promise<Acti
 }
 
 export async function deleteCategory(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_categories");
   const { error } = await supabase.from("categories").delete().eq("id", str(form, "id")).eq("location_id", location.id);
   if (error) return fail(error);
   revalidatePath("/library", "layout");

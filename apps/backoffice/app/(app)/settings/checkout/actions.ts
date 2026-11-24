@@ -1,13 +1,13 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireManage } from "@/lib/session";
+import { requireWrite } from "@/lib/session";
 import { bool, fail, ok, str, type ActionState } from "@/lib/actions";
 
 const pct = (label: string) => z.coerce.number({ invalid_type_error: `${label} must be a number` }).min(0).max(100, `${label} max 100%`);
 
 export async function saveCheckout(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("settings_checkout");
   const parsed = z.object({ tax: pct("Tax"), gratuity: pct("Service charge"), cash: z.coerce.number().int().min(0) }).safeParse({
     tax: str(form, "tax_rate").replace(",", ".") || 0,
     gratuity: str(form, "gratuity_rate").replace(",", ".") || 0,

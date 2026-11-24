@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { can, guard, saveShiftSettings, shiftHistory, startShift, useStore } from "../lib/store";
 import type { ShiftDoc } from "../lib/types";
-import { Btn, Chip, Keypad, money, Muted, PageTop } from "../ui/kit";
+import { Btn, Chip, Keypad, money, Muted, PageTop, Toggle } from "../ui/kit";
 import { useLayout } from "../ui/layout";
 import { c, r } from "../ui/theme";
 import { CashMoveForm, CloseForm, keyInto } from "./ShiftSheets";
@@ -106,8 +106,7 @@ function ShiftOption() {
   return (
     <Pane title={t("Shift option")}>
       <Line label={t("Start shift automatically")}>
-        <Switch value={settings.auto_shift_enabled} disabled={!allowed || busy} onValueChange={(v) => save({ auto_shift_enabled: v })}
-          trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface} accessibilityLabel="Start shift automatically" />
+        <Toggle value={settings.auto_shift_enabled} disabled={!allowed || busy} onValueChange={(v) => save({ auto_shift_enabled: v })} accessibilityLabel="Start shift automatically" />
       </Line>
       <Line label={t("Default starting cash in drawer")} active={editingCash} onPress={allowed ? () => setEditingCash(!editingCash) : undefined}>
         <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{money(editingCash ? Number(digits || 0) : settings.default_starting_cash)}</Text>

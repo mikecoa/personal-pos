@@ -1,4 +1,5 @@
 import { requireManage } from "@/lib/session";
+import { WriteOnly } from "@/components/access";
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
 import { RevokeButton } from "./revoke-button";
 import { getT } from "@/lib/prefs";
@@ -39,7 +40,7 @@ export default async function TabletsPage() {
                     <p className="font-semibold">{d.name} <span className="ml-1 text-sm font-normal text-ink-2">{t("receipts {prefix}-…", { prefix: d.receipt_prefix })}</span></p>
                     <div className="mt-1">{status}</div>
                   </div>
-                  {!d.revoked_at && <RevokeButton id={d.id} name={d.name} unsent={d.pending_count + d.rejected_count} />}
+                  {!d.revoked_at && <WriteOnly><RevokeButton id={d.id} name={d.name} unsent={d.pending_count + d.rejected_count} /></WriteOnly>}
                 </div>
                 <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
                   <div><dt className="text-ink-2">{t("Last seen")}</dt><dd>{ago(d.last_seen_at, t)}</dd></div>

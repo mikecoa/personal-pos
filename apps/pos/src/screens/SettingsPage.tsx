@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import { lock, syncNow, printerSettings, resetDevice, savePrinterSettings, setLanguage, signedInEmail, unsentCount, useStore, type PrinterSettings } from "../lib/store";
-import { Btn, Chip, Label, Muted, PageTop, Stepper } from "../ui/kit";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { lock, syncNow, printerSettings, savePrinterSettings, setLanguage, signedInEmail, unsentCount, useStore, type PrinterSettings } from "../lib/store";
+import { Btn, Chip, Label, Muted, PageTop, Stepper, Toggle } from "../ui/kit";
 import { useLayout } from "../ui/layout";
 import { c, r } from "../ui/theme";
 import { SyncBadge, SyncSheet, useSyncTrouble } from "./SyncBadge";
@@ -12,6 +12,7 @@ import { allowUsb, findPrinters, lineWidth, openBluetoothSettings, printingAvail
 import { FadeIn, Tap } from "../ui/motion";
 import { installedVersion } from "../lib/updater";
 import { checkNow } from "./UpdatePrompt";
+import { ResetFlow } from "./ResetFlow";
 
 type Section = "account" | "language" | "printer" | "logout";
 let lastSection: Section = "account";          // stays put when the app redraws after a language change
@@ -271,7 +272,7 @@ function Printer() {
           <Text style={{ fontSize: 14, color: c.ink, fontWeight: "600" }}>{t("Print receipt after every sale")}</Text>
           <Muted style={{ fontSize: 12 }}>{t("Otherwise staff print from the payment screen when a customer asks.")}</Muted>
         </View>
-        <Switch value={p.autoPrint} onValueChange={(v) => change({ autoPrint: v })} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface}
+        <Toggle value={p.autoPrint} onValueChange={(v) => change({ autoPrint: v })}
           accessibilityLabel="Print receipt after every sale" />
       </View>
       <View style={st.toggleRow}>
@@ -293,7 +294,7 @@ function Printer() {
           <Text style={{ fontSize: 14, color: c.ink, fontWeight: "600" }}>{t("Print order tickets automatically")}</Text>
           <Muted style={{ fontSize: 12 }}>{t("When a bill is saved, when items are added to a saved bill (only the new items), and when an order is charged without saving.")}</Muted>
         </View>
-        <Switch value={p.autoTicket ?? false} onValueChange={(v) => change({ autoTicket: v })} trackColor={{ true: c.accent, false: c.line }} thumbColor={c.surface}
+        <Toggle value={p.autoTicket ?? false} onValueChange={(v) => change({ autoTicket: v })}
           accessibilityLabel="Print order tickets automatically" />
       </View>
       <View style={st.toggleRow}>
@@ -313,15 +314,8 @@ function LogOut() {
   const employee = useStore((s) => s.employee)!;
   useStore((s) => s.sync.pending);
   const unsent = unsentCount();
-  const confirmReset = () => {
-    const reset = () => void resetDevice();
-    Alert.alert("Sign out this tablet?",
-      unsent ? t("{unsent} sale(s), shift(s) or refund(s) have NOT reached the server and will be lost forever. Connect to the internet and let it sync first if you can.", { unsent })
-        : t("Everything is uploaded. The owner or an admin must sign in again to set this tablet up."),
-      [{ text: t("Cancel"), style: "cancel" }, { text: unsent ? t("Delete {unsent} and sign out", { unsent }) : t("Sign out"), style: "destructive",
-        onPress: () => (unsent ? Alert.alert("Are you sure?", t("This permanently deletes {unsent} unsent record(s).", { unsent }),
-          [{ text: t("Keep them"), style: "cancel" }, { text: t("Delete and sign out"), style: "destructive", onPress: reset }]) : reset()) }]);
-  };
+  const [resetting, setResetting] = useState(false);
+  const confirmReset = () => setResetting(true);
   return (
     <Pane title={t("Log out")}>
       <View style={st.card}>
@@ -341,6 +335,7 @@ function LogOut() {
           <Btn kind="danger" title={t("Sign out this tablet…")} onPress={confirmReset} style={{ alignSelf: "flex-start" }} />
         </View>
       </View>
+      {resetting && <ResetFlow kind="signout" onClose={() => setResetting(false)} />}
     </Pane>
   );
 }

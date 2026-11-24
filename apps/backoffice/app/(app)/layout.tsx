@@ -1,4 +1,5 @@
-import { type BackofficePage } from "@pos/core";
+import { pageForPath, VIEW_ONLY_PAGES, type BackofficePage } from "@pos/core";
+import { Tip } from "@/components/controls";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { canOpen, currentPath, getSession } from "@/lib/session";
@@ -9,12 +10,18 @@ import { AppShell } from "@/components/app-shell";
 import { PageFade } from "@/components/page-fade";
 import { OrdaMark } from "@/components/brand";
 import { tx } from "@/lib/i18n";
+import { AccessProvider } from "@/components/access";
+import { endPreview } from "./actions";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, membership, role, isOwner, canManage, locations, location, pages } = await getSession();
+  const { user, membership, role, isOwner, canManage, locations, location, pages, writes, preview } = await getSession();
   const t = await getT();
   const path = await currentPath();
   const allowedHere = await canOpen(path);
+  // May this person change what's on this page? (Role access; never while previewing a role.)
+  const key = pageForPath(path);
+  const canWriteHere = !preview && (key === "owner" ? isOwner : key === null ? true : writes.has(key));
+  const viewOnlyHere = !!key && key !== "owner" && !canWriteHere && !VIEW_ONLY_PAGES.includes(key);
   const has = (k: BackofficePage) => pages.has(k);
   const keep = (items: { label: string; href: string; page: BackofficePage }[]) => items.filter((i) => has(i.page)).map(({ label, href }) => ({ label: t(label), href }));
 
@@ -46,16 +53,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { label: "POS tablets", href: "/settings/tablets", page: "settings_tablets" },
     ]);
   }
-  if (isOwner) {
-    groups.push({
-      label: t("Employees"),
-      items: [
-        { label: t("Employee slots"), href: "/employees" },
-        { label: t("Employee access"), href: "/employees/access" },
-        { label: t("PIN access"), href: "/employees/pin" },
-      ],
-    });
-    groups.push({ label: t("Business"), items: [{ label: t("Locations"), href: "/settings/locations" }] });
+  if (canManage) {
+    const visible = keep([
+      { label: "Employee slots", href: "/employees", page: "employees" },
+      { label: "Employee access", href: "/employees/access", page: "employee_roles" },
+      { label: "PIN access", href: "/employees/pin", page: "employee_pin" },
+    ]);
+    if (visible.length) groups.push({ label: t("Employees"), items: visible });
+  }
+  if (isOwner && !preview) {
+    groups.push({ label: t("Business"), items: [{ label: t("Locations"), href: "/settings/locations" }, { label: t("Change log"), href: "/changes" }] });
   }
 
   // Without the dashboard, the home page opens the first page this person may use.
@@ -89,14 +96,30 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </svg>
           </Link>
           <form action="/auth/signout" method="post">
-            <button title={t("Sign out")} aria-label={t("Sign out")} className="grid h-11 w-10 place-items-center rounded-lg text-ink-2 transition-colors hover:bg-danger/10 hover:text-danger">
+            <Tip label={t("Sign out")}>
+            <button aria-label={t("Sign out")} className="grid h-11 w-10 place-items-center rounded-lg text-ink-2 transition-colors hover:bg-danger/10 hover:text-danger">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
             </button>
+            </Tip>
           </form>
         </div>
       </AppShell>
       <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-10 lg:py-9">
-        {allowedHere ? <PageFade>{children}</PageFade> : (
+        {preview && (
+          <form action={endPreview} className="anim-rise mx-auto mb-5 flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-accent/30 bg-accent-soft px-4 py-3">
+            <p className="flex-1 text-sm text-accent">
+              <b>{t("Previewing as {role}", { role: preview.name })}</b> · {t("The menu and pages are what this role can use. View only: nothing can be changed.")}
+            </p>
+            <button className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink transition hover:opacity-90">{t("Exit preview")}</button>
+          </form>
+        )}
+        {allowedHere && viewOnlyHere && !preview && (
+          <p className="mx-auto mb-4 flex max-w-5xl items-center gap-2 text-sm text-ink-2">
+            <span className="rounded-md bg-surface-2 px-2 py-0.5 text-xs font-semibold">{t("View only")}</span>
+            {t("Your role can see this page but not change it.")}
+          </p>
+        )}
+        {allowedHere ? <AccessProvider canWrite={canWriteHere}><PageFade>{children}</PageFade></AccessProvider> : (
           <div className="anim-rise mx-auto max-w-md rounded-2xl border border-line bg-surface p-6 text-center">
             <p className="font-semibold">{t("You don’t have access to this page")}</p>
             <p className="mt-1 text-sm text-ink-2">{t("Your role doesn’t include it. Ask the owner to change your access under Employees → Employee access.")}</p>

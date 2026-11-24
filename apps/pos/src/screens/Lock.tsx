@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Alert, Image, Pressable, Text, View } from "react-native";
-import { pinLockedFor, resetDevice, unlock, unsentCount, useStore } from "../lib/store";
+import { Image, Pressable, Text, View } from "react-native";
+import { pinLockedFor, unlock, useStore } from "../lib/store";
 import { H, Keypad, Muted } from "../ui/kit";
 import { c } from "../ui/theme";
 import { useLayout } from "../ui/layout";
 import { SyncBadge } from "./SyncBadge";
 import { t } from "../lib/i18n";
+import { ResetFlow } from "./ResetFlow";
 
 export function Lock() {
   const { compact } = useLayout();                           // phones: header on top, keypad below
@@ -13,6 +14,7 @@ export function Lock() {
   const logo = useStore((s) => s.catalog?.location.logo ?? null);
   const device = useStore((s) => s.device);
   const [pin, setPin] = useState("");
+  const [resetting, setResetting] = useState(false);
   const [wrong, setWrong] = useState(false);
   const [checking, setChecking] = useState(false);
   const [lockedFor, setLockedFor] = useState(pinLockedFor());
@@ -51,16 +53,8 @@ export function Lock() {
         ) : null}
         <View style={{ gap: 12, alignItems: compact ? "flex-end" : undefined }}>
           <SyncBadge />
-          <Pressable onLongPress={() => {
-            const unsent = unsentCount();
-            const reset = () => void resetDevice();
-            Alert.alert("Reset this tablet?",
-              unsent ? t("{unsent} sale(s), shift(s) or refund(s) have NOT reached the server and will be lost forever. Connect to the internet and let it sync first if you can.", { unsent })
-                : t("Everything is uploaded. The owner or an admin must sign in again to set it up."),
-              [{ text: "Cancel", style: "cancel" }, { text: unsent ? t("Delete {unsent} and reset", { unsent }) : t("Reset"), style: "destructive",
-                onPress: () => (unsent ? Alert.alert("Are you sure?", t("This permanently deletes {unsent} unsent record(s).", { unsent }),
-                  [{ text: t("Keep them"), style: "cancel" }, { text: t("Delete and reset"), style: "destructive", onPress: reset }]) : reset()) }]);
-          }}><Text style={{ color: c.ink2, fontSize: 12 }}>{t("Hold to reset tablet")}</Text></Pressable>
+          <Pressable onLongPress={() => setResetting(true)}><Text style={{ color: c.ink2, fontSize: 12 }}>{t("Hold to reset tablet")}</Text></Pressable>
+          {resetting && <ResetFlow kind="reset" onClose={() => setResetting(false)} />}
         </View>
       </View>
       <View style={{ flex: 1.2, alignItems: "center", justifyContent: "center", gap: 28 }}>

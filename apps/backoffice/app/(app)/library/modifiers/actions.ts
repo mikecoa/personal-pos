@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireManage } from "@/lib/session";
+import { requireWrite } from "@/lib/session";
 import { fail, ok, str, type ActionState } from "@/lib/actions";
 
 const optionSchema = z.object({
@@ -17,7 +17,7 @@ const schema = z.object({
 }).refine((s) => s.max_select === null || s.max_select >= s.min_select, { message: "Maximum must be at least the minimum" });
 
 export async function saveModifierSet(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_modifiers");
   const ids = form.getAll("opt_id").map(String), names = form.getAll("opt_name").map(String), prices = form.getAll("opt_price").map(String);
   const parsed = schema.safeParse({
     name: str(form, "name"),
@@ -55,7 +55,7 @@ export async function saveModifierSet(_: ActionState, form: FormData): Promise<A
 }
 
 export async function deleteModifierSet(_: ActionState, form: FormData): Promise<ActionState> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_modifiers");
   const { error } = await supabase.from("modifier_sets").delete().eq("id", str(form, "id")).eq("location_id", location.id);
   if (error) return fail(error);
   revalidatePath("/library", "layout");

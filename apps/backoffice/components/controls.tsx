@@ -192,6 +192,103 @@ export function Select({
   );
 }
 
+/* ───────────────────────── Search picker ───────────────────────── */
+
+export type PickOption = { value: string; label: string; group?: string };
+
+/**
+ * A button that opens a searchable, grouped list and reports the picked value (it keeps no value
+ * itself), e.g. "+ Add an item…". Keyboard: type to search, arrows, Enter, Escape.
+ */
+export function SearchPicker({ placeholder, options, onPick, ariaLabel, emptyText }: {
+  placeholder: string; options: PickOption[]; onPick: (value: string) => void; ariaLabel?: string; emptyText?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState(0);
+  const btn = useRef<HTMLButtonElement>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const id = useId();
+  const pos = usePopover(open, btn, 340);
+  const t = useT();
+  const close = useCallback(() => { setOpen(false); setQ(""); }, []);
+  useOutside(open, [btn, box], close);
+  const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = options.filter((o) => words.every((w) => `${o.label} ${o.group ?? ""}`.toLowerCase().includes(w)));
+  useEffect(() => { setActive(0); }, [q]);
+  useEffect(() => { if (open && pos) box.current?.querySelector(`[data-i="${active}"]`)?.scrollIntoView({ block: "nearest" }); }, [open, active, pos]);
+  const pick = (i: number) => { const o = shown[i]; if (!o) return; onPick(o.value); close(); btn.current?.focus(); };
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); btn.current?.focus(); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(shown.length - 1, a + 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(0, a - 1)); }
+    else if (e.key === "Enter") { e.preventDefault(); pick(active); }
+  };
+  let lastGroup: string | undefined;
+  return (
+    <div className="relative">
+      <button ref={btn} type="button" onClick={() => (open ? close() : setOpen(true))} aria-haspopup="listbox" aria-expanded={open} aria-label={ariaLabel ?? placeholder}
+        className={cx("flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-dashed bg-surface px-3 text-left text-sm text-ink-2 outline-none transition",
+          "hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent/15", open ? "border-accent" : "border-line")}>
+        <span className="truncate">{placeholder}</span>
+        <Chevron className={cx("shrink-0 transition-transform duration-200", open && "rotate-180")} />
+      </button>
+      {open && pos && createPortal(
+        <div ref={box} onKeyDown={onKey}
+          style={{ left: pos.left, top: pos.top, bottom: pos.bottom, width: Math.max(pos.width, 260), maxHeight: pos.maxHeight }}
+          className={cx("anim-pop fixed z-[70] flex flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-[0_12px_32px_-8px_rgb(var(--shadow)/0.28)]",
+            pos.bottom !== undefined && "origin-bottom")}>
+          <div className="border-b border-line p-2">
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search…")} aria-label={t("Search")}
+              aria-controls={id} aria-activedescendant={shown.length ? `${id}-${active}` : undefined}
+              className="h-9 w-full rounded-lg bg-surface-2 px-3 text-sm text-ink outline-none placeholder:text-ink-2/70 focus:ring-2 focus:ring-accent/25" />
+          </div>
+          <ul id={id} role="listbox" aria-label={ariaLabel ?? placeholder} className="min-h-0 flex-1 overflow-y-auto p-1">
+            {shown.length === 0 && <li className="px-3 py-3 text-sm text-ink-2">{emptyText ?? t("Nothing matches")}</li>}
+            {shown.map((o, i) => {
+              const head = o.group && o.group !== lastGroup ? o.group : null;
+              lastGroup = o.group;
+              return (
+                <li key={o.value} role="presentation">
+                  {head && <p className="px-3 pt-2.5 pb-1 text-[11px] font-semibold tracking-[0.04em] text-ink-2/80">{head}</p>}
+                  <div id={`${id}-${i}`} data-i={i} role="option" aria-selected={i === active}
+                    onPointerEnter={() => setActive(i)} onClick={() => pick(i)}
+                    className={cx("cursor-pointer truncate rounded-lg px-3 py-2 text-[15px] transition-colors", i === active && "bg-surface-2")}>
+                    {o.label}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────── Tooltip ───────────────────────── */
+
+/** Small label shown on hover or keyboard focus (instead of the browser's `title` bubble). */
+export function Tip({ label, children, side = "top", className = "" }: { label: string; children: ReactNode; side?: "top" | "bottom" | "left" | "right"; className?: string }) {
+  const place = {
+    top: "bottom-full left-1/2 mb-2 -translate-x-1/2",
+    bottom: "top-full left-1/2 mt-2 -translate-x-1/2",
+    left: "right-full top-1/2 mr-2 -translate-y-1/2",
+    right: "left-full top-1/2 ml-2 -translate-y-1/2",
+  }[side];
+  return (
+    <span className={cx("group/tip relative inline-flex", className)}>
+      {children}
+      <span role="tooltip"
+        className={cx("pointer-events-none absolute z-[80] whitespace-nowrap rounded-md bg-ink px-2 py-1 text-xs font-medium text-bg opacity-0 shadow-md transition-opacity duration-150",
+          "group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-within/tip:opacity-100", place)}>
+        {label}
+      </span>
+    </span>
+  );
+}
+
 /* ───────────────────────── Checkbox ───────────────────────── */
 
 /** Checkbox with our own box and tick. The real input is visually hidden and still submits. */

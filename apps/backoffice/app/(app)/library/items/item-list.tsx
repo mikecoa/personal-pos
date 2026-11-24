@@ -1,4 +1,5 @@
 "use client";
+import { useCanWrite } from "@/components/access";
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { formatRupiah, rp } from "@pos/core";
@@ -11,7 +12,7 @@ import { useT } from "@/components/lang";
 
 export type ListItem = {
   id: string; name: string; category: string | null; is_active: boolean; track_stock: boolean;
-  stock: number; stock_alert: number | null; min: number; max: number; variants: number; perSalesType: boolean;
+  stock: number; stock_alert: number | null; min: number; max: number; variants: number; perSalesType: boolean; isPackage?: boolean;
 };
 
 export function ItemList({ items, targets, editHrefTemplate }: {
@@ -23,7 +24,8 @@ export function ItemList({ items, targets, editHrefTemplate }: {
   const [chosen, setChosen] = useState<string[]>([]);
   const [state, action, pending] = useActionState(copyItems, undefined);
   const all = selected.length === items.length && items.length > 0;
-  const canCopy = targets.length > 0;
+  const canWrite = useCanWrite();
+  const canCopy = targets.length > 0 && canWrite;   // copying adds items elsewhere: needs change access
   useEffect(() => { if (state?.ok) { toast(`Copied ${state.copied} item(s)`); setSelected([]); setChosen([]); } }, [state]);
 
   return (
@@ -77,6 +79,7 @@ export function ItemList({ items, targets, editHrefTemplate }: {
                   )}
                   <td className={`${canCopy ? "px-2" : "px-4"} py-3.5`}>
                     <Link href={editHref(i.id)} scroll={false} className={`font-medium ${i.is_active ? "" : "text-ink-2"}`}>{i.name}</Link>
+                    {i.isPackage && <span className="ml-2 rounded-md bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold text-accent">{t("Package")}</span>}
                     {i.variants > 1 && <span className="ml-2 text-xs text-ink-2">{t("{n} variants", { n: i.variants })}</span>}
                   </td>
                   <td className="px-4 py-3.5 text-ink-2">{i.category ?? "—"}</td>

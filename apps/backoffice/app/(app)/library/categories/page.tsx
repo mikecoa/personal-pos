@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WriteOnly } from "@/components/access";
 import { requireManage } from "@/lib/session";
 import { ButtonLink, EmptyState, Field, PageHeader, Panel, RowLink, Table } from "@/components/ui";
 import { EditorForm } from "@/components/editor-form";
@@ -24,7 +25,7 @@ export default async function CategoriesPage({ searchParams }: { searchParams: P
       <PageHeader
         title={t("Categories")}
         description={<>{t("Groups shown as tabs on the POS at")} <b>{location.name}</b>.</>}
-        actions={<ButtonLink href={`${BASE}?new=1`}>{t("New category")}</ButtonLink>}
+        actions={<WriteOnly><ButtonLink href={`${BASE}?new=1`}>{t("New category")}</ButtonLink></WriteOnly>}
       />
       {categories?.length ? (
         <Table head={[t("Name"), t("Items"), t("Order on POS")]} rows="link">

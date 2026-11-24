@@ -4,8 +4,11 @@ export type Variant = { id: string; name: string; price: number; sku: string | n
 export type Item = {
   id: string; name: string; category_id: string | null; image_url: string | null;
   track_stock: boolean; stock: number; modifier_set_ids: string[]; variants: Variant[];
+  /** Set on packages: their choice groups (also listed first in modifier_set_ids). */
+  package_group_ids?: string[];
 };
-export type ModifierSet = { id: string; name: string; min_select: number; max_select: number | null; options: { id: string; name: string; price: number }[] };
+/** package: a package's choice group (options are menu items, item_id set); not a real modifier group. */
+export type ModifierSet = { id: string; name: string; min_select: number; max_select: number | null; package?: boolean; options: { id: string; name: string; price: number; item_id?: string }[] };
 /** pin_lookup = sha256_hex(account_id + ":" + pin); pin_hash (bcrypt) only for PINs set before lookups existed. */
 export type Employee = { id: string; name: string; pin_lookup?: string | null; pin_hash?: string | null; role: string; permissions: string[] };
 export type PaymentMethod = { id: string; name: string; kind: "cash" | "qr" | "card" | "delivery" | "other" | "invoice"; sort_order: number };

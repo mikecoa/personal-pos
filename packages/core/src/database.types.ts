@@ -37,6 +37,32 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"audit_log": {
+                  Row: {
+                    "account_id": string,"actor_name": string,"at": string,"changes": NonNullable<Json>,"id": string,"location_id": string | null,"op": string,"row_id": string | null,"row_label": string | null,"table_name": string,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"actor_name": string,"at"?: string,"changes"?: NonNullable<Json>,"id"?: string,"location_id"?: string | null,"op": string,"row_id"?: string | null,"row_label"?: string | null,"table_name": string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "account_id"?: string,"actor_name"?: string,"at"?: string,"changes"?: NonNullable<Json>,"id"?: string,"location_id"?: string | null,"op"?: string,"row_id"?: string | null,"row_label"?: string | null,"table_name"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "audit_log_account_id_fkey"
+      columns: ["account_id"]
+isOneToOne: false
+      referencedRelation: "accounts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "audit_log_location_id_fkey"
+      columns: ["location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"backup_runs": {
                   Row: {
                     "id": number,"note": string | null,"ok": boolean,"ran_at": string,"size_bytes": number | null
@@ -473,14 +499,14 @@ isOneToOne: false
                   ]
                 },"order_lines": {
                   Row: {
-                    "account_id": string,"category_name": string | null,"discount": Json | null,"discount_amount": number,"id": string,"item_id": string | null,"item_name": string,"line_total": number,"location_id": string,"modifiers": NonNullable<Json>,"modifiers_price": number,"note": string | null,"order_id": string,"qty": number,"sales_type_id": string | null,"sales_type_name": string | null,"sort_order": number,"unit_price": number,"variant_id": string | null,"variant_name": string
+                    "account_id": string,"category_name": string | null,"discount": Json | null,"discount_amount": number,"id": string,"item_id": string | null,"item_name": string,"line_total": number,"location_id": string,"modifiers": NonNullable<Json>,"modifiers_price": number,"note": string | null,"order_id": string,"printed_qty": number | null,"qty": number,"sales_type_id": string | null,"sales_type_name": string | null,"saved_qty": number | null,"sort_order": number,"unit_price": number,"variant_id": string | null,"variant_name": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"category_name"?: string | null,"discount"?: Json | null,"discount_amount"?: number,"id": string,"item_id"?: string | null,"item_name": string,"line_total": number,"location_id": string,"modifiers"?: NonNullable<Json>,"modifiers_price"?: number,"note"?: string | null,"order_id": string,"qty": number,"sales_type_id"?: string | null,"sales_type_name"?: string | null,"sort_order": number,"unit_price": number,"variant_id"?: string | null,"variant_name"?: string
+                    "account_id": string,"category_name"?: string | null,"discount"?: Json | null,"discount_amount"?: number,"id": string,"item_id"?: string | null,"item_name": string,"line_total": number,"location_id": string,"modifiers"?: NonNullable<Json>,"modifiers_price"?: number,"note"?: string | null,"order_id": string,"printed_qty"?: number | null,"qty": number,"sales_type_id"?: string | null,"sales_type_name"?: string | null,"saved_qty"?: number | null,"sort_order": number,"unit_price": number,"variant_id"?: string | null,"variant_name"?: string
                   }
                   Update: {
-                    "account_id"?: string,"category_name"?: string | null,"discount"?: Json | null,"discount_amount"?: number,"id"?: string,"item_id"?: string | null,"item_name"?: string,"line_total"?: number,"location_id"?: string,"modifiers"?: NonNullable<Json>,"modifiers_price"?: number,"note"?: string | null,"order_id"?: string,"qty"?: number,"sales_type_id"?: string | null,"sales_type_name"?: string | null,"sort_order"?: number,"unit_price"?: number,"variant_id"?: string | null,"variant_name"?: string
+                    "account_id"?: string,"category_name"?: string | null,"discount"?: Json | null,"discount_amount"?: number,"id"?: string,"item_id"?: string | null,"item_name"?: string,"line_total"?: number,"location_id"?: string,"modifiers"?: NonNullable<Json>,"modifiers_price"?: number,"note"?: string | null,"order_id"?: string,"printed_qty"?: number | null,"qty"?: number,"sales_type_id"?: string | null,"sales_type_name"?: string | null,"saved_qty"?: number | null,"sort_order"?: number,"unit_price"?: number,"variant_id"?: string | null,"variant_name"?: string
                   }
                   Relationships: [
                     {
@@ -559,6 +585,64 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "dining_tables"
       referencedColumns: ["id","location_id"]
+    }
+                  ]
+                },"package_groups": {
+                  Row: {
+                    "account_id": string,"choose": number,"created_at": string,"id": string,"item_id": string,"location_id": string,"name": string,"sort_order": number,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"choose"?: number,"created_at"?: string,"id"?: string,"item_id": string,"location_id": string,"name": string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "account_id"?: string,"choose"?: number,"created_at"?: string,"id"?: string,"item_id"?: string,"location_id"?: string,"name"?: string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "package_groups_item_id_location_id_fkey"
+      columns: ["item_id","location_id"]
+isOneToOne: false
+      referencedRelation: "items"
+      referencedColumns: ["id","location_id"]
+    },{
+      foreignKeyName: "package_groups_location_id_account_id_fkey"
+      columns: ["location_id","account_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id","account_id"]
+    }
+                  ]
+                },"package_options": {
+                  Row: {
+                    "account_id": string,"group_id": string,"id": string,"item_id": string,"location_id": string,"price": number,"sort_order": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"group_id": string,"id"?: string,"item_id": string,"location_id": string,"price"?: number,"sort_order"?: number
+                  }
+                  Update: {
+                    "account_id"?: string,"group_id"?: string,"id"?: string,"item_id"?: string,"location_id"?: string,"price"?: number,"sort_order"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "package_options_group_id_location_id_fkey"
+      columns: ["group_id","location_id"]
+isOneToOne: false
+      referencedRelation: "package_groups"
+      referencedColumns: ["id","location_id"]
+    },{
+      foreignKeyName: "package_options_item_id_location_id_fkey"
+      columns: ["item_id","location_id"]
+isOneToOne: false
+      referencedRelation: "items"
+      referencedColumns: ["id","location_id"]
+    },{
+      foreignKeyName: "package_options_location_id_account_id_fkey"
+      columns: ["location_id","account_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id","account_id"]
     }
                   ]
                 },"payment_methods": {
@@ -695,14 +779,14 @@ isOneToOne: false
                   ]
                 },"roles": {
                   Row: {
-                    "account_id": string,"backoffice_pages": (string)[],"created_at": string,"id": string,"is_system": boolean,"name": string,"permissions": (string)[],"updated_at": string
+                    "account_id": string,"backoffice_pages": (string)[],"backoffice_write": (string)[],"created_at": string,"id": string,"is_system": boolean,"name": string,"permissions": (string)[],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"backoffice_pages"?: (string)[],"created_at"?: string,"id"?: string,"is_system"?: boolean,"name": string,"permissions"?: (string)[],"updated_at"?: string
+                    "account_id": string,"backoffice_pages"?: (string)[],"backoffice_write"?: (string)[],"created_at"?: string,"id"?: string,"is_system"?: boolean,"name": string,"permissions"?: (string)[],"updated_at"?: string
                   }
                   Update: {
-                    "account_id"?: string,"backoffice_pages"?: (string)[],"created_at"?: string,"id"?: string,"is_system"?: boolean,"name"?: string,"permissions"?: (string)[],"updated_at"?: string
+                    "account_id"?: string,"backoffice_pages"?: (string)[],"backoffice_write"?: (string)[],"created_at"?: string,"id"?: string,"is_system"?: boolean,"name"?: string,"permissions"?: (string)[],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -829,6 +913,12 @@ isOneToOne: false
 "create_account":
 { Args: { "p_first_location": string,"p_name": string }; Returns: string
                            },
+"delete_employee":
+{ Args: { "p_employee": string }; Returns: undefined
+                           },
+"delete_role":
+{ Args: { "p_role": string }; Returns: undefined
+                           },
 "delete_shifts":
 { Args: { "p_ids": (string)[] }; Returns: number
                            },
@@ -837,6 +927,9 @@ isOneToOne: false
                            },
 "device_heartbeat":
 { Args: { "p": Json,"p_device": string }; Returns: undefined
+                           },
+"manageable":
+{ Args: { "p_account": string }; Returns: Json
                            },
 "pos_catalog":
 { Args: { "p_device": string }; Returns: Json
@@ -903,11 +996,20 @@ isOneToOne: false
 "revoke_device":
 { Args: { "p_device": string }; Returns: undefined
                            },
+"role_preview":
+{ Args: { "p_role": string }; Returns: Json
+                           },
 "save_employee":
 { Args: { "p": Json }; Returns: string
                            },
 "save_item":
 { Args: { "p_item": Json }; Returns: string
+                           },
+"save_package":
+{ Args: { "p": Json,"p_item": string }; Returns: undefined
+                           },
+"save_role":
+{ Args: { "p": Json }; Returns: string
                            },
 "set_employee_pin":
 { Args: { "p_employee": string,"p_pin": string }; Returns: undefined

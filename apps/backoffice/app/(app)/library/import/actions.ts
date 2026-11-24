@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireManage } from "@/lib/session";
+import { requireWrite } from "@/lib/session";
 
 const items = z.array(z.object({
   name: z.string().trim().min(1).max(120),
@@ -13,7 +13,7 @@ const items = z.array(z.object({
 export type ImportOutcome = { created: number; skipped: string[]; failed: string[]; error?: string };
 
 export async function importItems(json: string): Promise<ImportOutcome> {
-  const { supabase, location } = await requireManage();
+  const { supabase, location } = await requireWrite("library_items");
   const parsed = items.safeParse(JSON.parse(json));
   if (!parsed.success) return { created: 0, skipped: [], failed: [], error: "The file contents are not valid." };
 

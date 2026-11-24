@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { PermissionGuide } from "@/components/permission-guide";
 import { PIN_LOCKABLE } from "@pos/core";
-import { requireLocation, requireOwner } from "@/lib/session";
+import { requireLocation } from "@/lib/session";
 import { Badge, Card, Checkbox, PageHeader } from "@/components/ui";
 import { SettingsForm } from "@/components/settings-form";
 import { savePinApproval } from "./actions";
@@ -8,7 +9,6 @@ import { getT } from "@/lib/prefs";
 
 export default async function PinAccessPage() {
   const t = await getT();
-  await requireOwner();
   const { supabase, location } = await requireLocation();
   const [{ data: s }, { data: emps }] = await Promise.all([
     supabase.from("location_settings").select("pin_required_actions").eq("location_id", location.id).single(),
@@ -43,7 +43,10 @@ export default async function PinAccessPage() {
           <Card title={t("Needs a manager’s PIN")} description={t("Ticked actions ask for a manager’s PIN even when the cashier’s role allows them. Actions a role doesn’t allow always ask.")}>
             <div className="divide-y divide-line">
               {PIN_LOCKABLE.map((a) => (
-                <Checkbox key={a.key} name="actions" value={a.key} defaultChecked={locked.has(a.key)} label={t(a.label)} className="py-2.5" />
+                <div key={a.key} className="flex items-center gap-2">
+                  <Checkbox name="actions" value={a.key} defaultChecked={locked.has(a.key)} label={t(a.label)} className="flex-1 py-2.5" />
+                  <PermissionGuide k={a.key} />
+                </div>
               ))}
             </div>
           </Card>
