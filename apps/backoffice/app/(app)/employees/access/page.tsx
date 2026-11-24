@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PermissionGuide } from "@/components/permission-guide";
 import { WriteOnly } from "@/components/access";
 import { ALL_BACKOFFICE_PAGES, ALL_PERMISSIONS, PERMISSION_GROUPS } from "@pos/core";
 import { getSession } from "@/lib/session";
@@ -100,8 +101,12 @@ export default async function EmployeeAccessPage({ searchParams }: { searchParam
                 <div key={g.label} className="mb-2">
                   <p className="text-sm font-medium">{t(g.label)}</p>
                   {g.items.map((p) => (
-                    <Checkbox key={p.key} name="perm" value={p.key} defaultChecked={base?.permissions.includes(p.key)} label={t(p.label)} disabled={!canGive(p.key)}
-                      description={"hint" in p ? t(p.hint) : undefined} className="rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-2" />
+                    <div key={p.key} className="flex items-start gap-1 rounded-lg transition-colors hover:bg-surface-2">
+                      <Checkbox name="perm" value={p.key} defaultChecked={base?.permissions.includes(p.key)} label={t(p.label)} disabled={!canGive(p.key)}
+                        description={"hint" in p ? t(p.hint) : undefined} className="flex-1 px-2 py-1.5" />
+                      {/* What it means on the tablet, with a screenshot. */}
+                      <div className="pt-1.5 pr-1.5"><PermissionGuide k={p.key} /></div>
+                    </div>
                   ))}
                 </div>
               ))}
