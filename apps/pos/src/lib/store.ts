@@ -294,6 +294,14 @@ function scheduleBillSave() {
  * Write the saved bill on screen. `done` also takes it off the screen and marks its items as
  * sent (taking them off afterwards is a void with a reason).
  */
+/**
+ * A bill as the server sends it: locked / printed counts are stored there now. Bills saved by older
+ * app versions have none, so everything saved counts as locked and printed (as before).
+ */
+const fromServer = (o: OrderDoc): OrderDoc => ({
+  ...o, lines: o.lines.map((l) => ({ ...l, saved_qty: l.saved_qty ?? l.qty, printed_qty: l.printed_qty ?? undefined })),
+});
+
 export function saveOpenBill(done: boolean) {
   if (billTimer) { clearTimeout(billTimer); billTimer = null; }
   const o = state.order;
@@ -1119,7 +1127,7 @@ export function syncNow(opts: { catalog?: boolean; auto?: boolean } = {}): Promi
           if (res.status === "saved") db.markClean(o.id, o.version);
           else {
             // Server is ahead (another tablet changed or closed this bill): take the server copy.
-            db.saveOrder(res.order, false);
+            db.saveOrder(fromServer(res.order), false);
             if (res.status === "stale") notify(t("Bill {name} was changed on another tablet; showing the latest version.", { name: o.bill_name ?? o.number }));
           }
         });
@@ -1134,7 +1142,7 @@ export function syncNow(opts: { catalog?: boolean; auto?: boolean } = {}): Promi
       const ids = new Set(serverOpen.map((o) => o.id));
       for (const so of serverOpen) {
         const local = db.getOrder(so.id);
-        if (!local || (!local.dirty && local.version <= so.version) || so.version > local.version) db.saveOrder({ ...so, lines: so.lines.map((l) => ({ ...l, saved_qty: l.qty })) }, false);
+        if (!local || (!local.dirty && local.version <= so.version) || so.version > local.version) db.saveOrder(fromServer(so), false);
       }
       for (const lo of db.listOrders("open")) {
         const l = db.getOrder(lo.id)!;
