@@ -850,4 +850,6 @@ export const ID: Record<string, string> = {
   "Add, rename, move or remove tables and areas from the tablet (Edit tables).": "Menambah, mengganti nama, memindahkan, atau menghapus meja dan area dari tablet (Edit tables).",
   "Edit tables is hidden; they can still seat customers and open bills.": "Edit tables disembunyikan; mereka tetap bisa mendudukkan pelanggan dan membuka bill.",
   "Add new customers (+ New customer) and change their name, phone or saved discount.": "Menambah pelanggan baru (+ New customer) dan mengubah nama, nomor HP, atau diskon tersimpan mereka.",
+  "Also used at other outlets": "Juga dipakai di outlet lain",
+  "Staff at other outlets have this role, so only the owner can change it. Duplicate it to make one for your outlet.": "Staf di outlet lain memakai peran ini, jadi hanya pemilik yang bisa mengubahnya. Duplikat untuk membuat peran untuk outlet Anda.",
 };
