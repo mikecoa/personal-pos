@@ -120,9 +120,4 @@ export const GUIDES: Record<string, Guide> = {
     without: ASK,
     image: "customers", boxes: [[959, 564, 194, 70]],
   },
-  favorites_manage: {
-    title: "Edit favorites",
-    what: "Not used yet: the tablet has no favorites feature, so this permission currently does nothing.",
-    without: "Nothing changes.",
-  },
 };

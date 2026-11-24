@@ -645,7 +645,6 @@ export const ID: Record<string, string> = {
   "Unlocks actions that need a manager's PIN, on the spot": "Membuka tindakan yang butuh PIN manajer, langsung di tempat",
   "Library on POS": "Pustaka di kasir",
   "Edit items on the POS": "Mengubah item di kasir",
-  "Edit favorites": "Mengubah favorit",
   "Edit tables and areas on the POS": "Mengubah meja dan area di kasir",
   "Edit customer details": "Mengubah data pelanggan",
   "Save, edit, move and cancel open bills": "Menyimpan, mengubah, memindah dan membatalkan bill terbuka",
@@ -851,6 +850,4 @@ export const ID: Record<string, string> = {
   "Add, rename, move or remove tables and areas from the tablet (Edit tables).": "Menambah, mengganti nama, memindahkan, atau menghapus meja dan area dari tablet (Edit tables).",
   "Edit tables is hidden; they can still seat customers and open bills.": "Edit tables disembunyikan; mereka tetap bisa mendudukkan pelanggan dan membuka bill.",
   "Add new customers (+ New customer) and change their name, phone or saved discount.": "Menambah pelanggan baru (+ New customer) dan mengubah nama, nomor HP, atau diskon tersimpan mereka.",
-  "Not used yet: the tablet has no favorites feature, so this permission currently does nothing.": "Belum dipakai: tablet belum punya fitur favorit, jadi izin ini saat ini tidak berpengaruh.",
-  "Nothing changes.": "Tidak ada yang berubah.",
 };
