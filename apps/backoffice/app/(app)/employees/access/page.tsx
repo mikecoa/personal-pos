@@ -22,8 +22,12 @@ export default async function EmployeeAccessPage({ searchParams }: { searchParam
     supabase.rpc("manageable", { p_account: membership.account_id }),
   ]);
   // Others than the owner manage only roles below their own, and can only give what they have.
-  const below = new Set(((mine as { roles?: string[] } | null)?.roles ?? []));
-  const canEdit = (id: string) => isOwner || below.has(id);
+  // Roles you can give (below you) vs roles you can edit (also used only at your outlets: roles are
+  // business-wide, so editing one changes it for everyone who has it).
+  const m = (mine as { roles?: string[]; editable?: string[] } | null) ?? {};
+  const below = new Set(m.roles ?? []), editable = new Set(m.editable ?? []);
+  const canEdit = (id: string) => isOwner || editable.has(id);
+  const canCopy = (id: string) => isOwner || below.has(id);
   const myPerms = new Set(roles?.find((r) => r.id === myRole?.id)?.permissions ?? []);
   const canGive = (perm: string) => isOwner || myPerms.has(perm);
   const canChange = writes.has("employee_roles");
@@ -52,7 +56,7 @@ export default async function EmployeeAccessPage({ searchParams }: { searchParam
               <td className="px-4 py-3.5 font-medium">
                 <Link href={`${BASE}?edit=${r.id}`} scroll={false}>{r.name}</Link>
                 {r.is_system && <span className="ml-2"><Badge>{t("Default")}</Badge></span>}
-                {!canEdit(r.id) && <span className="ml-2"><Badge>{r.id === myRole?.id ? t("Your role") : t("Not below you")}</Badge></span>}
+                {!canEdit(r.id) && <span className="ml-2"><Badge>{r.id === myRole?.id ? t("Your role") : below.has(r.id) ? t("Also used at other outlets") : t("Not below you")}</Badge></span>}
               </td>
               <td className="px-4 py-3.5 text-ink-2">{people.length === 0 ? "—" : people.length <= 2 ? people.map((p) => p.name).join(", ") : t("{n} employees", { n: people.length })}</td>
               <td className="px-4 py-3.5">{bo ? <Badge tone="accent">{t("POS & Backoffice")}</Badge> : <Badge>{t("POS only")}</Badge>}</td>
@@ -60,7 +64,7 @@ export default async function EmployeeAccessPage({ searchParams }: { searchParam
                 {r.permissions.length}/{ALL_PERMISSIONS.length} POS{bo ? ` · ${r.backoffice_pages.length}/${ALL_BACKOFFICE_PAGES.length} ${t("pages")} (${r.backoffice_write.length} ${t("can change")})` : ""}
               </td>
               <td className="px-4 py-3.5 text-right">
-                {canChange && canEdit(r.id) && <Link href={`${BASE}?copy=${r.id}`} scroll={false} className="text-sm font-medium text-accent hover:underline" aria-label={`Duplicate ${r.name}`}>{t("Duplicate")}</Link>}
+                {canChange && canCopy(r.id) && <Link href={`${BASE}?copy=${r.id}`} scroll={false} className="text-sm font-medium text-accent hover:underline" aria-label={`Duplicate ${r.name}`}>{t("Duplicate")}</Link>}
               </td>
             </RowLink>
           );
@@ -79,7 +83,9 @@ export default async function EmployeeAccessPage({ searchParams }: { searchParam
           <EditorForm key={editing ? `edit:${editing.id}` : source ? `copy:${source.id}` : "new"} action={saveRole} deleteAction={editing && !editing.is_system ? deleteRole : undefined} closeHref={BASE} hidden={{ id: editing?.id }}
             confirmDelete={t("Delete this role? Move its employees to another role first.")}
             readOnly={!!editing && !canEdit(editing.id)}
-            readOnlyNote={editing?.id === myRole?.id ? t("This is your own role: only someone above you can change it.") : t("This role isn't below yours, so you can't change it.")}>
+            readOnlyNote={editing?.id === myRole?.id ? t("This is your own role: only someone above you can change it.")
+              : editing && below.has(editing.id) ? t("Staff at other outlets have this role, so only the owner can change it. Duplicate it to make one for your outlet.")
+              : t("This role isn't below yours, so you can't change it.")}>
             <Field label={t("Role name")} name="name" defaultValue={editing?.name ?? (source && copyName(source.name))} required autoFocus maxLength={40} />
             {source && <p className="-mt-2 text-sm text-ink-2">{t("Starts with the same permissions and pages as {name}. Change what you need, then save.", { name: source.name })}</p>}
             {editing && (
@@ -89,7 +95,7 @@ export default async function EmployeeAccessPage({ searchParams }: { searchParam
                   <p className="text-sm">{staff(editing.id).map((p) => p.name).join(", ") || t("Nobody yet. Assign roles in Employee slots.")}</p>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  {canEdit(editing.id) && <WriteOnly><ButtonLink href={`${BASE}?copy=${editing.id}`} variant="secondary">{t("Duplicate")}</ButtonLink></WriteOnly>}
+                  {canCopy(editing.id) && <WriteOnly><ButtonLink href={`${BASE}?copy=${editing.id}`} variant="secondary">{t("Duplicate")}</ButtonLink></WriteOnly>}
                 </div>
               </div>
             )}

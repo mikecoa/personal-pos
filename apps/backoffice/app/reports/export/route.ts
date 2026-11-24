@@ -8,10 +8,11 @@ const localTime = (iso: unknown) => (iso ? new Date(String(iso)).toLocaleString(
 
 /** CSV download for any report section, using the same filters as the page. */
 export async function GET(req: NextRequest) {
-  const { canManage } = await getSession();
-  if (!canManage) return new NextResponse("Not allowed", { status: 403 });
-
+  const { canManage, pages } = await getSession();
   const q = Object.fromEntries(req.nextUrl.searchParams);
+  // Exporting counts as viewing: the role must be able to open that report.
+  const page = ({ sales: "reports_sales", transactions: "reports_transactions", shifts: "reports_shifts" } as const)[q.report as "sales"];
+  if (!canManage || !page || !pages.has(page)) return new NextResponse("Not allowed", { status: 403 });
   const range = await resolveRange(q);
   const { supabase, scope } = await reportScope(q);
   const base = { p_locations: scope.ids, p_from: range.from, p_to: range.to };
