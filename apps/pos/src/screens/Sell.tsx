@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { can, clearOrder, confirmBill, isSplitPart, splitParts, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, lineSalesType, mixedSalesTypes, printedQty, variantPrice } from "../lib/order";
 import type { Item } from "../lib/types";
-import { Btn, Keypad, money, Muted, Sheet } from "../ui/kit";
+import { Btn, Field, Keypad, money, Muted, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
 import { BillDiscountSheet, CancelBillSheet, SaveBillSheet, SplitBillSheet, SplitPrintSheet } from "./BillActions";
 import { BillsSheet } from "./BillsSheet";
@@ -300,7 +300,6 @@ export function Sell() {
             ) : null}
           </View>
           {!tight && <SyncBadge />}
-          <Btn kind="secondary" style={{ minHeight: bh, paddingHorizontal: 14 }} title={`${tight ? t("Bills") : t("Billing list")}${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           {/* One button for categories, however many there are. */}
@@ -325,6 +324,7 @@ export function Sell() {
           {canEditMenu && (tight && !editingMenu
             ? <IconBtn size={bh} icon="pencil-outline" label={t("Edit menu")} onPress={() => setEditingMenu(true)} />
             : <Btn kind={editingMenu ? "primary" : "secondary"} style={{ minHeight: bh }} title={editingMenu ? t("Done") : t("Edit menu")} onPress={() => setEditingMenu(!editingMenu)} />)}
+          <Btn kind="secondary" style={{ minHeight: bh, paddingHorizontal: 14 }} title={`${tight ? t("Bills") : t("Billing list")}${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
         </View>
         </View>
         {editingMenu && (
@@ -478,13 +478,22 @@ function Row({ label, value, accent }: { label: string; value: string; accent?: 
 
 function CustomAmount({ onClose }: { onClose: () => void }) {
   const [digits, setDigits] = useState("");
+  const [name, setName] = useState("");
   const amount = Number(digits || "0");
+  const label = name.trim();
+  const { compact } = useLayout();                            // phones: stacked; tablets: side by side so it fits
   return (
-    <Sheet visible onClose={onClose} title={t("Custom amount")} width={420}
-      footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} /><Btn style={{ flex: 1 }} title={t("Add {v0}", { v0: money(amount) })} disabled={!amount} onPress={() => { addCustom(amount); onClose(); }} /></>}>
-      <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink, textAlign: "center" }}>{money(amount)}</Text>
-      <View style={{ alignItems: "center" }}>
-        <Keypad onKey={(k) => setDigits((d) => (k === "⌫" ? d.slice(0, -1) : (d + k).replace(/^0+/, "").slice(0, 10)))} />
+    <Sheet visible onClose={onClose} title={t("Custom amount")} width={compact ? 420 : 680}
+      footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} /><Btn style={{ flex: 1 }} title={t("Add {v0}", { v0: money(amount) })} disabled={!amount || !label} onPress={() => { addCustom(amount, label); onClose(); }} /></>}>
+      <View style={{ flexDirection: compact ? "column" : "row", gap: 20, alignItems: compact ? "stretch" : "center" }}>
+        <View style={{ flex: compact ? undefined : 1, gap: 16 }}>
+          {/* Named so the bill, kitchen ticket and reports say what it was. */}
+          <Field label={t("Item name")} placeholder={t("e.g. Extra rice")} value={name} onChangeText={setName} maxLength={40} autoCapitalize="sentences" />
+          <Text style={{ fontSize: 30, fontWeight: "800", color: c.ink, textAlign: "center" }}>{money(amount)}</Text>
+        </View>
+        <View style={{ alignItems: "center" }}>
+          <Keypad compact onKey={(k) => setDigits((d) => (k === "⌫" ? d.slice(0, -1) : (d + k).replace(/^0+/, "").slice(0, 10)))} />
+        </View>
       </View>
     </Sheet>
   );

@@ -143,7 +143,11 @@ class PosPrinterModule : Module() {
     val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
       ?: throw PrinterException("This tablet has no Bluetooth.")
     if (!hasBluetoothPermission()) throw PrinterException("BLUETOOTH_PERMISSION")
-    adapter.cancelDiscovery()
+    if (!adapter.isEnabled) throw PrinterException("BLUETOOTH_OFF")
+    // Stopping a running scan speeds up connecting, but on Android 12+ it needs the separate
+    // "scan" permission, which this app doesn't ask for. Without this guard it threw before any
+    // connection was even tried ("Couldn't reach the printer").
+    try { if (adapter.isDiscovering) adapter.cancelDiscovery() } catch (_: SecurityException) {}
     val device = adapter.getRemoteDevice(address)
     // Many cheap thermal printers refuse the standard secure connection; try the usual fallbacks.
     val attempts: List<() -> BluetoothSocket> = listOf(
