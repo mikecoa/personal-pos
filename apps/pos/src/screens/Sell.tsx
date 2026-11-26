@@ -300,7 +300,6 @@ export function Sell() {
             ) : null}
           </View>
           {!tight && <SyncBadge />}
-          <Btn kind="secondary" style={{ minHeight: bh, paddingHorizontal: 14 }} title={`${tight ? t("Bills") : t("Billing list")}${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           {/* One button for categories, however many there are. */}
@@ -325,6 +324,7 @@ export function Sell() {
           {canEditMenu && (tight && !editingMenu
             ? <IconBtn size={bh} icon="pencil-outline" label={t("Edit menu")} onPress={() => setEditingMenu(true)} />
             : <Btn kind={editingMenu ? "primary" : "secondary"} style={{ minHeight: bh }} title={editingMenu ? t("Done") : t("Edit menu")} onPress={() => setEditingMenu(!editingMenu)} />)}
+          <Btn kind="secondary" style={{ minHeight: bh, paddingHorizontal: 14 }} title={`${tight ? t("Bills") : t("Billing list")}${openCount ? ` (${openCount})` : ""}`} onPress={() => setModal({ kind: "bills" })} />
         </View>
         </View>
         {editingMenu && (
