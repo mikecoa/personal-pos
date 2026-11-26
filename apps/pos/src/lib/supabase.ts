@@ -26,3 +26,14 @@ export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 export const supabase = createClient<Database>(SUPABASE_URL, process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!, {
   auth: { storage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
 });
+
+/** Checks an email + password without touching the tablet's own sign-in (nothing is stored). */
+export async function passwordIsCorrect(email: string, password: string): Promise<"ok" | "wrong" | "offline"> {
+  const probe = createClient(SUPABASE_URL, process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { error } = await probe.auth.signInWithPassword({ email, password });
+  if (error) return error.status === 400 ? "wrong" : "offline";
+  await probe.auth.signOut({ scope: "local" });           // ends the check's own session on the server
+  return "ok";
+}

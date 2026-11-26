@@ -27,5 +27,22 @@ npx expo prebuild -p android --no-install
 
 version="$(node -p 'require("./app.json").expo.version')"
 mkdir -p "$root/dist"
-cp android/app/build/outputs/apk/release/app-release.apk "$root/dist/orda-$version.apk"
-echo "Built dist/orda-$version.apk for $EXPO_PUBLIC_SUPABASE_URL"
+
+# Sign with Orda's own key (scripts/setup-release-key.sh), never the public debug key the Android
+# project is generated with. The rotation record keeps tablets that have the old key updating.
+key="$HOME/.orda/release.jks"; lineage="$HOME/.orda/lineage"
+if [ ! -f "$key" ] || [ ! -f "$lineage" ]; then
+  echo "No private signing key yet. Run scripts/setup-release-key.sh once, then build again." >&2
+  exit 1
+fi
+if [ -z "${ORDA_KEY_PASS:-}" ]; then read -rsp "Orda signing key password: " ORDA_KEY_PASS; echo; fi
+export ORDA_KEY_PASS
+apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+"$apksigner" sign --out "$root/dist/orda-$version.apk" \
+  --ks android/app/debug.keystore --ks-pass pass:android \
+  --next-signer --ks "$key" --ks-key-alias orda --ks-pass env:ORDA_KEY_PASS \
+  --lineage "$lineage" --rotation-min-sdk-version 28 \
+  android/app/build/outputs/apk/release/app-release.apk
+"$apksigner" verify --print-certs "$root/dist/orda-$version.apk" | grep -q "CN=Orda POS" \
+  || { echo "Signing check failed: the APK isn't signed with the Orda key." >&2; exit 1; }
+echo "Built dist/orda-$version.apk for $EXPO_PUBLIC_SUPABASE_URL (signed with the Orda key)"

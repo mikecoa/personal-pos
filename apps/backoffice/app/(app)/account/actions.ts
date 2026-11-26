@@ -34,7 +34,7 @@ export async function updatePassword(_: ActionState, form: FormData): Promise<Ac
   return ok();
 }
 
-/** Signs this account out on every browser and phone (tablets keep working: they have their own sign-in). */
+/** Signs this account out everywhere: every browser, phone and POS tablet signed in with it (tablets must be set up again). */
 export async function signOutEverywhere() {
   const { supabase } = await getSession();
   await supabase.auth.signOut({ scope: "global" });

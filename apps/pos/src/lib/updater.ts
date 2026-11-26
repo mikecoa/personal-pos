@@ -27,6 +27,7 @@ export async function checkForUpdate(): Promise<Release | null> {
     if (!res.ok) return null;
     const r = (await res.json()) as Release;
     if (!r || typeof r.versionCode !== "number" || !(r.url?.startsWith("https://") || LOCAL.test(r.url ?? ""))) return null;
+    if (!/^[0-9a-f]{64}$/i.test(r.sha256 ?? "")) return null;   // no checksum, no update
     return r.versionCode > mine.versionCode ? r : null;
   } catch {
     return null;

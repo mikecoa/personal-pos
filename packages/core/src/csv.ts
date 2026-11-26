@@ -97,7 +97,9 @@ export function toCsv(header: string[], rows: (string | number | boolean | null 
     let s = String(v);
     // Text that a spreadsheet would run as a formula gets a leading apostrophe. Numbers are left alone.
     if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    // Quote on ";" and tab too: spreadsheets set to a ";" list separator (e.g. Indonesian Excel)
+    // would otherwise split "x;=1+1" into a new cell that starts with a formula.
+    return /[",;\t\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   return [header, ...rows].map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
 }

@@ -38,7 +38,7 @@ export default async function AccountSettings() {
         </ActionForm>
       </Card>
 
-      <Card title={t("Sign out everywhere")} description={t("Signs this account out of the backoffice on every computer and phone, for example after using a shared computer. POS tablets keep working.")}>
+      <Card title={t("Sign out everywhere")} description={t("Signs this account out on every computer, phone and POS tablet, for example after using a shared computer or losing a tablet. Tablets signed in with this account must be set up again.")}>
         <SignOutEverywhere action={signOutEverywhere} />
       </Card>
     </>
