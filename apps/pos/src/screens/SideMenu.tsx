@@ -1,8 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { type ComponentProps } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { billsAt, can, go, guard, lock, useStore, type Page } from "../lib/store";
-import { Tap } from "../ui/motion";
+import { motionReduced, Tap } from "../ui/motion";
 import { c } from "../ui/theme";
 import { t } from "../lib/i18n";
 import { useLayout } from "../ui/layout";
@@ -34,6 +34,7 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
     { page: "settings", label: "Settings", icon: "cog-outline", show: true },
   ];
   const initials = employee.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const [slots, setSlots] = useState<Partial<Record<Page, { y: number; h: number }>>>({});
   const open = (p: Page) => (p === "activity" ? guard("activity_view", "View sales history", () => go("activity")) : go(p));
 
   // Phones: one row of tabs along the bottom (logo and name live in Settings → Account).
@@ -44,12 +45,13 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
         return (
           <Tap key={i.page} scaleTo={0.92} onPress={() => open(i.page)} accessibilityRole="tab" accessibilityState={{ selected: active }}
             accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? t(", no shift open") : ""}`} style={st.barItem}>
-            <View style={[st.barIcon, active && { backgroundColor: c.accent }]}>
-              <MaterialCommunityIcons name={i.icon} size={22} color={active ? c.accentInk : ink} />
-              {i.dot && <View style={st.dot} />}
-              {i.badge && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
+            <View style={st.barIcon}>
+              <NavIcon icon={i.icon} active={active} pill>
+                {i.dot && <View style={st.dot} />}
+                {i.badge && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
+              </NavIcon>
             </View>
-            <Text style={[st.barLabel, active && { color: c.accent }]} numberOfLines={1}>{t(i.label)}</Text>
+            <NavLabel active={active} style={st.barLabel} activeColor={c.accent}>{t(i.label)}</NavLabel>
           </Tap>
         );
       })}
@@ -73,18 +75,20 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
       </View>
 
       <View style={{ gap: 4, paddingHorizontal: 6, paddingTop: 10 }}>
+        {/* The green highlight slides from the old page to the new one. */}
+        <SlidingPill target={page} at={slots} />
         {items.filter((i) => i.show).map((i) => {
           const active = page === i.page;
           return (
-            <Tap key={i.page} scaleTo={0.94} onPress={() => open(i.page)} accessibilityRole="tab" accessibilityState={{ selected: active }}
+            <Tap key={i.page} scaleTo={0.9} onPress={() => open(i.page)} accessibilityRole="tab" accessibilityState={{ selected: active }}
               accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? t(", no shift open") : ""}`}
-              style={[st.item, short && { height: 52, gap: 2 }, active && st.itemActive]}>
-              <View>
-                <MaterialCommunityIcons name={i.icon} size={22} color={active ? c.accentInk : ink} />
+              onLayout={(e) => { const { y, height } = e.nativeEvent.layout; setSlots((s) => (s[i.page]?.y === y && s[i.page]?.h === height ? s : { ...s, [i.page]: { y, h: height } })); }}
+              style={[st.item, short && { height: 52, gap: 2 }]}>
+              <NavIcon icon={i.icon} active={active}>
                 {i.dot && <View style={st.dot} />}
                 {i.badge && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
-              </View>
-              <Text style={[st.label, active && { color: c.accentInk }]} numberOfLines={1}>{t(i.label)}</Text>
+              </NavIcon>
+              <NavLabel active={active} style={st.label} activeColor={c.accentInk}>{t(i.label)}</NavLabel>
             </Tap>
           );
         })}
@@ -104,6 +108,71 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
   );
 }
 
+type Slot = { y: number; h: number };
+
+/** Green highlight behind the active rail item; springs to the newly chosen one. */
+function SlidingPill({ target, at }: { target: Page; at: Partial<Record<Page, Slot>> }) {
+  const slot = at[target];
+  const y = useRef(new Animated.Value(slot?.y ?? 0)).current;
+  const h = useRef(new Animated.Value(slot?.h ?? 60)).current;
+  const placed = useRef(false);
+  useEffect(() => {
+    if (!slot) return;
+    if (!placed.current || motionReduced()) { y.setValue(slot.y); h.setValue(slot.h); placed.current = true; return; }
+    Animated.spring(y, { toValue: slot.y, useNativeDriver: false, speed: 16, bounciness: 7 }).start();
+    Animated.timing(h, { toValue: slot.h, duration: 160, useNativeDriver: false }).start();
+  }, [slot?.y, slot?.h, y, h]);
+  if (!slot) return null;                                    // a page that isn't in the menu: no highlight
+  return <Animated.View pointerEvents="none" style={[st.pill, { top: y, height: h }]} />;
+}
+
+/**
+ * Menu icon that fades between its normal and selected colours and gives a small springy pop
+ * (with a little tilt) when it becomes the selected page. `pill`: draws its own highlight (phones).
+ */
+function NavIcon({ icon, active, pill, children }: { icon: Icon; active: boolean; pill?: boolean; children?: ReactNode }) {
+  const on = useRef(new Animated.Value(active ? 1 : 0)).current;
+  const pop = useRef(new Animated.Value(1)).current;
+  const tilt = useRef(new Animated.Value(0)).current;
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current || motionReduced()) { first.current = false; on.setValue(active ? 1 : 0); return; }
+    Animated.timing(on, { toValue: active ? 1 : 0, duration: 180, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+    if (!active) return;
+    pop.setValue(0.7); tilt.setValue(-1);
+    Animated.parallel([
+      Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 14, bounciness: 14 }),
+      Animated.spring(tilt, { toValue: 0, useNativeDriver: true, speed: 12, bounciness: 16 }),
+    ]).start();
+  }, [active, on, pop, tilt]);
+  const rotate = tilt.interpolate({ inputRange: [-1, 0, 1], outputRange: ["-14deg", "0deg", "14deg"] });
+  return (
+    <View style={pill ? st.pillBox : undefined}>
+      {pill && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, st.pillFill, { opacity: on, transform: [{ scaleX: on.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }]} />}
+      <Animated.View style={{ transform: [{ scale: pop }, { rotate }] }}>
+        <Animated.View style={{ opacity: on.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
+          <MaterialCommunityIcons name={icon} size={22} color={ink} />
+        </Animated.View>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: on }]}>
+          <MaterialCommunityIcons name={icon} size={22} color={c.accentInk} />
+        </Animated.View>
+      </Animated.View>
+      {children}
+    </View>
+  );
+}
+
+/** Menu label whose colour fades with the selection. */
+function NavLabel({ active, style, activeColor, children }: { active: boolean; style: object; activeColor: string; children: ReactNode }) {
+  const on = useRef(new Animated.Value(active ? 1 : 0)).current;
+  useEffect(() => {
+    if (motionReduced()) { on.setValue(active ? 1 : 0); return; }
+    Animated.timing(on, { toValue: active ? 1 : 0, duration: 180, useNativeDriver: false }).start();
+  }, [active, on]);
+  const color = on.interpolate({ inputRange: [0, 1], outputRange: [ink, activeColor] });
+  return <Animated.Text style={[style, { color }]} numberOfLines={1}>{children}</Animated.Text>;
+}
+
 const st = StyleSheet.create({
   bar: { flexDirection: "row", backgroundColor: rail, borderTopWidth: 1, borderColor: c.line, paddingHorizontal: 4, paddingTop: 6, paddingBottom: 8 },
   barItem: { flex: 1, alignItems: "center", gap: 2, minHeight: 56, justifyContent: "center" },
@@ -114,7 +183,9 @@ const st = StyleSheet.create({
   logoTile: { width: 58, height: 58 },          // logos are uploaded with a see-through background
   outletName: { color: ink, fontSize: 11, fontWeight: "800", textAlign: "center", lineHeight: 16 },
   item: { alignItems: "center", justifyContent: "center", gap: 3, height: 60, borderRadius: 6 },
-  itemActive: { backgroundColor: c.accent },
+  pill: { position: "absolute", left: 6, right: 6, borderRadius: 6, backgroundColor: c.accent },
+  pillBox: { width: 52, height: 32, alignItems: "center", justifyContent: "center" },
+  pillFill: { borderRadius: 6, backgroundColor: c.accent },
   label: { color: ink, fontSize: 11, fontWeight: "700" },
   miniBadge: { position: "absolute", top: -6, right: -12, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: c.accent, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: rail },
   miniBadgeText: { color: c.accentInk, fontSize: 11, fontWeight: "800" },
