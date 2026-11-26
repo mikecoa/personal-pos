@@ -126,14 +126,14 @@ function SlidingPill({ target, at }: { target: Page; at: Partial<Record<Page, Sl
   return <Animated.View pointerEvents="none" style={[st.pill, { top: y, height: h }]} />;
 }
 
-type Flourish = "grid" | "table" | "clock" | "jiggle" | "spin";
-const FLOURISH: Partial<Record<Page, Flourish>> = { pos: "grid", tables: "table", activity: "clock", shift: "jiggle", settings: "spin" };
+type Flourish = "grid" | "table" | "clock" | "lid" | "spin";
+const FLOURISH: Partial<Record<Page, Flourish>> = { pos: "grid", tables: "table", activity: "clock", shift: "lid", settings: "spin" };
 
 /**
  * Menu icon that fades between its normal and selected colours and, when it becomes the selected
  * page, plays a little animation that fits what it shows: the POS tiles slide into place from
  * opposite sides, the chairs are pulled out from the table and pushed back in, the clock's hands
- * sweep round, the cog turns and the cash box jiggles.
+ * sweep round, the cog turns and the cash box's lid swings open and slams shut.
  * `pill`: draws its own highlight (phones).
  */
 function NavIcon({ icon, page, active, pill, children }: { icon: Icon; page: Page; active: boolean; pill?: boolean; children?: ReactNode }) {
@@ -148,19 +148,18 @@ function NavIcon({ icon, page, active, pill, children }: { icon: Icon; page: Pag
     go.setValue(0);
     Animated.timing(go, {
       toValue: 1, useNativeDriver: true,
-      duration: kind === "clock" ? 700 : kind === "spin" ? 650 : kind === "jiggle" ? 520 : kind === "table" ? 620 : 560,
+      duration: kind === "clock" ? 700 : kind === "spin" ? 650 : kind === "lid" ? 640 : kind === "table" ? 620 : 560,
       easing: kind === "clock" || kind === "spin" ? Easing.out(Easing.back(1.6)) : Easing.linear,
     }).start();
   }, [active, on, go, kind]);
 
   // Whole-icon motion for each kind (the clock moves its hands instead).
   const motion = kind === "spin" ? [{ rotate: go.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] }) }]
-    : kind === "jiggle" ? [{ rotate: go.interpolate({ inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1], outputRange: ["0deg", "-16deg", "13deg", "-8deg", "4deg", "0deg"] }) },
-        { scale: go.interpolate({ inputRange: [0, 0.2, 1], outputRange: [1, 1.12, 1] }) }]
     : [];
   const glyph = (color: string) => (kind === "clock" ? <Clock color={color} go={go} />
     : kind === "grid" ? <Grid color={color} go={go} />
     : kind === "table" ? <TableChairs color={color} go={go} />
+    : kind === "lid" ? <CashBox color={color} go={go} />
     : <MaterialCommunityIcons name={icon} size={22} color={color} />);
 
   return (
@@ -205,6 +204,21 @@ function TableChairs({ color, go }: { color: string; go: Animated.Value }) {
       {chair({ left: 19, top: 7, width: 3, height: 8 }, { translateX: out(2.5) })}
       <Animated.View style={[st.tableTop, { borderColor: color,
         transform: [{ scale: go.interpolate({ inputRange: [0, 0.35, 0.8, 1], outputRange: [1, 0.9, 1.06, 1] }) }] }]} />
+    </View>
+  );
+}
+
+/** A cash box drawn as lid + body: the lid swings open on its back hinge, then slams shut. */
+function CashBox({ color, go }: { color: string; go: Animated.Value }) {
+  const lid = go.interpolate({ inputRange: [0, 0.22, 0.32, 0.58, 0.68, 0.78, 1], outputRange: ["0deg", "-48deg", "-48deg", "0deg", "-9deg", "0deg", "0deg"] });
+  const thud = go.interpolate({ inputRange: [0, 0.56, 0.62, 0.74, 1], outputRange: [1, 1, 0.86, 1.04, 1] });
+  const lock = go.interpolate({ inputRange: [0, 0.58, 0.68, 0.8, 1], outputRange: [1, 1, 1.45, 0.95, 1] });
+  return (
+    <View style={{ width: 22, height: 22 }}>
+      <Animated.View style={[st.boxBody, { borderColor: color, transform: [{ scaleY: thud }], transformOrigin: "50% 100%" }]} />
+      {/* Hinged at the back-left corner of the lid. */}
+      <Animated.View style={[st.boxLid, { borderColor: color, transform: [{ rotate: lid }], transformOrigin: "0% 100%" }]} />
+      <Animated.View style={[st.boxLock, { backgroundColor: color, transform: [{ scale: lock }] }]} />
     </View>
   );
 }
@@ -256,6 +270,9 @@ const st = StyleSheet.create({
   hand: { position: "absolute", left: 10, width: 2, borderRadius: 1 },
   hub: { position: "absolute", width: 4, height: 4, borderRadius: 2 },
   tile: { position: "absolute", borderWidth: 2, borderRadius: 1.5 },
+  boxLid: { position: "absolute", left: 2, top: 3, width: 18, height: 7, borderWidth: 2, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+  boxBody: { position: "absolute", left: 2, top: 8, width: 18, height: 12, borderWidth: 2, borderBottomLeftRadius: 2, borderBottomRightRadius: 2 },
+  boxLock: { position: "absolute", left: 8.5, top: 7, width: 5, height: 5, borderRadius: 1 },
   chair: { position: "absolute", borderRadius: 1.5 },
   tableTop: { position: "absolute", left: 5, top: 5, width: 12, height: 12, borderWidth: 2, borderRadius: 3 },
   label: { color: ink, fontSize: 11, fontWeight: "700" },
