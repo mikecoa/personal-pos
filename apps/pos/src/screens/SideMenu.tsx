@@ -126,13 +126,14 @@ function SlidingPill({ target, at }: { target: Page; at: Partial<Record<Page, Sl
   return <Animated.View pointerEvents="none" style={[st.pill, { top: y, height: h }]} />;
 }
 
-type Flourish = "squash" | "hop" | "clock" | "jiggle" | "spin";
-const FLOURISH: Partial<Record<Page, Flourish>> = { pos: "squash", tables: "hop", activity: "clock", shift: "jiggle", settings: "spin" };
+type Flourish = "grid" | "table" | "clock" | "jiggle" | "spin";
+const FLOURISH: Partial<Record<Page, Flourish>> = { pos: "grid", tables: "table", activity: "clock", shift: "jiggle", settings: "spin" };
 
 /**
  * Menu icon that fades between its normal and selected colours and, when it becomes the selected
- * page, plays a little animation that fits what it shows: the clock's hands sweep round, the cog
- * turns, the cash box jiggles, the table hops and the grid squashes like a pressed button.
+ * page, plays a little animation that fits what it shows: the POS tiles slide into place from
+ * opposite sides, the chairs are pulled out from the table and pushed back in, the clock's hands
+ * sweep round, the cog turns and the cash box jiggles.
  * `pill`: draws its own highlight (phones).
  */
 function NavIcon({ icon, page, active, pill, children }: { icon: Icon; page: Page; active: boolean; pill?: boolean; children?: ReactNode }) {
@@ -147,7 +148,7 @@ function NavIcon({ icon, page, active, pill, children }: { icon: Icon; page: Pag
     go.setValue(0);
     Animated.timing(go, {
       toValue: 1, useNativeDriver: true,
-      duration: kind === "clock" ? 700 : kind === "spin" ? 650 : kind === "jiggle" ? 520 : 420,
+      duration: kind === "clock" ? 700 : kind === "spin" ? 650 : kind === "jiggle" ? 520 : kind === "table" ? 620 : 560,
       easing: kind === "clock" || kind === "spin" ? Easing.out(Easing.back(1.6)) : Easing.linear,
     }).start();
   }, [active, on, go, kind]);
@@ -156,13 +157,11 @@ function NavIcon({ icon, page, active, pill, children }: { icon: Icon; page: Pag
   const motion = kind === "spin" ? [{ rotate: go.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] }) }]
     : kind === "jiggle" ? [{ rotate: go.interpolate({ inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1], outputRange: ["0deg", "-16deg", "13deg", "-8deg", "4deg", "0deg"] }) },
         { scale: go.interpolate({ inputRange: [0, 0.2, 1], outputRange: [1, 1.12, 1] }) }]
-    : kind === "hop" ? [{ translateY: go.interpolate({ inputRange: [0, 0.4, 0.7, 0.85, 1], outputRange: [0, -7, 0, -2, 0] }) },
-        { scaleY: go.interpolate({ inputRange: [0, 0.65, 0.75, 1], outputRange: [1, 1, 0.82, 1] }) },
-        { scaleX: go.interpolate({ inputRange: [0, 0.65, 0.75, 1], outputRange: [1, 1, 1.12, 1] }) }]
-    : kind === "squash" ? [{ scaleX: go.interpolate({ inputRange: [0, 0.3, 0.6, 1], outputRange: [1, 1.22, 0.92, 1] }) },
-        { scaleY: go.interpolate({ inputRange: [0, 0.3, 0.6, 1], outputRange: [1, 0.78, 1.08, 1] }) }]
     : [];
-  const glyph = (color: string) => (kind === "clock" ? <Clock color={color} go={go} /> : <MaterialCommunityIcons name={icon} size={22} color={color} />);
+  const glyph = (color: string) => (kind === "clock" ? <Clock color={color} go={go} />
+    : kind === "grid" ? <Grid color={color} go={go} />
+    : kind === "table" ? <TableChairs color={color} go={go} />
+    : <MaterialCommunityIcons name={icon} size={22} color={color} />);
 
   return (
     <View style={pill ? st.pillBox : undefined}>
@@ -172,6 +171,40 @@ function NavIcon({ icon, page, active, pill, children }: { icon: Icon; page: Pag
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: on }]}>{glyph(c.accentInk)}</Animated.View>
       </Animated.View>
       {children}
+    </View>
+  );
+}
+
+/** The POS grid drawn from its four tiles: the left column slides in from above, the right one from below. */
+function Grid({ color, go }: { color: string; go: Animated.Value }) {
+  const slide = (from: number) => go.interpolate({ inputRange: [0, 0.45, 0.7, 0.85, 1], outputRange: [0, from, -from * 0.25, from * 0.08, 0] });
+  const tile = (x: number, y: number, w: number, h: number) =>
+    <View style={[st.tile, { left: x, top: y, width: w, height: h, borderColor: color }]} />;
+  return (
+    <View style={{ width: 22, height: 22 }}>
+      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateY: slide(-7) }] }]}>
+        {tile(2, 2, 8, 10)}{tile(2, 14, 8, 6)}
+      </Animated.View>
+      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateY: slide(7) }] }]}>
+        {tile(12, 2, 8, 6)}{tile(12, 10, 8, 10)}
+      </Animated.View>
+    </View>
+  );
+}
+
+/** A table seen from above with a chair on each side: the chairs are pulled out, then pushed back in. */
+function TableChairs({ color, go }: { color: string; go: Animated.Value }) {
+  const out = (d: number) => go.interpolate({ inputRange: [0, 0.35, 0.6, 0.8, 1], outputRange: [0, d, d, -d * 0.2, 0] });
+  const chair = (style: object, move: object) =>
+    <Animated.View style={[st.chair, { backgroundColor: color }, style, { transform: [move] }]} />;
+  return (
+    <View style={{ width: 22, height: 22 }}>
+      {chair({ left: 7, top: 0, width: 8, height: 3 }, { translateY: out(-2.5) })}
+      {chair({ left: 7, top: 19, width: 8, height: 3 }, { translateY: out(2.5) })}
+      {chair({ left: 0, top: 7, width: 3, height: 8 }, { translateX: out(-2.5) })}
+      {chair({ left: 19, top: 7, width: 3, height: 8 }, { translateX: out(2.5) })}
+      <Animated.View style={[st.tableTop, { borderColor: color,
+        transform: [{ scale: go.interpolate({ inputRange: [0, 0.35, 0.8, 1], outputRange: [1, 0.9, 1.06, 1] }) }] }]} />
     </View>
   );
 }
@@ -222,8 +255,11 @@ const st = StyleSheet.create({
   clockFace: { width: 19, height: 19, borderRadius: 10, borderWidth: 2 },
   hand: { position: "absolute", left: 10, width: 2, borderRadius: 1 },
   hub: { position: "absolute", width: 4, height: 4, borderRadius: 2 },
+  tile: { position: "absolute", borderWidth: 2, borderRadius: 1.5 },
+  chair: { position: "absolute", borderRadius: 1.5 },
+  tableTop: { position: "absolute", left: 5, top: 5, width: 12, height: 12, borderWidth: 2, borderRadius: 3 },
   label: { color: ink, fontSize: 11, fontWeight: "700" },
-  miniBadge: { position: "absolute", top: -6, right: -12, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: c.accent, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: rail },
+  miniBadge: { position: "absolute", top: -9, right: -15, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: c.accent, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: rail },
   miniBadgeText: { color: c.accentInk, fontSize: 11, fontWeight: "800" },
   dot: { position: "absolute", top: -2, right: -3, width: 10, height: 10, borderRadius: 5, backgroundColor: "#e0a23b", borderWidth: 2, borderColor: rail },
   foot: { alignItems: "center", gap: 4, paddingTop: 10, borderTopWidth: 1, borderColor: c.line, marginHorizontal: 6 },
