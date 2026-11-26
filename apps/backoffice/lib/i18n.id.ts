@@ -811,6 +811,8 @@ export const ID: Record<string, string> = {
   "Manager PIN approval": "Persetujuan PIN manajer",
   "Item price": "Harga item",
   "Package choices": "Pilihan paket",
+  "Item sales-type prices & modifiers": "Harga tipe penjualan & modifier item",
+  "Customer": "Pelanggan",
   "Modifier option": "Opsi modifier",
   "Quick note": "Catatan cepat",
   "Table area": "Area meja",
