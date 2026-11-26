@@ -2,7 +2,7 @@
 -- change things or pull PIN lookups through the tablet RPCs.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(19);
+select plan(34);
 
 insert into auth.users (id, email, aud, role) values
   ('a0000000-0000-0000-0000-00000000000a', 'owner@t.test', 'authenticated', 'authenticated'),
@@ -73,6 +73,70 @@ select throws_ok($$ select public.pos_save_quick_notes('de000000-0000-0000-0000-
 select pg_temp.act_as('a0000000-0000-0000-0000-00000000000a');
 select lives_ok($$ select public.pos_catalog('de000000-0000-0000-0000-000000000001') $$, 'owner gets the catalog');
 select lives_ok($$ select public.pos_save_quick_notes('de000000-0000-0000-0000-000000000001', '[]') $$, 'owner saves quick notes from a tablet');
+
+-- ── Low fixes ─────────────────────────────────────────────────────────────
+reset role;
+insert into auth.users (id, email, aud, role) values
+  ('f0000000-0000-0000-0000-00000000000f', 'manager@t.test', 'authenticated', 'authenticated');
+insert into public.roles (id, account_id, name, backoffice_pages, backoffice_write) values
+  ('70000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000000', 'Staff manager', '{dashboard,employees}', '{employees}');
+insert into public.employees (id, account_id, role_id, name, email, user_id) values
+  ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000000', '70000000-0000-0000-0000-000000000003', 'Mira', 'manager@t.test', 'f0000000-0000-0000-0000-00000000000f');
+insert into public.employee_locations (account_id, employee_id, location_id) values
+  ('a1000000-0000-0000-0000-000000000000', 'e1000000-0000-0000-0000-000000000003', 'a1100000-0000-0000-0000-000000000001');
+insert into public.orders (id, account_id, location_id, device_id, number, status, opened_at, completed_at, gross, subtotal, total) values
+  ('0d000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000000', 'a1100000-0000-0000-0000-000000000001', 'de000000-0000-0000-0000-000000000001',
+   'A1-1', 'completed', now() - interval '1 hour', now() - interval '1 hour', 20000, 20000, 20000);
+insert into public.order_lines (id, account_id, location_id, order_id, sort_order, item_name, unit_price, qty, line_total) values
+  ('11000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000000', 'a1100000-0000-0000-0000-000000000001', '0d000000-0000-0000-0000-000000000001', 1, 'Kopi', 20000, 1, 20000);
+set local role authenticated;
+
+-- View access: Tono's role (POS tablets only) sees no sales and only his own slot.
+select pg_temp.act_as('d0000000-0000-0000-0000-00000000000d');
+select is((select count(*)::int from public.orders), 0, 'no report page: no sales rows');
+select is(public.report_transactions(array['a1100000-0000-0000-0000-000000000001'::uuid], now() - interval '1 day', now()), '[]'::jsonb, 'no report page: empty transactions report');
+select is((public.report_sales(array['a1100000-0000-0000-0000-000000000001'::uuid], now() - interval '1 day', now())#>>'{summary,transactions}')::int, 0, 'no report page: empty sales report');
+select is((select count(*)::int from public.employees), 1, 'no employee page: sees only their own slot');
+-- Vera has the dashboard: sales yes, staff list no.
+select pg_temp.act_as('c0000000-0000-0000-0000-00000000000c');
+select is((public.report_sales(array['a1100000-0000-0000-0000-000000000001'::uuid], now() - interval '1 day', now())#>>'{summary,transactions}')::int, 1, 'dashboard role still gets the sales summary');
+select is((select count(*)::int from public.employees), 1, 'dashboard role: own slot only');
+-- Mira has the Employees page: staff at her outlet.
+select pg_temp.act_as('f0000000-0000-0000-0000-00000000000f');
+select ok((select count(*) from public.employees) >= 3, 'employees page: sees staff at their outlet');
+
+-- Memberships: no direct adds; people can leave.
+select pg_temp.act_as('a0000000-0000-0000-0000-00000000000a');
+select throws_ok($$ insert into public.members (account_id, user_id, role) values ('a1000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-00000000000b', 'admin') $$,
+  '42501', null, 'owner cannot add someone else''s login directly');
+
+-- Switching backoffice access back on is owner-only.
+select lives_ok($$ update public.employees set is_active = false where id = 'e1000000-0000-0000-0000-000000000001' $$, 'owner switches Vera off');
+select pg_temp.act_as('f0000000-0000-0000-0000-00000000000f');
+select throws_ok($$ update public.employees set is_active = true where id = 'e1000000-0000-0000-0000-000000000001' $$,
+  '42501', 'Only the owner can switch backoffice access back on', 'manager cannot switch a backoffice login back on');
+
+-- Change log covers customers.
+select lives_ok($$ insert into public.customers (account_id, location_id, name) values ('a1000000-0000-0000-0000-000000000000', 'a1100000-0000-0000-0000-000000000001', 'Cust') $$, 'manager adds a customer');
+reset role;
+select is((select count(*)::int from public.audit_log where table_name = 'customers'), 1, 'customer change is in the change log');
+set local role authenticated;
+
+-- Refunds: one entry per sale line; the restocked item comes from the sale.
+select pg_temp.act_as('a0000000-0000-0000-0000-00000000000a');
+select throws_ok($$ select public.submit_refund('de000000-0000-0000-0000-000000000001', jsonb_build_object('id', gen_random_uuid(),
+  'order_id', '0d000000-0000-0000-0000-000000000001', 'reason', 'x', 'method_name', 'Cash', 'kind', 'cash', 'amount', 1, 'refunded_at', now(),
+  'lines', jsonb_build_array(
+    jsonb_build_object('id', gen_random_uuid(), 'order_line_id', '11000000-0000-0000-0000-000000000001', 'item_name', 'Kopi', 'qty', 1, 'amount', 0),
+    jsonb_build_object('id', gen_random_uuid(), 'order_line_id', '11000000-0000-0000-0000-000000000001', 'item_name', 'Kopi', 'qty', 1, 'amount', 0)))) $$,
+  '22023', 'each sale line can appear only once in a refund', 'a sale line cannot be refunded twice in one refund');
+select lives_ok($$ select public.submit_refund('de000000-0000-0000-0000-000000000001', jsonb_build_object('id', gen_random_uuid(),
+  'order_id', '0d000000-0000-0000-0000-000000000001', 'reason', 'x', 'method_name', 'Cash', 'kind', 'cash', 'amount', 1, 'refunded_at', now(),
+  'lines', jsonb_build_array(jsonb_build_object('id', gen_random_uuid(), 'order_line_id', '11000000-0000-0000-0000-000000000001',
+    'item_id', gen_random_uuid(), 'item_name', 'Kopi', 'qty', 1, 'amount', 0)))) $$, 'single-line refund saves');
+reset role;
+select is((select item_id from public.refund_lines where order_line_id = '11000000-0000-0000-0000-000000000001'), null::uuid,
+  'refund line takes the item from the sale line, not the request');
 
 select * from finish();
 rollback;

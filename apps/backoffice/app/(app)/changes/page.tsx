@@ -14,6 +14,7 @@ const WHAT: Record<string, string> = {
   quick_notes: "Quick note", payment_methods: "Payment method", receipt_profiles: "Receipt", location_settings: "Location settings",
   table_areas: "Table area", dining_tables: "Table", devices: "POS tablet", employees: "Employee", roles: "Role",
   shifts: "Shift", locations: "Location", orders: "Cancelled bill (history)", order_voids: "Voided item (history)",
+  item_links: "Item sales-type prices & modifiers", customers: "Customer",
 };
 /** Fields holding money (in rupiah). */
 const MONEY = new Set(["price", "value", "avg_cost", "default_starting_cash", "rounding_unit", "starting_cash", "counted_cash", "expected_cash"]);
@@ -23,7 +24,12 @@ function show(field: string, v: unknown, t: T): string {
   if (typeof v === "boolean") return v ? t("Yes") : t("No");
   if (typeof v === "number" && MONEY.has(field)) return formatRupiah(rp(v));
   if (Array.isArray(v)) return v.length ? v.map((x) => (typeof x === "object" ? "…" : String(x))).join(", ") : "—";
-  if (typeof v === "object") return "…";
+  if (typeof v === "object") {
+    // e.g. sales-type prices: { "default / GoFood": 25000 }
+    const parts = Object.entries(v as Record<string, unknown>).map(([k, x]) =>
+      `${k}: ${typeof x === "number" ? formatRupiah(rp(x)) : String(x)}`);
+    return parts.length ? parts.join(", ") : "—";
+  }
   const s = String(v);
   return s.length > 80 ? `${s.slice(0, 80)}…` : s;
 }

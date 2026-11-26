@@ -86,8 +86,8 @@ select is((pg_temp.rep(array['a1100000-0000-0000-0000-000000000001'::uuid, 'a110
   82000, 'all-locations roll-up adds A2');
 select is(jsonb_array_length(public.report_transactions(array['a1100000-0000-0000-0000-000000000001'::uuid, 'a1100000-0000-0000-0000-000000000002'::uuid],
   '2026-11-23T17:00:00Z', '2026-11-24T17:00:00Z')), 3, 'transactions list has the 3 completed sales');
-select is(public.report_transactions(array['a1100000-0000-0000-0000-000000000001'::uuid], '2026-11-23T17:00:00Z', '2026-11-24T17:00:00Z', 'cancelled')#>>'{0,reason}',
-  'Customer left', 'cancelled bills with reason');
+select is(public.report_transactions(array['a1100000-0000-0000-0000-000000000001'::uuid], '2026-11-23T17:00:00Z', '2026-11-24T17:00:00Z', 'cancelled_orders')#>>'{0,reason}',
+  'Customer left', 'cancelled orders (no bill name) with reason');
 select is(public.report_transactions(array['a1100000-0000-0000-0000-000000000001'::uuid], '2026-11-23T17:00:00Z', '2026-11-24T17:00:00Z', 'refunds')#>>'{0,items}',
   'Water ×1', 'refunds list');
 select is(jsonb_array_length(public.report_transactions(array['a1100000-0000-0000-0000-000000000001'::uuid], '2026-11-23T17:00:00Z', '2026-11-24T17:00:00Z', 'completed', 'A1-2')),

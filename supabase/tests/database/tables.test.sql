@@ -35,6 +35,9 @@ create function pg_temp.bill(p_version int, p_table text, p_table_name text, p_g
     'opened_at', '2026-11-26T05:00:00Z', 'bill_name', p_table_name, 'table_id', p_table, 'table_name', p_table_name, 'guests', p_guests,
     'customer_name', 'Pak Budi', 'total', 18000, 'lines', '[]'::jsonb);
 $$;
+-- Bills are checked as stored (report pages read them; a staff login has no report page).
+create function pg_temp.orders_as_admin() returns setof public.orders language sql security definer as $$ select * from public.orders where location_id = 'a1100000-0000-0000-0000-000000000001' $$;
+grant execute on function pg_temp.orders_as_admin() to authenticated;
 set local role authenticated;
 
 -- ── set-up permissions ─────────────────────────────────────────────────
@@ -45,12 +48,12 @@ select results_eq($$ select name from public.dining_tables order by name $$, arr
 
 -- ── seating and moving ─────────────────────────────────────────────────
 select is(public.upsert_order('de000000-0000-0000-0000-000000000001', pg_temp.bill(1, '7b000000-0000-0000-0000-000000000001', '1'))->>'status', 'saved', 'seat a bill at table 1');
-select is((select table_id::text || '/' || table_name || '/' || guests || '/' || customer_name from public.orders), '7b000000-0000-0000-0000-000000000001/1/3/Pak Budi',
+select is((select table_id::text || '/' || table_name || '/' || guests || '/' || customer_name from pg_temp.orders_as_admin()), '7b000000-0000-0000-0000-000000000001/1/3/Pak Budi',
   'bill stores table, guests and customer');
 select is(public.pos_open_orders('de000000-0000-0000-0000-000000000002')#>>'{0,table_name}', '1', 'the other tablet sees the bill at table 1');
 
 select is(public.upsert_order('de000000-0000-0000-0000-000000000002', pg_temp.bill(2, '7b000000-0000-0000-0000-000000000002', '2', 4))->>'status', 'saved', 'tablet 2 moves the bill to table 2');
-select is((select table_name || '/' || guests from public.orders), '2/4', 'bill is now on table 2 with 4 guests');
+select is((select table_name || '/' || guests from pg_temp.orders_as_admin()), '2/4', 'bill is now on table 2 with 4 guests');
 select is(public.upsert_order('de000000-0000-0000-0000-000000000001', pg_temp.bill(2, '7b000000-0000-0000-0000-000000000001', '1'))->>'status', 'stale',
   'tablet 1''s late move loses to the newer version');
 
