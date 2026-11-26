@@ -53,4 +53,7 @@ describe("toCsv", () => {
   it("neutralises spreadsheet formulas in text but keeps negative numbers", () => {
     expect(toCsv(["x", "n"], [["=SUM(A1)", -8000]])).toBe("x,n\r\n'=SUM(A1),-8000\r\n");
   });
+  it("quotes text with ';' or tabs so a ';'-separated spreadsheet can't split out a formula cell", () => {
+    expect(toCsv(["Bill"], [["x;=1+1;"], ["a\t=2"]])).toBe('Bill\r\n"x;=1+1;"\r\n"a\t=2"\r\n');
+  });
 });

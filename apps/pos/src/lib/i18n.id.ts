@@ -702,4 +702,12 @@ export const ID: Record<string, string> = {
   "Sign out this tablet?": "Keluarkan tablet ini?",
   "Reset this tablet?": "Reset tablet ini?",
   "Are you sure?": "Yakin?",
+  "Reset this tablet": "Reset tablet ini",
+  "A manager must approve this. Manager, enter your PIN.": "Perlu persetujuan manajer. Manajer, masukkan PIN Anda.",
+  "Not a manager's PIN. Try again.": "Bukan PIN manajer. Coba lagi.",
+  "No internet. Use a manager's PIN instead.": "Tidak ada internet. Gunakan PIN manajer.",
+  "Password is incorrect.": "Kata sandi salah.",
+  "Enter the password of the account this tablet is signed in with.": "Masukkan kata sandi akun yang dipakai di tablet ini.",
+  "Use the account password instead": "Pakai kata sandi akun",
+  "Use a manager's PIN instead": "Pakai PIN manajer",
 };

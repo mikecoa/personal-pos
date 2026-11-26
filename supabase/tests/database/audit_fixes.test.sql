@@ -2,7 +2,7 @@
 -- change things or pull PIN lookups through the tablet RPCs.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(34);
+select plan(42);
 
 insert into auth.users (id, email, aud, role) values
   ('a0000000-0000-0000-0000-00000000000a', 'owner@t.test', 'authenticated', 'authenticated'),
@@ -137,6 +137,46 @@ select lives_ok($$ select public.submit_refund('de000000-0000-0000-0000-00000000
 reset role;
 select is((select item_id from public.refund_lines where order_line_id = '11000000-0000-0000-0000-000000000001'), null::uuid,
   'refund line takes the item from the sale line, not the request');
+
+-- ── Follow-ups ────────────────────────────────────────────────────────────
+insert into auth.sessions (id, user_id, created_at) values
+  ('5e000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-00000000000a', now() - interval '2 days'),
+  ('5e000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-00000000000a', now());
+create function pg_temp.act_in_session(p_uid uuid, p_sid uuid) returns void language sql as $$
+  select set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated', 'session_id', p_sid)::text, true);
+$$;
+set local role authenticated;
+select pg_temp.act_in_session('a0000000-0000-0000-0000-00000000000a', '5e000000-0000-0000-0000-000000000001');
+select throws_ok($$ select public.register_device('a1100000-0000-0000-0000-000000000001', 'old') $$, '42501', 'Sign in again to set up this tablet',
+  'an old session (e.g. copied off a lost tablet) cannot set up a tablet');
+select pg_temp.act_in_session('a0000000-0000-0000-0000-00000000000a', '5e000000-0000-0000-0000-000000000002');
+select lives_ok($$ select public.register_device('a1100000-0000-0000-0000-000000000001', 'fresh') $$, 'a fresh sign-in sets up a tablet');
+select lives_ok($$ select public.revoke_device((select id from public.devices where name = 'fresh')) $$, 'owner revokes it');
+reset role;
+select is((select count(*)::int from auth.sessions where id = '5e000000-0000-0000-0000-000000000002'), 0, 'revoking ends that tablet''s sign-in session');
+select is((select count(*)::int from auth.sessions where id = '5e000000-0000-0000-0000-000000000001'), 1, 'other sessions stay signed in');
+
+-- One business per login.
+set local role authenticated;
+select pg_temp.act_as('a0000000-0000-0000-0000-00000000000a');
+select throws_ok($$ select public.create_account('Second', 'Outlet') $$, '23505', 'You already belong to a business', 'no second business for the same login');
+
+-- Upload limits.
+select throws_ok($$ select public.upsert_order('de000000-0000-0000-0000-000000000001', jsonb_build_object('id', gen_random_uuid(), 'number', 'A1-99',
+  'status', 'open', 'opened_at', now(), 'lines', (select jsonb_agg(jsonb_build_object('n', g)) from generate_series(1, 501) g))) $$,
+  '54000', 'too many lines in one upload', 'a bill with more than 500 lines is refused');
+
+-- All 910 tablet codes used: clear error, no stuck request.
+reset role;
+insert into public.locations (id, account_id, name) values ('a1100000-0000-0000-0000-000000000009', 'a1000000-0000-0000-0000-000000000000', 'Full');
+insert into public.devices (account_id, location_id, name, receipt_prefix, registered_by, revoked_at)
+  select 'a1000000-0000-0000-0000-000000000000', 'a1100000-0000-0000-0000-000000000009', 'old ' || n,
+    chr(65 + (n / 35) % 26) || substr('123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', (n % 35) + 1, 1), 'a0000000-0000-0000-0000-00000000000a', now()
+  from generate_series(0, 909) n;
+set local role authenticated;
+select pg_temp.act_as('a0000000-0000-0000-0000-00000000000a');
+select throws_ok($$ select public.register_device('a1100000-0000-0000-0000-000000000009', 'x') $$, '54000', 'This location has used all 910 tablet codes',
+  'a location with every code used gets a clear error');
 
 select * from finish();
 rollback;

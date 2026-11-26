@@ -29,7 +29,7 @@ export function ApprovalSheet() {
     const r = await approveWithPin(next);
     setBusy(false); setPin("");
     if (r === "ok") setMsg(null);
-    else setMsg(r === "not_manager" ? t("That PIN belongs to someone who can't approve. Ask a manager.") : r === "locked" ? t("Too many wrong PINs. Wait a moment and try again.") : t("Wrong PIN. Try again."));
+    else setMsg(r === "locked" ? t("Too many wrong PINs. Wait a moment and try again.") : t("Not a manager's PIN. Try again."));
   };
 
   return (

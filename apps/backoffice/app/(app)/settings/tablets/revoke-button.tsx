@@ -4,7 +4,7 @@ import { toast, useConfirm } from "@/components/controls";
 import { revokeTablet } from "./actions";
 import { useT } from "@/components/lang";
 
-export function RevokeButton({ id, name, unsent }: { id: string; name: string; unsent: number }) {
+export function RevokeButton({ id, name, unsent, endsSignIn }: { id: string; name: string; unsent: number; endsSignIn: boolean }) {
   const t = useT();
   const [state, action, pending] = useActionState(revokeTablet, undefined);
   const confirm = useConfirm();
@@ -15,7 +15,8 @@ export function RevokeButton({ id, name, unsent }: { id: string; name: string; u
         onClick={async () => {
           const yes = await confirm({
             title: `Revoke "${name}"?`,
-            body: <>{t("It stops syncing immediately and can’t be used again until it is reset and set up.")}
+            body: <>{t("It stops syncing immediately, its sign-in is ended, and it can’t be used again until it is reset and set up.")}
+              {!endsSignIn && <span className="mt-2 block">{t("This tablet was set up before sign-ins could be ended from here. If it was lost or stolen, also use Account › Sign out everywhere.")}</span>}
               {unsent > 0 && <span className="mt-2 block font-medium text-danger">{t("It still has {n} records waiting to upload; those will never arrive.", { n: unsent })}</span>}</>,
             confirmLabel: t("Revoke"), danger: true,
           });

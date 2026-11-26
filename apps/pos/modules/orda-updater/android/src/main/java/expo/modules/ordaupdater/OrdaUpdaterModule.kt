@@ -74,7 +74,7 @@ class OrdaUpdaterModule : Module() {
           }
         }
         val hex = digest.digest().joinToString("") { "%02x".format(it) }
-        if (sha256.isNotBlank() && !hex.equals(sha256, ignoreCase = true)) {
+        if (!hex.equals(sha256, ignoreCase = true)) {   // a missing checksum fails too
           out.delete()
           throw CodedException("BAD_FILE", "The download was damaged. Try again.", null)
         }

@@ -5,7 +5,7 @@ import { CryptoDigestAlgorithm, digestStringAsync, randomUUID } from "expo-crypt
 import * as db from "./db";
 import { currentLang, setLangValue, t, type Lang } from "./i18n";
 import Constants from "expo-constants";
-import { supabase } from "./supabase";
+import { passwordIsCorrect, supabase } from "./supabase";
 import { customLine, lineLabel, makeLine, newOrder, now, reprice, sameLine, variantPrice, printedQty } from "./order";
 import type { Catalog, Customer, QuickNote, Device, DiningTable, Employee, Item, OrderDoc, OrderPayment, PaymentMethod, RefundDoc, ShiftDoc, Variant } from "./types";
 
@@ -132,7 +132,9 @@ export async function registerDevice(location: { id: string; name: string }, nam
 export async function resetDevice() {
   stopSync();
   db.wipe();
-  await supabase.auth.signOut();
+  // This tablet only: other tablets and the backoffice stay signed in. Clears the stored session
+  // even when offline.
+  await supabase.auth.signOut({ scope: "local" });
   set({ phase: "setup", device: null, catalog: null, employee: null, order: null, openOrders: [], shift: null });
 }
 
@@ -140,11 +142,20 @@ export async function resetDevice() {
 /** Records that would be lost if the tablet were reset now. */
 export const unsentCount = () => db.pendingCount() + db.rejectedCount();
 
-type PinGuard = { fails: number; lockedUntil: number; level: number };
-/** Seconds the PIN pad stays locked; 0 when open. Persisted so a restart doesn't reset it. */
+/**
+ * Wrong PINs in the last 10 minutes (times), the pad's lock and its escalation. A correct PIN
+ * does NOT clear the count: otherwise someone with their own PIN could guess another person's
+ * forever (4 guesses, unlock as themselves, repeat). Persisted so a restart doesn't reset it.
+ */
+type PinGuard = { fails: number[]; lockedUntil: number; level: number; lastLock: number };
+const FAIL_WINDOW = 10 * 60_000;
+function pinGuard(): PinGuard {
+  const g = db.kvGet<Partial<PinGuard>>("pin_guard");
+  return { fails: Array.isArray(g?.fails) ? g.fails : [], lockedUntil: g?.lockedUntil ?? 0, level: g?.level ?? 0, lastLock: g?.lastLock ?? 0 };
+}
+/** Seconds the PIN pad stays locked; 0 when open. */
 export function pinLockedFor(): number {
-  const g = db.kvGet<PinGuard>("pin_guard");
-  return g ? Math.max(0, Math.ceil((g.lockedUntil - Date.now()) / 1000)) : 0;
+  return Math.max(0, Math.ceil((pinGuard().lockedUntil - Date.now()) / 1000));
 }
 
 async function employeeByPin(pin: string): Promise<Employee | undefined> {
@@ -159,20 +170,39 @@ async function employeeByPin(pin: string): Promise<Employee | undefined> {
   }
   return match;
 }
-/** Count a wrong PIN: 5 in a row lock the pad for 30 s, doubling each time (max 15 min). */
+/**
+ * Count a wrong PIN: 5 within 10 minutes lock the pad for 30 s, doubling each time (max 15 min);
+ * the doubling starts over after an hour without a lock.
+ */
 function wrongPin() {
-  const g = db.kvGet<PinGuard>("pin_guard") ?? { fails: 0, lockedUntil: 0, level: 0 };
-  const fails = g.fails + 1;
-  db.kvSet("pin_guard", fails >= 5
-    ? { fails: 0, level: g.level + 1, lockedUntil: Date.now() + Math.min(15 * 60_000, 30_000 * 2 ** g.level) }
-    : { ...g, fails });
+  const g = pinGuard();
+  const now = Date.now();
+  const fails = [...g.fails.filter((at) => now - at < FAIL_WINDOW), now];
+  if (fails.length < 5) return db.kvSet("pin_guard", { ...g, fails });
+  const level = now - g.lastLock > 60 * 60_000 ? 0 : g.level;
+  db.kvSet("pin_guard", { fails: [], level: level + 1, lastLock: now, lockedUntil: now + Math.min(15 * 60_000, 30_000 * 2 ** level) });
+}
+
+/** A manager's PIN (someone who may approve), for protected tablet actions such as a reset. */
+export async function checkManagerPin(pin: string): Promise<"ok" | "wrong" | "locked"> {
+  if (pinLockedFor() > 0) return "locked";
+  const who = await employeeByPin(pin);
+  if (!who?.permissions.includes("pin_approve")) { wrongPin(); return pinLockedFor() > 0 ? "locked" : "wrong"; }
+  return "ok";
+}
+
+/** The password of the account this tablet is signed in with (needs internet). */
+export async function checkAccountPassword(password: string): Promise<"ok" | "wrong" | "offline"> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const email = session?.user.email;
+  if (!email) return "wrong";
+  return passwordIsCorrect(email, password);
 }
 
 export async function unlock(pin: string): Promise<boolean> {
   if (pinLockedFor() > 0) return false;
   const match = await employeeByPin(pin);
   if (match) {
-    db.kvSet("pin_guard", { fails: 0, lockedUntil: 0, level: 0 });
     set({ employee: match, phase: "selling", page: "pos" });
     const st = state.catalog!.settings;
     if (!state.shift && st.auto_shift_enabled) startShift(st.default_starting_cash ?? 0);
@@ -203,13 +233,14 @@ export function guard(perm: string, label: string, run: () => void) {
   set({ approval: { perm, label } });
 }
 export function cancelApproval() { pendingApproval = null; set({ approval: null }); }
-/** Check a manager's PIN for the waiting action. Wrong PINs count towards the PIN lockout. */
-export async function approveWithPin(pin: string): Promise<"ok" | "wrong" | "not_manager" | "locked"> {
+/**
+ * Check a manager's PIN for the waiting action. Any PIN that can't approve counts towards the
+ * PIN lockout and gets the same answer, so guessing doesn't reveal colleagues' PINs.
+ */
+export async function approveWithPin(pin: string): Promise<"ok" | "wrong" | "locked"> {
   if (pinLockedFor() > 0) return "locked";
   const who = await employeeByPin(pin);
-  if (!who) { wrongPin(); return pinLockedFor() > 0 ? "locked" : "wrong"; }
-  if (!who.permissions.includes("pin_approve")) return "not_manager";
-  db.kvSet("pin_guard", { fails: 0, lockedUntil: 0, level: 0 });
+  if (!who?.permissions.includes("pin_approve")) { wrongPin(); return pinLockedFor() > 0 ? "locked" : "wrong"; }
   const run = pendingApproval;
   const label = state.approval?.label;
   pendingApproval = null;
@@ -218,7 +249,7 @@ export async function approveWithPin(pin: string): Promise<"ok" | "wrong" | "not
   run?.();
   return "ok";
 }
-export function lock() { saveOpenBill(false); set({ employee: null, phase: "locked" }); }
+export function lock() { saveOpenBill(false); cancelApproval(); set({ employee: null, phase: "locked" }); }
 
 // ───────────────────────────────────────────── navigation
 export function go(page: Page) { set({ page }); }

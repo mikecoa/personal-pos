@@ -18,7 +18,7 @@ export default async function TabletsPage() {
   const t = await getT();
   const { supabase, location } = await requireManage();
   const { data: devices, error } = await supabase.from("devices")
-    .select("id, name, receipt_prefix, created_at, last_seen_at, last_sync_ok_at, app_version, pending_count, rejected_count, last_error, revoked_at")
+    .select("id, name, receipt_prefix, created_at, last_seen_at, last_sync_ok_at, app_version, pending_count, rejected_count, last_error, revoked_at, auth_session_id")
     .eq("location_id", location.id).order("created_at");
   if (error) throw error;
 
@@ -40,7 +40,7 @@ export default async function TabletsPage() {
                     <p className="font-semibold">{d.name} <span className="ml-1 text-sm font-normal text-ink-2">{t("receipts {prefix}-…", { prefix: d.receipt_prefix })}</span></p>
                     <div className="mt-1">{status}</div>
                   </div>
-                  {!d.revoked_at && <WriteOnly><RevokeButton id={d.id} name={d.name} unsent={d.pending_count + d.rejected_count} /></WriteOnly>}
+                  {!d.revoked_at && <WriteOnly><RevokeButton id={d.id} name={d.name} unsent={d.pending_count + d.rejected_count} endsSignIn={!!d.auth_session_id} /></WriteOnly>}
                 </div>
                 <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
                   <div><dt className="text-ink-2">{t("Last seen")}</dt><dd>{ago(d.last_seen_at, t)}</dd></div>

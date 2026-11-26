@@ -145,14 +145,14 @@ isOneToOne: false
                   ]
                 },"devices": {
                   Row: {
-                    "account_id": string,"app_version": string | null,"created_at": string,"id": string,"last_error": string | null,"last_seen_at": string | null,"last_sync_ok_at": string | null,"location_id": string,"name": string,"pending_count": number,"receipt_prefix": string,"registered_by": string,"rejected_count": number,"revoked_at": string | null
+                    "account_id": string,"app_version": string | null,"auth_session_id": string | null,"created_at": string,"id": string,"last_error": string | null,"last_seen_at": string | null,"last_sync_ok_at": string | null,"location_id": string,"name": string,"pending_count": number,"receipt_prefix": string,"registered_by": string,"rejected_count": number,"revoked_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"app_version"?: string | null,"created_at"?: string,"id"?: string,"last_error"?: string | null,"last_seen_at"?: string | null,"last_sync_ok_at"?: string | null,"location_id": string,"name": string,"pending_count"?: number,"receipt_prefix": string,"registered_by": string,"rejected_count"?: number,"revoked_at"?: string | null
+                    "account_id": string,"app_version"?: string | null,"auth_session_id"?: string | null,"created_at"?: string,"id"?: string,"last_error"?: string | null,"last_seen_at"?: string | null,"last_sync_ok_at"?: string | null,"location_id": string,"name": string,"pending_count"?: number,"receipt_prefix": string,"registered_by": string,"rejected_count"?: number,"revoked_at"?: string | null
                   }
                   Update: {
-                    "account_id"?: string,"app_version"?: string | null,"created_at"?: string,"id"?: string,"last_error"?: string | null,"last_seen_at"?: string | null,"last_sync_ok_at"?: string | null,"location_id"?: string,"name"?: string,"pending_count"?: number,"receipt_prefix"?: string,"registered_by"?: string,"rejected_count"?: number,"revoked_at"?: string | null
+                    "account_id"?: string,"app_version"?: string | null,"auth_session_id"?: string | null,"created_at"?: string,"id"?: string,"last_error"?: string | null,"last_seen_at"?: string | null,"last_sync_ok_at"?: string | null,"location_id"?: string,"name"?: string,"pending_count"?: number,"receipt_prefix"?: string,"registered_by"?: string,"rejected_count"?: number,"revoked_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -965,6 +965,7 @@ isOneToOne: false
 { Args: { "p_location": string,"p_name": string }; Returns: {
               "account_id": string,
 "app_version": string | null,
+"auth_session_id": string | null,
 "created_at": string,
 "id": string,
 "last_error": string | null,
