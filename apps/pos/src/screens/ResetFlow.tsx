@@ -64,8 +64,8 @@ function Authorize({ title, onOk, onCancel }: { title: string; onOk: () => void;
   };
 
   return (
-    <Sheet visible onClose={onCancel} title={title} width={520}
-      footer={<><View style={{ flex: 1 }} /><Btn kind="secondary" title={t("Cancel")} onPress={onCancel} /></>}>
+    // No footer (the ✕ cancels) so the keypad and the password link fit on small tablets.
+    <Sheet visible onClose={onCancel} title={title} width={520}>
       <View style={{ alignItems: "center", gap: 14 }}>
         {mode === "pin" ? (
           <>
@@ -81,7 +81,8 @@ function Authorize({ title, onOk, onCancel }: { title: string; onOk: () => void;
         ) : (
           <View style={{ alignSelf: "stretch", gap: 12 }}>
             <Muted>{t("Enter the password of the account this tablet is signed in with.")}</Muted>
-            <Field label={t("Password")} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoFocus />
+            <Field label={t("Password")} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoFocus
+              returnKeyType="go" onSubmitEditing={() => { if (password && !busy) void checkPassword(); }} />
             <Text style={{ color: c.danger, minHeight: 20 }}>{msg ?? ""}</Text>
             <Btn title={t("Continue")} onPress={() => void checkPassword()} disabled={!password} loading={busy} />
           </View>
