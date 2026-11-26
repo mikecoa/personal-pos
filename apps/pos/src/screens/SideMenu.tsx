@@ -46,7 +46,7 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
           <Tap key={i.page} scaleTo={0.92} onPress={() => open(i.page)} accessibilityRole="tab" accessibilityState={{ selected: active }}
             accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? t(", no shift open") : ""}`} style={st.barItem}>
             <View style={st.barIcon}>
-              <NavIcon icon={i.icon} active={active} pill>
+              <NavIcon icon={i.icon} page={i.page} active={active} pill>
                 {i.dot && <View style={st.dot} />}
                 {i.badge && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
               </NavIcon>
@@ -84,7 +84,7 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
               accessibilityLabel={`${i.label}${i.badge ? `, ${i.badge} in use` : ""}${i.dot ? t(", no shift open") : ""}`}
               onLayout={(e) => { const { y, height } = e.nativeEvent.layout; setSlots((s) => (s[i.page]?.y === y && s[i.page]?.h === height ? s : { ...s, [i.page]: { y, h: height } })); }}
               style={[st.item, short && { height: 52, gap: 2 }]}>
-              <NavIcon icon={i.icon} active={active}>
+              <NavIcon icon={i.icon} page={i.page} active={active}>
                 {i.dot && <View style={st.dot} />}
                 {i.badge && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
               </NavIcon>
@@ -126,38 +126,71 @@ function SlidingPill({ target, at }: { target: Page; at: Partial<Record<Page, Sl
   return <Animated.View pointerEvents="none" style={[st.pill, { top: y, height: h }]} />;
 }
 
+type Flourish = "squash" | "hop" | "clock" | "jiggle" | "spin";
+const FLOURISH: Partial<Record<Page, Flourish>> = { pos: "squash", tables: "hop", activity: "clock", shift: "jiggle", settings: "spin" };
+
 /**
- * Menu icon that fades between its normal and selected colours and gives a small springy pop
- * (with a little tilt) when it becomes the selected page. `pill`: draws its own highlight (phones).
+ * Menu icon that fades between its normal and selected colours and, when it becomes the selected
+ * page, plays a little animation that fits what it shows: the clock's hands sweep round, the cog
+ * turns, the cash box jiggles, the table hops and the grid squashes like a pressed button.
+ * `pill`: draws its own highlight (phones).
  */
-function NavIcon({ icon, active, pill, children }: { icon: Icon; active: boolean; pill?: boolean; children?: ReactNode }) {
+function NavIcon({ icon, page, active, pill, children }: { icon: Icon; page: Page; active: boolean; pill?: boolean; children?: ReactNode }) {
+  const kind = FLOURISH[page];
   const on = useRef(new Animated.Value(active ? 1 : 0)).current;
-  const pop = useRef(new Animated.Value(1)).current;
-  const tilt = useRef(new Animated.Value(0)).current;
+  const go = useRef(new Animated.Value(0)).current;           // 0 → 1 over the flourish
   const first = useRef(true);
   useEffect(() => {
     if (first.current || motionReduced()) { first.current = false; on.setValue(active ? 1 : 0); return; }
     Animated.timing(on, { toValue: active ? 1 : 0, duration: 180, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
-    if (!active) return;
-    pop.setValue(0.7); tilt.setValue(-1);
-    Animated.parallel([
-      Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 14, bounciness: 14 }),
-      Animated.spring(tilt, { toValue: 0, useNativeDriver: true, speed: 12, bounciness: 16 }),
-    ]).start();
-  }, [active, on, pop, tilt]);
-  const rotate = tilt.interpolate({ inputRange: [-1, 0, 1], outputRange: ["-14deg", "0deg", "14deg"] });
+    if (!active || !kind) return;
+    go.setValue(0);
+    Animated.timing(go, {
+      toValue: 1, useNativeDriver: true,
+      duration: kind === "clock" ? 700 : kind === "spin" ? 650 : kind === "jiggle" ? 520 : 420,
+      easing: kind === "clock" || kind === "spin" ? Easing.out(Easing.back(1.6)) : Easing.linear,
+    }).start();
+  }, [active, on, go, kind]);
+
+  // Whole-icon motion for each kind (the clock moves its hands instead).
+  const motion = kind === "spin" ? [{ rotate: go.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] }) }]
+    : kind === "jiggle" ? [{ rotate: go.interpolate({ inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1], outputRange: ["0deg", "-16deg", "13deg", "-8deg", "4deg", "0deg"] }) },
+        { scale: go.interpolate({ inputRange: [0, 0.2, 1], outputRange: [1, 1.12, 1] }) }]
+    : kind === "hop" ? [{ translateY: go.interpolate({ inputRange: [0, 0.4, 0.7, 0.85, 1], outputRange: [0, -7, 0, -2, 0] }) },
+        { scaleY: go.interpolate({ inputRange: [0, 0.65, 0.75, 1], outputRange: [1, 1, 0.82, 1] }) },
+        { scaleX: go.interpolate({ inputRange: [0, 0.65, 0.75, 1], outputRange: [1, 1, 1.12, 1] }) }]
+    : kind === "squash" ? [{ scaleX: go.interpolate({ inputRange: [0, 0.3, 0.6, 1], outputRange: [1, 1.22, 0.92, 1] }) },
+        { scaleY: go.interpolate({ inputRange: [0, 0.3, 0.6, 1], outputRange: [1, 0.78, 1.08, 1] }) }]
+    : [];
+  const glyph = (color: string) => (kind === "clock" ? <Clock color={color} go={go} /> : <MaterialCommunityIcons name={icon} size={22} color={color} />);
+
   return (
     <View style={pill ? st.pillBox : undefined}>
       {pill && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, st.pillFill, { opacity: on, transform: [{ scaleX: on.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }]} />}
-      <Animated.View style={{ transform: [{ scale: pop }, { rotate }] }}>
-        <Animated.View style={{ opacity: on.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
-          <MaterialCommunityIcons name={icon} size={22} color={ink} />
-        </Animated.View>
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: on }]}>
-          <MaterialCommunityIcons name={icon} size={22} color={c.accentInk} />
-        </Animated.View>
+      <Animated.View style={{ transform: motion }}>
+        <Animated.View style={{ opacity: on.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>{glyph(ink)}</Animated.View>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: on }]}>{glyph(c.accentInk)}</Animated.View>
       </Animated.View>
       {children}
+    </View>
+  );
+}
+
+/** A clock drawn from parts so its hands can move: the minute hand sweeps a full turn, the hour hand ticks on. */
+function Clock({ color, go }: { color: string; go: Animated.Value }) {
+  const minute = go.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+  const hour = go.interpolate({ inputRange: [0, 1], outputRange: ["120deg", "150deg"] });
+  return (
+    <View style={{ width: 22, height: 22, alignItems: "center", justifyContent: "center" }}>
+      <View style={[st.clockFace, { borderColor: color }]} />
+      {/* Each hand sits in a full-size box that turns around its centre. */}
+      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate: hour }] }]}>
+        <View style={[st.hand, { height: 5, top: 6, backgroundColor: color }]} />
+      </Animated.View>
+      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate: minute }] }]}>
+        <View style={[st.hand, { height: 7, top: 4, backgroundColor: color }]} />
+      </Animated.View>
+      <View style={[st.hub, { backgroundColor: color }]} />
     </View>
   );
 }
@@ -186,6 +219,9 @@ const st = StyleSheet.create({
   pill: { position: "absolute", left: 6, right: 6, borderRadius: 6, backgroundColor: c.accent },
   pillBox: { width: 52, height: 32, alignItems: "center", justifyContent: "center" },
   pillFill: { borderRadius: 6, backgroundColor: c.accent },
+  clockFace: { width: 19, height: 19, borderRadius: 10, borderWidth: 2 },
+  hand: { position: "absolute", left: 10, width: 2, borderRadius: 1 },
+  hub: { position: "absolute", width: 4, height: 4, borderRadius: 2 },
   label: { color: ink, fontSize: 11, fontWeight: "700" },
   miniBadge: { position: "absolute", top: -6, right: -12, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: c.accent, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: rail },
   miniBadgeText: { color: c.accentInk, fontSize: 11, fontWeight: "800" },
