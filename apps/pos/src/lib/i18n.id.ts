@@ -711,4 +711,6 @@ export const ID: Record<string, string> = {
   "Use the account password instead": "Pakai kata sandi akun",
   "Use a manager's PIN instead": "Pakai PIN manajer",
   "Bluetooth is off on this tablet. Turn it on and try again.": "Bluetooth tablet ini mati. Nyalakan lalu coba lagi.",
+  "Item name": "Nama item",
+  "e.g. Extra rice": "mis. Nasi tambah",
 };
