@@ -710,4 +710,5 @@ export const ID: Record<string, string> = {
   "Enter the password of the account this tablet is signed in with.": "Masukkan kata sandi akun yang dipakai di tablet ini.",
   "Use the account password instead": "Pakai kata sandi akun",
   "Use a manager's PIN instead": "Pakai PIN manajer",
+  "Bluetooth is off on this tablet. Turn it on and try again.": "Bluetooth tablet ini mati. Nyalakan lalu coba lagi.",
 };
