@@ -8,6 +8,8 @@ import { AccessibilityInfo, Animated, Easing, Pressable, type PressableProps, ty
 let reduceMotion = false;
 void AccessibilityInfo.isReduceMotionEnabled().then((v) => { reduceMotion = v; });
 AccessibilityInfo.addEventListener("reduceMotionChanged", (v) => { reduceMotion = v; });
+/** True when the tablet asks for less motion (then animations jump straight to their end). */
+export const motionReduced = () => reduceMotion;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
