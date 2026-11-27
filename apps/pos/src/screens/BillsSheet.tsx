@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { cancelledBills, openBill, refundLog, showSlip, tableLabel, useStore, voidLog } from "../lib/store";
 import type { OrderDoc } from "../lib/types";
 import { Btn, money, Muted, Sheet } from "../ui/kit";
@@ -41,7 +41,8 @@ export function BillsSheet({ onClose }: { onClose: () => void }) {
     <Sheet visible onClose={onClose} title={t("Billing list")} width={900}>
       {refund ? <RefundDetail r={refund} onBack={() => setRefund(null)} />
         : detail ? <BillDetail order={detail.order} voidId={detail.voidId} onBack={() => setDetail(null)} /> : <>
-      <View style={st.tabs}>
+      {/* Scrolls sideways on phones, where the four tabs don't fit. */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.tabs} contentContainerStyle={{ gap: 4 }}>
         {tabs.map((tb) => (
           <Pressable key={tb.key} onPress={() => setTab(tb.key)} accessibilityRole="tab" accessibilityState={{ selected: tab === tb.key }}
             accessibilityLabel={`${t(tb.label)}, ${tb.count}`} style={[st.tab, tab === tb.key && st.tabOn]}>
@@ -51,7 +52,7 @@ export function BillsSheet({ onClose }: { onClose: () => void }) {
             </View>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
       {/* Steady height so the pop-up doesn't jump when switching tabs. */}
       <View style={{ minHeight: 440 }}>
         {tab === "open" && <OpenBills bills={bills} onClose={onClose} />}
@@ -140,7 +141,7 @@ function Voids({ list, onPick }: { list: ReturnType<typeof voidLog>; onPick: (o:
 }
 
 const st = StyleSheet.create({
-  tabs: { flexDirection: "row", gap: 4, borderBottomWidth: 1, borderColor: c.line, marginTop: -6 },
+  tabs: { flexGrow: 0, borderBottomWidth: 1, borderColor: c.line, marginTop: -6 },
   tab: { flexDirection: "row", alignItems: "center", gap: 8, height: 54, paddingHorizontal: 18, borderBottomWidth: 3, borderColor: "transparent" },
   tabOn: { borderColor: c.accent },
   tabText: { fontSize: 14, fontWeight: "700", color: c.ink2 },
