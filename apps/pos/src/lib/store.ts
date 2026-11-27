@@ -932,16 +932,25 @@ export function setOrderCustomer(cu: Customer | null) {
  * Move the bill on screen (and its customers) to another table. For a saved bill this is a new
  * version of the bill, so other tablets pick up the move on their next sync.
  */
-export function moveToTable(table: DiningTable) {
+/**
+ * Move the bill on screen to another table. A split bill moves as a whole: every part goes to the
+ * new table and keeps its "(2/3)" number. Returns how many bills moved.
+ */
+export function moveToTable(table: DiningTable): number {
   const o = state.order!;
   const label = o.customer_name ? `${table.name} · ${o.customer_name}` : table.name;
-  const moved: OrderDoc = { ...o, table_id: table.id, table_name: table.name, bill_name: label };
-  if (o.version === 0) { set({ order: moved }); return; }
-  const next: OrderDoc = { ...moved, version: o.version + 1 };
-  db.saveOrder(next);
-  set({ order: reprice(next, state.catalog!) });
+  if (o.version === 0) { set({ order: { ...o, table_id: table.id, table_name: table.name, bill_name: label } }); return 1; }
+  const parts = isSplitPart(o) ? splitParts(o) : [o];
+  for (const p of parts) {
+    const doc = p.id === o.id ? o : db.getOrder(p.id) ?? p;
+    const part = parts.length > 1 ? (doc.bill_name ?? "").match(/ \(\d+(?:\/\d+)?\)$/)?.[0] ?? "" : "";
+    const next: OrderDoc = { ...doc, table_id: table.id, table_name: table.name, bill_name: `${label}${part}`, version: doc.version + 1 };
+    db.saveOrder(next);
+    if (p.id === o.id) set({ order: reprice(next, state.catalog!) });
+  }
   refreshLocal();
   void syncNow();
+  return parts.length;
 }
 
 /** Change guests / customer name on the bill on screen (saved bills get a new version). */

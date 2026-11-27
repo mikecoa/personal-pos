@@ -85,7 +85,10 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
     if (mode === "move") {
       if (tb.id === order?.table_id) return setNotice(t("The bill is already at {name}.", { name: tb.name }));
       if (bills.length) return setNotice(t("{name} is in use. Pick a free table.", { name: tb.name }));
-      moveToTable(tb); onClose(); return;
+      // A split bill moves as a whole (every part goes to the new table).
+      const n = moveToTable(tb);
+      if (n > 1) notify(t("{n} bills moved to {name}", { n, name: t("Table {name}", { name: tb.name }) }));
+      onClose(); return;
     }
     if (bills.length === 0) {
       // A saved bill on screen is put away (it's already saved) when seating the new table.
@@ -97,7 +100,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
 
   const { compact } = useLayout();                           // phones: panels cover the map instead of sitting beside it
   const sideOpen = !compact && !!(panel || (editing && selectedTables.length > 0));
-  const title = editing ? t("Edit tables") : mode === "move" ? t("Move {v0} to…", { v0: order?.table_id ? tableLabel(order) : "bill" }) : t("Tables");
+  const title = editing ? t("Edit tables") : mode === "move" ? t("Move {v0} to…", { v0: order?.table_id ? t("Table {name}", { name: order.table_name ?? "" }) : t("bill") }) : t("Tables");
   const subtitle = editing
     ? (selectedTables.length ? t("{length} selected", { length: selectedTables.length }) : t("Tap tables to select them"))
     : mode === "move" ? t("Pick a free table") : tables.length ? t("{totalBusy} of {length} in use{v2}", { totalBusy, length: tables.length, v2: canEdit ? t(" · hold a table or area to edit it") : "" }) : "";
