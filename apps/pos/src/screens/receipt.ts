@@ -119,9 +119,12 @@ export async function printTicket(o: OrderDoc, items: TicketItem[], added = fals
   await printLines(p, ticketLines(o, items, lineWidth(p.paper), added, reprint), p.ticketCopies ?? 3);
 }
 
-/** Prints order tickets by itself when that's switched on (Settings → Printer). Errors show as a notice. */
-export function autoTicket(o: OrderDoc, items: TicketItem[], added = false) {
+/**
+ * Prints order tickets by itself when that's switched on (Settings → Printer). `always`: print even
+ * when it's off (charging: the kitchen must never miss items that were paid for). Errors show as a notice.
+ */
+export function autoTicket(o: OrderDoc, items: TicketItem[], added = false, always = false) {
   const p = printerSettings();
-  if (!p.autoTicket || p.connection === "none" || !items.length) return;
+  if ((!p.autoTicket && !always) || p.connection === "none" || !items.length) return;
   printTicket(o, items, added).then(() => notify(t("Order ticket printed."))).catch((e: Error) => notify(e.message));
 }

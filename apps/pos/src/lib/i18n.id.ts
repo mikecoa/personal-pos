@@ -608,7 +608,7 @@ export const ID: Record<string, string> = {
   "Order ticket copies": "Salinan tiket pesanan",
   "Item list without prices for the kitchen, checker and so on. Each copy is cut separately.": "Daftar item tanpa harga untuk dapur, checker, dll. Tiap salinan dipotong terpisah.",
   "Print order tickets automatically": "Cetak tiket pesanan otomatis",
-  "When a bill is saved, when items are added to a saved bill (only the new items), and when an order is charged without saving.": "Saat bill disimpan, saat item ditambahkan ke bill tersimpan (hanya item baru), dan saat pesanan dibayar tanpa disimpan.",
+  "When a bill is saved, and when items are added to a saved bill (only the new items). Charging always prints any items the kitchen hasn't had yet.": "Saat bill disimpan, dan saat item ditambahkan ke bill tersimpan (hanya item baru). Saat dibayar, item yang belum dikirim ke dapur selalu dicetak.",
   "No refunds on this tablet. Refunds are issued from Activity.": "Belum ada refund di tablet ini. Refund diberikan dari Aktivitas.",
   "1 refund": "1 refund",
   "{n} refunds": "{n} refund",

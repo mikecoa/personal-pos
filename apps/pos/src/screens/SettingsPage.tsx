@@ -292,7 +292,7 @@ function Printer() {
       <View style={st.toggleRow}>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 14, color: c.ink, fontWeight: "600" }}>{t("Print order tickets automatically")}</Text>
-          <Muted style={{ fontSize: 12 }}>{t("When a bill is saved, when items are added to a saved bill (only the new items), and when an order is charged without saving.")}</Muted>
+          <Muted style={{ fontSize: 12 }}>{t("When a bill is saved, and when items are added to a saved bill (only the new items). Charging always prints any items the kitchen hasn't had yet.")}</Muted>
         </View>
         <Toggle value={p.autoTicket ?? false} onValueChange={(v) => change({ autoTicket: v })}
           accessibilityLabel="Print order tickets automatically" />

@@ -84,7 +84,8 @@ export function ChargeSheet({ onClose }: { onClose: () => void }) {
       const items = newItems(before);
       const sold = completeSale(next);
       setDone(sold);
-      autoTicket(sold, items, before.version > 0);
+      // Charging always sends any items the kitchen hasn't had yet, whatever the auto-print setting.
+      autoTicket(sold, items, before.version > 0, true);
     }
     else setTenders(next);
   };
