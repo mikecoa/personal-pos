@@ -164,4 +164,16 @@ export function rejectedCount(): number {
 }
 
 export function deleteOrder(id: string) { db.runSync("DELETE FROM orders WHERE id = ?", id); }
+/**
+ * Forget records older than `days` that are already safely on the server (completed or cancelled
+ * sales, their refunds, closed shifts). The backoffice keeps the full history; keeping years of
+ * sales on the tablet only makes it slower and uses more memory. Unsent records are never touched.
+ */
+export function pruneOld(days = 90) {
+  const cutoff = new Date(Date.now() - days * 86_400_000).toISOString();
+  db.runSync("DELETE FROM refunds WHERE dirty = 0 AND refunded_at < ?", cutoff);
+  db.runSync(`DELETE FROM orders WHERE dirty = 0 AND status IN ('completed', 'cancelled') AND COALESCE(completed_at, opened_at) < ?
+    AND id NOT IN (SELECT order_id FROM refunds)`, cutoff);
+  db.runSync("DELETE FROM shifts WHERE dirty = 0 AND status = 'closed' AND opened_at < ?", cutoff);
+}
 export function wipe() { db.execSync("DELETE FROM kv; DELETE FROM orders; DELETE FROM shifts; DELETE FROM refunds;"); }

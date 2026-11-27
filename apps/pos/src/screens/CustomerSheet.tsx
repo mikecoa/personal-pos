@@ -43,7 +43,7 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet visible onClose={onClose} title={t("Customers")} width={760}
       footer={<>
-        {order?.customer_id && <Btn kind="secondary" title={t("Remove from bill")} onPress={() => { setOrderCustomer(null); onClose(); }} />}
+        {!!(order?.customer_id) && <Btn kind="secondary" title={t("Remove from bill")} onPress={() => { setOrderCustomer(null); onClose(); }} />}
         <View style={{ flex: 1 }} />
         {canEdit && <Btn title={t("+ New customer")} onPress={() => guard("customers_edit", "Add a customer", () => setEditing("new"))} />}
       </>}>
@@ -136,7 +136,7 @@ function CustomerForm({ customer, initialName, onBack, onSaved }: {
         <Muted style={{ fontSize: 12 }}>{t("Added to the bill when this customer is picked. Discounts are set up in the backoffice.")}</Muted>
       </View>
       {confirmDelete && <Muted style={{ fontSize: 12 }}>{t("Past bills keep the customer's name.")}</Muted>}
-      {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
+      {!!(error) && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
 }

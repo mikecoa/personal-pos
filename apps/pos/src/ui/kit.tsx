@@ -34,7 +34,7 @@ export function Chip({ label, active, onPress }: { label: string; active?: boole
 export function Field(props: TextInputProps & { label?: string }) {
   return (
     <View style={{ gap: 6 }}>
-      {props.label && <Text style={s.label}>{props.label}</Text>}
+      {!!(props.label) && <Text style={s.label}>{props.label}</Text>}
       <TextInput disableFullscreenUI placeholderTextColor="#98a29c" {...props} style={[s.input, props.style]} />
     </View>
   );
@@ -75,7 +75,7 @@ export function Sheet({ visible, onClose, title, children, footer, width = 560, 
               style={({ pressed }) => [s.close, pressed && { backgroundColor: c.surface2 }]}><Text style={{ fontSize: 19, color: c.ink2 }}>✕</Text></Pressable>
           </View>
           <ScrollView contentContainerStyle={{ padding: compact ? 14 : 20, gap: compact ? 14 : 18 }} keyboardShouldPersistTaps="handled">{children}</ScrollView>
-          {footer && <View style={s.sheetFoot}>{footer}</View>}
+          {!!(footer) && <View style={s.sheetFoot}>{footer}</View>}
         </FadeIn>
       </KeyboardAvoidingView>
     </Modal>

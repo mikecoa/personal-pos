@@ -179,7 +179,7 @@ function MapTile({ table, mode, scale, current, selected, onPress, onPressOut, o
       <Text style={{ fontSize: 12 * scale, color: sub, opacity: busy ? 0.85 : 1 }} numberOfLines={1}>
         {`${t("{n}/{seats} pax", { n: busy ? guests : 0, seats: table.seats })}${bills.length > 1 && busy ? ` · ${t("{n} bills", { n: bills.length })}` : ""}`}
       </Text>
-      {busy && oldest && (
+      {!!(busy && oldest) && (
         <View style={st.timeWrap} pointerEvents="none">
           <View style={st.time}><Text style={{ fontSize: 11 * scale, fontWeight: "700", color: c.accent }}>{elapsed(oldest)}</Text></View>
         </View>

@@ -63,7 +63,7 @@ function NavItem({ label, right, active, onPress }: { label: string; right?: str
     <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={right ? `${label}, ${right}` : label}
       style={({ pressed }) => [st.navItem, active ? { backgroundColor: c.accent } : pressed && { backgroundColor: c.surface2 }]}>
       <Text style={[st.navText, active && { color: c.accentInk }]}>{label}</Text>
-      {right && <Text style={{ color: active ? c.accentInk : c.ink2, fontWeight: "600" }}>{right}</Text>}
+      {!!(right) && <Text style={{ color: active ? c.accentInk : c.ink2, fontWeight: "600" }}>{right}</Text>}
     </Pressable>
   );
 }
@@ -126,7 +126,7 @@ function ShiftOption() {
       </Muted>
       {!allowed && <Text style={{ color: c.warn, fontWeight: "600" }}>{t("Your role can't change these. A manager can, here or in the backoffice (Checkout settings).")}</Text>}
       {saved && <Text style={{ color: c.accent, fontWeight: "600" }}>{t("Saved")}</Text>}
-      {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
+      {!!(error) && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Pane>
   );
 }

@@ -149,7 +149,7 @@ export function TablesSheet({ mode, onClose, page }: { mode: "seat" | "move"; on
           <View style={{ flexDirection: "row", flex: 1, minHeight: 0 }} onLayout={(e) => { setRowW(e.nativeEvent.layout.width); setRowH(e.nativeEvent.layout.height); }}>
             {/* grid */}
             <ScrollView style={{ flex: 1 }} scrollEnabled={!dragging} contentContainerStyle={{ padding: compact ? 14 : 20, gap: 14 }}>
-              {notice && <Text style={st.notice}>{notice}</Text>}
+              {!!(notice) && <Text style={st.notice}>{notice}</Text>}
               {(shown.length > 0 || editing) && (
                 <FloorBoard list={(compact || (sideOpen && rowW - 360 - 40 < areaSize.cols * MIN_CELL + 24)) && !editing} tables={shown} size={areaSize} mode={editing ? "edit" : mode} currentTableId={order?.table_id ?? null}
                   isSelected={(t) => (editing ? selection.includes(t.id) : (panel?.kind === "seat" || panel?.kind === "bills") && panel.table.id === t.id)}
@@ -211,7 +211,7 @@ function Tab({ label, count = 0, active, muted, hint, onPress, onLongPress }: {
       style={[st.tab, active && st.tabActive]}>
       <Text style={[st.tabText, active && { color: c.ink }, muted && { color: c.accent }]}>{label}</Text>
       {count > 0 && <View style={st.badge}><Text style={st.badgeText}>{count}</Text></View>}
-      {hint && <Text style={{ color: c.ink2, fontSize: 12 }}>{hint}</Text>}
+      {!!(hint) && <Text style={{ color: c.ink2, fontSize: 12 }}>{hint}</Text>}
     </Pressable>
   );
 }
@@ -222,7 +222,7 @@ function PanelShell({ title, sub, children, footer }: { title: string; sub?: str
       <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }} keyboardShouldPersistTaps="handled">
         <View>
           <Text style={{ fontSize: 19, fontWeight: "800", color: c.ink }}>{title}</Text>
-          {sub && <Muted>{sub}</Muted>}
+          {!!(sub) && <Muted>{sub}</Muted>}
         </View>
         {children}
       </ScrollView>

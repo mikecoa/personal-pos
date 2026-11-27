@@ -36,7 +36,7 @@ export function Setup() {
           <>
             <Field label={t("Email")} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
             <Field label={t("Password")} value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" />
-            {error && <Text style={{ color: c.danger }}>{error}</Text>}
+            {!!(error) && <Text style={{ color: c.danger }}>{error}</Text>}
             <Btn big title={t("Continue")} loading={busy} disabled={!email || !password}
               onPress={() => run(async () => { await signIn(email.trim(), password); setLocations(await manageableLocations()); setStep("location"); })} />
           </>
@@ -51,7 +51,7 @@ export function Setup() {
               ))}
             </View>
             <Field label={t("Tablet name")} value={name} onChangeText={setName} maxLength={60} />
-            {error && <Text style={{ color: c.danger }}>{error}</Text>}
+            {!!(error) && <Text style={{ color: c.danger }}>{error}</Text>}
             <Btn big title={t("Finish setup")} loading={busy} disabled={!chosen}
               onPress={() => run(() => registerDevice(locations.find((l) => l.id === chosen)!, name))} />
           </>

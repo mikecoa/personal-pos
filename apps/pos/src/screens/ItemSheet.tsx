@@ -104,7 +104,7 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
                   <Text style={{ color: c.ink, fontWeight: "600" }} numberOfLines={1}>
                     {lineLabel(l)}{l.modifiers.length ? ` · ${l.modifiers.map((m) => m.option).join(", ")}` : ""}
                   </Text>
-                  {(l.note || l.discount) && <Text style={{ color: c.ink2, fontSize: 12 }} numberOfLines={1}>{[l.note && `“${l.note}”`, l.discount?.name].filter(Boolean).join(" · ")}</Text>}
+                  {!!((l.note || l.discount)) && <Text style={{ color: c.ink2, fontSize: 12 }} numberOfLines={1}>{[l.note && `“${l.note}”`, l.discount?.name].filter(Boolean).join(" · ")}</Text>}
                 </View>
                 <Pressable onPress={() => setNoteFor(l.id)} accessibilityRole="button" hitSlop={4}
                   accessibilityLabel={l.note ? t("Note: {note}. Change", { note: l.note }) : t("Add a note to {v0}", { v0: lineLabel(l) })}
@@ -128,7 +128,7 @@ export function ItemSheet({ item, onClose }: { item: Item; onClose: () => void }
         </View>
       )}
       {stockLeft !== null && <Muted>{stockLeft} in stock</Muted>}
-      {noteFor && <NoteSheet lineId={noteFor} onClose={() => setNoteFor(null)} />}
+      {!!(noteFor) && <NoteSheet lineId={noteFor} onClose={() => setNoteFor(null)} />}
     </Sheet>
   );
 }
