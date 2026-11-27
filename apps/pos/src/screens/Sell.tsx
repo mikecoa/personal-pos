@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { type ComponentProps, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentProps, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Image, Modal as RNModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -101,6 +101,19 @@ export function Sell() {
     for (const l of order?.lines ?? []) if (l.item_id) m.set(l.item_id, (m.get(l.item_id) ?? 0) + l.qty);
     return m;
   }, [order?.lines]);
+  // Menu rows only redraw the tiles whose count or price changed (tapping an item used to redraw every tile).
+  const tapRef = useRef(tap); tapRef.current = tap;
+  const onTile = useCallback((item: Item) => (editingMenu ? setModal({ kind: "editItem", item }) : tapRef.current(item)), [editingMenu]);
+  const onAdd = useCallback(() => setModal({ kind: "editItem", item: null }), []);
+  const renderRow = useCallback(({ item: row }: { item: GridRow }) => row.kind === "header"
+    ? <MenuHeader name={row.name} count={row.count} />
+    : (
+      <View style={grid.row}>
+        {row.items.map((item) => item === ADD_TILE
+          ? <AddTile key="add" width={tileW} onPress={onAdd} />
+          : <MenuTile key={item.id} item={item} count={inCart.get(item.id) ?? 0} editing={editingMenu} width={tileW} salesTypeId={salesTypeId} onPress={onTile} />)}
+      </View>
+    ), [inCart, editingMenu, tileW, salesTypeId, onTile, onAdd]);
   const step = (lineId: string, delta: number) => {
     const l = order!.lines.find((x) => x.id === lineId)!;
     const next = l.qty + delta;
@@ -309,7 +322,7 @@ export function Sell() {
             <Text style={{ fontSize: 14, fontWeight: "700", color: c.ink, maxWidth: tight ? 120 : 220 }} numberOfLines={1}>{catName}</Text>
             <MaterialCommunityIcons name="chevron-down" size={22} color={c.ink2} />
           </Pressable>
-          {cat && (
+          {!!(cat) && (
             <Pressable onPress={() => setCat(null)} accessibilityRole="button" accessibilityLabel="Show all items"
               style={({ pressed }) => [catBtn, { height: bh, paddingHorizontal: 12 }, pressed && { backgroundColor: c.surface2 }]}>
               <MaterialCommunityIcons name="close" size={20} color={c.accent} />
@@ -343,46 +356,11 @@ export function Sell() {
             stickyHeaderIndices={stickyHeaders}
             contentContainerStyle={{ paddingBottom: 24 }}
             ListEmptyComponent={<Muted>{q ? t("No items match “{q}”.", { q }) : t("No items in this category.")}</Muted>}
-            renderItem={({ item: row }) => row.kind === "header" ? (
-              <View style={{ backgroundColor: c.bg, paddingTop: 10, paddingBottom: 8, flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-                <Text style={{ fontSize: 14, fontWeight: "800", color: c.ink, letterSpacing: 0.3 }}>{row.name.toUpperCase()}</Text>
-                <Text style={{ color: c.ink2, fontSize: 12 }}>{row.count === 1 ? t("1 item") : t("{n} items", { n: row.count })}</Text>
-              </View>
-            ) : (
-              <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
-                {row.items.map((item) => item === ADD_TILE ? (
-                  <Pressable key="add" onPress={() => setModal({ kind: "editItem", item: null })} accessibilityRole="button" accessibilityLabel="New item"
-                    style={({ pressed }) => ({ width: tileW, minHeight: 56, flexDirection: "row", borderRadius: r.sm, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent,
-                      alignItems: "center", justifyContent: "center", gap: 4, opacity: pressed ? 0.7 : 1 })}>
-                    <MaterialCommunityIcons name="plus" size={22} color={c.accent} />
-                    <Text style={{ color: c.accent, fontWeight: "700" }}>{t("New item")}</Text>
-                  </Pressable>
-                ) : (() => {
-                  const out = item.track_stock && item.stock <= 0;
-                  return (
-                    <Tap key={item.id} onPress={() => (editingMenu ? setModal({ kind: "editItem", item }) : tap(item))} accessibilityRole="button"
-                      accessibilityLabel={editingMenu ? t("Edit {name}", { name: item.name }) : `${item.name}, ${priceLabel(item)}`} scaleTo={0.95}
-                      style={{ width: tileW, minHeight: 56, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8,
-                        borderRadius: r.sm, backgroundColor: (inCart.get(item.id) ?? 0) > 0 && !editingMenu ? c.accentSoft : c.surface, borderWidth: 1, borderColor: (inCart.get(item.id) ?? 0) > 0 && !editingMenu ? c.accent : c.line, opacity: out ? 0.55 : 1 }}>
-                      {/* Compact menu row: name on the left, price on the right, how many are on the order. */}
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={{ fontWeight: "700", color: c.ink, fontSize: 14 }} numberOfLines={2}>{item.name}</Text>
-                        {out && <Text style={{ color: c.danger, fontSize: 12 }}>{t("Out of stock")}</Text>}
-                      </View>
-                      <Text style={{ color: c.ink2, fontSize: 13 }} numberOfLines={1}>{priceLabel(item)}</Text>
-                      {editingMenu ? <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink2} />
-                        : (inCart.get(item.id) ?? 0) > 0 && (
-                        <Pop value={inCart.get(item.id)}>
-                          <View style={{ minWidth: 26, height: 26, borderRadius: 6, paddingHorizontal: 7, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
-                            <Text style={{ color: c.accentInk, fontWeight: "800", fontSize: 12 }} accessibilityLabel={`${inCart.get(item.id)} on the order`}>{inCart.get(item.id)}</Text>
-                          </View>
-                        </Pop>
-                      )}
-                    </Tap>
-                  );
-                })())}
-              </View>
-            )}
+            renderItem={renderRow}
+            // Fewer off-screen rows kept alive: less memory and less work per update on cheap tablets.
+            initialNumToRender={12}
+            windowSize={7}
+            removeClippedSubviews
           />
         </View>
         {/* Phones: the order lives behind this bar. */}
@@ -417,7 +395,7 @@ export function Sell() {
         </RNModal>
       )}
 
-      {notice && (
+      {!!(notice) && (
         <Pressable onPress={() => notify(null)} style={{ position: "absolute", left: 16, bottom: compact ? 96 : 16, right: cartW + 16, padding: 14, borderRadius: r.md, backgroundColor: c.ink }}>
           <Text style={{ color: "#fff", fontWeight: "600" }}>{notice}  ✕</Text>
         </Pressable>
@@ -640,3 +618,64 @@ function BillPreviewSheet({ onClose, ticket }: { onClose: () => void; ticket?: b
     </Sheet>
   );
 }
+
+const grid = StyleSheet.create({
+  row: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  header: { backgroundColor: c.bg, paddingTop: 10, paddingBottom: 8, flexDirection: "row", alignItems: "baseline", gap: 8 },
+  headerName: { fontSize: 14, fontWeight: "800", color: c.ink, letterSpacing: 0.3 },
+  headerCount: { color: c.ink2, fontSize: 12 },
+  tile: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: r.sm, borderWidth: 1 },
+  name: { fontWeight: "700", color: c.ink, fontSize: 14 },
+  out: { color: c.danger, fontSize: 12 },
+  price: { color: c.ink2, fontSize: 13 },
+  badge: { minWidth: 26, height: 26, borderRadius: 6, paddingHorizontal: 7, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" },
+  badgeText: { color: c.accentInk, fontWeight: "800", fontSize: 12 },
+  add: { minHeight: 56, flexDirection: "row", borderRadius: r.sm, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent, alignItems: "center", justifyContent: "center", gap: 4 },
+});
+
+const MenuHeader = memo(function MenuHeader({ name, count }: { name: string; count: number }) {
+  return (
+    <View style={grid.header}>
+      <Text style={grid.headerName}>{name.toUpperCase()}</Text>
+      <Text style={grid.headerCount}>{count === 1 ? t("1 item") : t("{n} items", { n: count })}</Text>
+    </View>
+  );
+});
+
+const AddTile = memo(function AddTile({ width, onPress }: { width: number; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="New item" style={({ pressed }) => [grid.add, { width, opacity: pressed ? 0.7 : 1 }]}>
+      <MaterialCommunityIcons name="plus" size={22} color={c.accent} />
+      <Text style={{ color: c.accent, fontWeight: "700" }}>{t("New item")}</Text>
+    </Pressable>
+  );
+});
+
+/** One menu item; redraws only when its own count, price or size changes. */
+const MenuTile = memo(function MenuTile({ item, count, editing, width, salesTypeId, onPress }:
+  { item: Item; count: number; editing: boolean; width: number; salesTypeId: string | null; onPress: (item: Item) => void }) {
+  const out = item.track_stock && item.stock <= 0;
+  const ps = item.variants.map((v) => variantPrice(v, salesTypeId));
+  const price = ps.length > 1 && Math.min(...ps) !== Math.max(...ps) ? t("from {v0}", { v0: money(Math.min(...ps)) }) : money(ps[0] ?? 0);
+  const on = count > 0 && !editing;
+  return (
+    <Tap onPress={() => onPress(item)} accessibilityRole="button" scaleTo={0.95}
+      accessibilityLabel={editing ? t("Edit {name}", { name: item.name }) : `${item.name}, ${price}`}
+      style={[grid.tile, { width, backgroundColor: on ? c.accentSoft : c.surface, borderColor: on ? c.accent : c.line, opacity: out ? 0.55 : 1 }]}>
+      {/* Compact menu row: name on the left, price on the right, how many are on the order. */}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={grid.name} numberOfLines={2}>{item.name}</Text>
+        {out ? <Text style={grid.out}>{t("Out of stock")}</Text> : null}
+      </View>
+      <Text style={grid.price} numberOfLines={1}>{price}</Text>
+      {editing ? <MaterialCommunityIcons name="pencil-outline" size={18} color={c.ink2} />
+        : on ? (
+          <Pop value={count}>
+            <View style={grid.badge}>
+              <Text style={grid.badgeText} accessibilityLabel={`${count} on the order`}>{count}</Text>
+            </View>
+          </Pop>
+        ) : null}
+    </Tap>
+  );
+});

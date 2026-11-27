@@ -99,7 +99,7 @@ export function SaveBillSheet({ onClose }: { onClose: () => void }) {
           </View>
         </View>
       )}
-      {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
+      {!!(error) && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
 }
@@ -325,7 +325,7 @@ export function SplitBillSheet({ onClose }: { onClose: () => void }) {
           </Pressable>
         )}
       </ScrollView>
-      {error && <Text style={{ color: c.danger, marginTop: 8 }}>{error}</Text>}
+      {!!(error) && <Text style={{ color: c.danger, marginTop: 8 }}>{error}</Text>}
     </Sheet>
   );
 }

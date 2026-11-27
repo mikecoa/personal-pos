@@ -95,6 +95,7 @@ export function notify(notice: string | null) {
 
 // ───────────────────────────────────────────── boot / setup
 export async function boot() {
+  try { db.pruneOld(); } catch { /* never block start-up on housekeeping */ }
   const device = db.kvGet<Device>("device");
   const catalog = db.kvGet<Catalog>("catalog");
   set({ device, catalog, shift: db.openShift(), phase: device && catalog ? "locked" : "setup" });
@@ -1173,7 +1174,8 @@ export function syncNow(opts: { catalog?: boolean; auto?: boolean } = {}): Promi
       const ids = new Set(serverOpen.map((o) => o.id));
       for (const so of serverOpen) {
         const local = db.getOrder(so.id);
-        if (!local || (!local.dirty && local.version <= so.version) || so.version > local.version) db.saveOrder(fromServer(so), false);
+        // Only rewrite when the server copy is newer: same version = same bill (this ran for every open bill every 10 s).
+        if (!local || so.version > local.version) db.saveOrder(fromServer(so), false);
       }
       for (const lo of db.listOrders("open")) {
         const l = db.getOrder(lo.id)!;

@@ -30,7 +30,7 @@ export function NoteSheet({ lineId, onClose }: { lineId: string; onClose: () => 
   return (
     <Sheet visible onClose={onClose} title={t("Note")} width={620}
       footer={<>
-        {line.note && <Btn kind="ghost" title={t("Remove note")} onPress={() => save(null, true)} />}
+        {!!(line.note) && <Btn kind="ghost" title={t("Remove note")} onPress={() => save(null, true)} />}
         <View style={{ flex: 1 }} />
         <Btn kind="secondary" title={t("Cancel")} onPress={onClose} />
         <Btn big style={{ minWidth: 180 }} title={line.qty > 1 && !all ? t("Save for 1") : t("Save")} disabled={!text.trim()} onPress={() => save(text.trim(), all)} />
@@ -134,7 +134,7 @@ function QuickNotesEditor({ onClose }: { onClose: () => void }) {
         </Pressable>
       </View>
       {!valid && rows.length > 0 && <Muted style={{ fontSize: 12 }}>{t("Each note needs text and must be different.")}</Muted>}
-      {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
+      {!!(error) && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
 }

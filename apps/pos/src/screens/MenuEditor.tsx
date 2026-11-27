@@ -113,7 +113,7 @@ export function ItemEditor({ item, categoryId, onClose }: { item: Item | null; c
       {track && !item && <Field label={t("Starting stock")} value={stock} onChangeText={(v) => setStock(digits(v))} keyboardType="number-pad" placeholder="0" />}
 
       {confirmRemove && <Muted style={{ fontSize: 12 }}>{t("It disappears from the menu on every tablet. Past sales keep it, and it can be brought back in the backoffice.")}</Muted>}
-      {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
+      {!!(error) && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
 }
@@ -141,7 +141,7 @@ export function CategoryEditor({ category, onClose, onSaved }: { category: { id:
       </>}>
       <Field label={t("Name")} value={name} onChangeText={(v) => { setName(v); setConfirmDelete(false); }} placeholder={t("e.g. Minuman, Makanan, Snack")} maxLength={40} autoFocus />
       {category && <Muted style={{ fontSize: 13 }}>{count === 1 ? t("1 item") : t("{n} items", { n: count })}{confirmDelete && count ? ` ${t("will stay on the menu without a category.")}` : "."}</Muted>}
-      {error && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
+      {!!(error) && <Text style={{ color: c.danger, fontWeight: "600" }}>{error}</Text>}
     </Sheet>
   );
 }
@@ -169,7 +169,7 @@ export function CategoryPicker({ current, editing, onPick, onEdit, onClose }: {
           <Text style={{ color: c.ink2 }}>{count(id)}</Text>
           {on && <MaterialCommunityIcons name="check" size={22} color={c.accent} />}
         </Pressable>
-        {editing && id && (
+        {!!(editing && id) && (
           <Pressable onPress={() => onEdit({ id, name })} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Edit category ${name}`} style={pk.edit}>
             <MaterialCommunityIcons name="pencil-outline" size={20} color={c.ink2} />
           </Pressable>
@@ -190,7 +190,7 @@ export function CategoryPicker({ current, editing, onPick, onEdit, onClose }: {
       <View style={pk.list}>
         {!query && <Row id={null} name="All items" />}
         {list.map((k) => <Row key={k.id} id={k.id} name={k.name} />)}
-        {query && !list.length && <Muted style={{ padding: 14 }}>{t("No category matches.")}</Muted>}
+        {!!(query && !list.length) && <Muted style={{ padding: 14 }}>{t("No category matches.")}</Muted>}
       </View>
     </Sheet>
   );

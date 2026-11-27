@@ -152,7 +152,7 @@ function Details({ sale }: { sale: OrderDoc }) {
       </Section>
 
       <Section title={t("ITEMS")}>
-        {sale.sales_type_name && <Text style={st.salesType}>{sale.sales_type_name}</Text>}
+        {!!(sale.sales_type_name) && <Text style={st.salesType}>{sale.sales_type_name}</Text>}
         {sale.lines.map((l) => (
           <View key={l.id}>
             <View style={st.item}>

@@ -48,7 +48,7 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
             <View style={st.barIcon}>
               <NavIcon icon={i.icon} page={i.page} active={active} pill>
                 {i.dot && <View style={st.dot} />}
-                {i.badge && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
+                {!!(i.badge) && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
               </NavIcon>
             </View>
             <NavLabel active={active} style={st.barLabel} activeColor={c.accent}>{t(i.label)}</NavLabel>
@@ -86,7 +86,7 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
               style={[st.item, short && { height: 52, gap: 2 }]}>
               <NavIcon icon={i.icon} page={i.page} active={active}>
                 {i.dot && <View style={st.dot} />}
-                {i.badge && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
+                {!!(i.badge) && <View style={st.miniBadge}><Text style={st.miniBadgeText}>{i.badge}</Text></View>}
               </NavIcon>
               <NavLabel active={active} style={st.label} activeColor={c.accentInk}>{t(i.label)}</NavLabel>
             </Tap>
@@ -110,20 +110,21 @@ export function SideMenu({ bottom }: { bottom?: boolean }) {
 
 type Slot = { y: number; h: number };
 
-/** Green highlight behind the active rail item; springs to the newly chosen one. */
+/**
+ * Green highlight behind the active rail item; springs to the newly chosen one. Only `translateY`
+ * is animated (on the GPU), so switching pages costs the busy JavaScript thread nothing.
+ */
 function SlidingPill({ target, at }: { target: Page; at: Partial<Record<Page, Slot>> }) {
   const slot = at[target];
   const y = useRef(new Animated.Value(slot?.y ?? 0)).current;
-  const h = useRef(new Animated.Value(slot?.h ?? 60)).current;
   const placed = useRef(false);
   useEffect(() => {
     if (!slot) return;
-    if (!placed.current || motionReduced()) { y.setValue(slot.y); h.setValue(slot.h); placed.current = true; return; }
-    Animated.spring(y, { toValue: slot.y, useNativeDriver: false, speed: 16, bounciness: 7 }).start();
-    Animated.timing(h, { toValue: slot.h, duration: 160, useNativeDriver: false }).start();
-  }, [slot?.y, slot?.h, y, h]);
+    if (!placed.current || motionReduced()) { y.setValue(slot.y); placed.current = true; return; }
+    Animated.spring(y, { toValue: slot.y, useNativeDriver: true, speed: 16, bounciness: 7 }).start();
+  }, [slot?.y, y]);
   if (!slot) return null;                                    // a page that isn't in the menu: no highlight
-  return <Animated.View pointerEvents="none" style={[st.pill, { top: y, height: h }]} />;
+  return <Animated.View pointerEvents="none" style={[st.pill, { top: 0, height: slot.h, transform: [{ translateY: y }] }]} />;
 }
 
 type Flourish = "grid" | "table" | "clock" | "lid" | "spin";
@@ -242,15 +243,19 @@ function Clock({ color, go }: { color: string; go: Animated.Value }) {
   );
 }
 
-/** Menu label whose colour fades with the selection. */
+/** Menu label that cross-fades between its normal and selected colour (opacity only, on the GPU). */
 function NavLabel({ active, style, activeColor, children }: { active: boolean; style: object; activeColor: string; children: ReactNode }) {
   const on = useRef(new Animated.Value(active ? 1 : 0)).current;
   useEffect(() => {
     if (motionReduced()) { on.setValue(active ? 1 : 0); return; }
-    Animated.timing(on, { toValue: active ? 1 : 0, duration: 180, useNativeDriver: false }).start();
+    Animated.timing(on, { toValue: active ? 1 : 0, duration: 180, useNativeDriver: true }).start();
   }, [active, on]);
-  const color = on.interpolate({ inputRange: [0, 1], outputRange: [ink, activeColor] });
-  return <Animated.Text style={[style, { color }]} numberOfLines={1}>{children}</Animated.Text>;
+  return (
+    <View>
+      <Animated.Text style={[style, { color: ink, opacity: on.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} numberOfLines={1}>{children}</Animated.Text>
+      <Animated.Text style={[style, StyleSheet.absoluteFill, { color: activeColor, textAlign: "center", opacity: on }]} numberOfLines={1}>{children}</Animated.Text>
+    </View>
+  );
 }
 
 const st = StyleSheet.create({

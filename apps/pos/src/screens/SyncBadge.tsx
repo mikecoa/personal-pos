@@ -58,7 +58,7 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
       <View style={{ gap: 4 }}>
         <Text style={{ color: c.ink }}>{t("Last successful sync:")} <Text style={{ fontWeight: "700" }}>{when(sync.lastSync)}</Text></Text>
         <Text style={{ color: c.ink }}>{t("Waiting to upload:")} <Text style={{ fontWeight: "700" }}>{sync.pending}</Text></Text>
-        {!sync.online && sync.error && !sync.problem && <Muted>Last error: {sync.error}. Sales are safe on this tablet and upload when the connection is back.</Muted>}
+        {!!(!sync.online && sync.error && !sync.problem) && <Muted>Last error: {sync.error}. Sales are safe on this tablet and upload when the connection is back.</Muted>}
       </View>
 
       {sync.problem === "auth" && (
@@ -67,7 +67,7 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
           <Text style={{ color: c.ink }}>{t("The tablet's sign-in expired. An owner or admin of this location signs in once; nothing on the tablet is lost.")}</Text>
           <Field label={t("Email")} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
           <Field label={t("Password")} value={password} onChangeText={setPassword} secureTextEntry />
-          {err && <Text style={{ color: c.danger }}>{err}</Text>}
+          {!!(err) && <Text style={{ color: c.danger }}>{err}</Text>}
           <Btn title={t("Sign in")} loading={busy} disabled={!email || !password} onPress={async () => {
             setBusy(true); setErr(null);
             try { await reauthenticate(email.trim(), password); setPassword(""); } catch (e) { setErr(e instanceof Error ? e.message : t("Sign-in failed")); }
