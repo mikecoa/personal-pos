@@ -5,7 +5,7 @@ import { useLayout } from "../ui/layout";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { can, clearOrder, confirmBill, isSplitPart, splitParts, getState, guard, markSent, notify, saveOpenBill, setQty, setSalesType, tableLabel, useStore } from "../lib/store";
 import { lineLabel, lineSalesType, mixedSalesTypes, printedQty, variantPrice } from "../lib/order";
-import type { Item } from "../lib/types";
+import type { Item, OrderLine as OrderLineT } from "../lib/types";
 import { Btn, Field, Keypad, money, Muted, Sheet } from "../ui/kit";
 import { c, r, tileColor } from "../ui/theme";
 import { BillDiscountSheet, CancelBillSheet, SaveBillSheet, SplitBillSheet, SplitPrintSheet } from "./BillActions";
@@ -77,7 +77,7 @@ export function Sell() {
     }
     return out;
   }, [items, cat, catName, catalog.categories, cols, editingMenu]);
-  const stickyHeaders = rows.flatMap((r, i) => (r.kind === "header" ? [i] : []));
+  const stickyHeaders = useMemo(() => rows.flatMap((r, i) => (r.kind === "header" ? [i] : [])), [rows]);
   const salesTypeId = order?.sales_type_id ?? catalog.sales_types[0]?.id ?? null;
 
   const tap = (item: Item) => {
@@ -101,6 +101,7 @@ export function Sell() {
     for (const l of order?.lines ?? []) if (l.item_id) m.set(l.item_id, (m.get(l.item_id) ?? 0) + l.qty);
     return m;
   }, [order?.lines]);
+  const emptyMenu = useMemo(() => <Muted>{q ? t("No items match “{q}”.", { q }) : t("No items in this category.")}</Muted>, [q]);
   // Menu rows only redraw the tiles whose count or price changed (tapping an item used to redraw every tile).
   const tapRef = useRef(tap); tapRef.current = tap;
   const onTile = useCallback((item: Item) => (editingMenu ? setModal({ kind: "editItem", item }) : tapRef.current(item)), [editingMenu]);
@@ -111,9 +112,9 @@ export function Sell() {
       <View style={grid.row}>
         {row.items.map((item) => item === ADD_TILE
           ? <AddTile key="add" width={tileW} onPress={onAdd} />
-          : <MenuTile key={item.id} item={item} count={inCart.get(item.id) ?? 0} editing={editingMenu} width={tileW} salesTypeId={salesTypeId} onPress={onTile} />)}
+          : <MenuTile key={item.id} item={item} editing={editingMenu} width={tileW} salesTypeId={salesTypeId} onPress={onTile} />)}
       </View>
-    ), [inCart, editingMenu, tileW, salesTypeId, onTile, onAdd]);
+    ), [editingMenu, tileW, salesTypeId, onTile, onAdd]);
   const step = (lineId: string, delta: number) => {
     const l = order!.lines.find((x) => x.id === lineId)!;
     const next = l.qty + delta;
@@ -127,7 +128,18 @@ export function Sell() {
   };
 
   // Scroll the order list to the item just added (or whose quantity went up), so the cashier sees it.
+  // Order lines redraw only when that line changed (each tap used to redraw every line).
+  const stepRef = useRef(step); stepRef.current = step;
+  const onLineStep = useCallback((id: string, d: number) => stepRef.current(id, d), []);
+  const onLineOpen = useCallback((id: string) => setModal({ kind: "line", id }), []);
+  const onLineNote = useCallback((id: string) => setModal({ kind: "note", id }), []);
+  const renderLine = useCallback(({ item: l }: { item: NonNullable<typeof order>["lines"][number] }) => (
+    <CartLine line={l} typeLabel={mixed && order ? lineSalesType(l, order) : null} saved={(order?.version ?? 0) > 0}
+      onOpen={onLineOpen} onNote={onLineNote} onStep={onLineStep} />
+  ), [mixed, order, onLineOpen, onLineNote, onLineStep]);
   const linesRef = useRef<FlatList<NonNullable<typeof order>["lines"][number]>>(null);
+  const onLinesScrollFail = useCallback(() => linesRef.current?.scrollToEnd({ animated: true }), []);
+  const emptyLines = useMemo(() => <View style={{ padding: 24 }}><Muted>{t("Tap items to add them.")}</Muted></View>, []);
   const prevQty = useRef<{ id: string | null; qty: Map<string, number> }>({ id: null, qty: new Map() });
   useEffect(() => {
     const lines = order?.lines ?? [];
@@ -200,51 +212,11 @@ export function Sell() {
         <FlatList
           ref={linesRef}
           style={{ flex: 1 }}
-          data={order?.lines ?? []}
-          keyExtractor={(l) => l.id}
-          onScrollToIndexFailed={() => linesRef.current?.scrollToEnd({ animated: true })}
-          ListEmptyComponent={<View style={{ padding: 24 }}><Muted>{t("Tap items to add them.")}</Muted></View>}
-          renderItem={({ item: l }) => (
-            <FadeIn from={0} duration={220} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 14, paddingRight: 8, paddingVertical: 4, borderBottomWidth: 1, borderColor: c.line }}>
-              <Pressable onPress={() => setModal({ kind: "line", id: l.id })} accessibilityRole="button" accessibilityLabel={`${l.qty} ${lineLabel(l)}, ${money(l.line_total)}. Tap to edit`}
-                style={({ pressed }) => ({ flex: 1, gap: 1, paddingVertical: 2, opacity: pressed ? 0.6 : 1 })}>
-                <Text style={{ fontWeight: "600", color: c.ink, fontSize: 14 }} numberOfLines={2}>{lineLabel(l)}</Text>
-                {mixed && (
-                  <View style={typeTag.box}><Text style={typeTag.text} numberOfLines={1}>{lineSalesType(l, order!)}</Text></View>
-                )}
-                {l.modifiers.length > 0 && <Text style={{ color: c.ink2, fontSize: 12 }}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text>}
-                {l.discount_amount > 0 && <Text style={{ color: c.accent }}>{l.discount!.name} −{money(l.discount_amount)}</Text>}
-                {/* Price and the note link share one row to keep each line short. */}
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <Text style={{ fontWeight: "700", color: c.ink, fontSize: 13 }}>{money(l.line_total)}</Text>
-                <Pressable onPress={() => setModal({ kind: "note", id: l.id })} accessibilityRole="button" hitSlop={6}
-                  accessibilityLabel={l.note ? t("Note: {note}. Change", { note: l.note }) : t("Add a note to {v0}", { v0: lineLabel(l) })}
-                  style={({ pressed }) => [noteBtn, l.note && { borderColor: c.warn, borderStyle: "solid" }, pressed && { backgroundColor: c.surface2 }]}>
-                  <MaterialCommunityIcons name={l.note ? "note-text-outline" : "note-plus-outline"} size={16} color={l.note ? c.warn : c.accent} />
-                  <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", fontSize: 12, flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : t("Add note")}</Text>
-                </Pressable>
-                {/* Printed for the kitchen: all of it, or part (when more were added since). */}
-                {order!.version > 0 && printedQty(l) > 0 && (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }} accessibilityLabel={printedQty(l) >= l.qty ? t("Printed") : t("{n} of {m} printed", { n: printedQty(l), m: l.qty })}>
-                    <MaterialCommunityIcons name="printer-check" size={14} color={c.ink2} />
-                    <Text style={{ color: c.ink2, fontSize: 11, fontWeight: "600" }}>{printedQty(l) >= l.qty ? t("Printed") : t("{n} of {m} printed", { n: printedQty(l), m: l.qty })}</Text>
-                  </View>
-                )}
-                </View>
-              </Pressable>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Pressable onPress={() => step(l.id, -1)} accessibilityRole="button" accessibilityLabel={`One less ${lineLabel(l)}`} hitSlop={4}
-                  style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
-                  <MaterialCommunityIcons name={l.qty === 1 && !(l.saved_qty ?? 0) ? "trash-can-outline" : "minus"} size={20} color={c.ink} />
-                </Pressable>
-                <Pop value={l.qty}><Text style={{ minWidth: 28, textAlign: "center", fontSize: 16, fontWeight: "800", color: c.ink }}>{l.qty}</Text></Pop>
-                <Pressable onPress={() => step(l.id, 1)} accessibilityRole="button" accessibilityLabel={`One more ${lineLabel(l)}`} hitSlop={4}
-                  style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
-                  <MaterialCommunityIcons name="plus" size={20} color={c.ink} />
-                </Pressable>
-              </View>
-            </FadeIn>
-          )}
+          data={order?.lines ?? NO_LINES}
+          keyExtractor={lineKey}
+          onScrollToIndexFailed={onLinesScrollFail}
+          ListEmptyComponent={emptyLines}
+          renderItem={renderLine}
         />
 
         {hasLines && (
@@ -345,6 +317,7 @@ export function Sell() {
         )}
         <View style={{ flex: 1, opacity: measured ? 1 : 0 }} onLayout={(e) => {
           const w = Math.floor(e.nativeEvent.layout.width);
+          if (w < 50) return;                                  // hidden behind another page: keep the last real width
           lastGridW = w; setMeasured(true);
           if (Math.abs(w - gridW) > 1) setGridW(w);
         }}>
@@ -352,10 +325,10 @@ export function Sell() {
             // Remount when the layout changes: Android doesn't redraw pinned headers whose positions moved.
             key={`${editingMenu ? "edit" : "sell"}-${cat ?? "all"}-${cols}-${q ? "q" : ""}`}
             data={rows}
-            keyExtractor={(r) => r.key}
+            keyExtractor={rowKey}
             stickyHeaderIndices={stickyHeaders}
-            contentContainerStyle={{ paddingBottom: 24 }}
-            ListEmptyComponent={<Muted>{q ? t("No items match “{q}”.", { q }) : t("No items in this category.")}</Muted>}
+            contentContainerStyle={grid.content}
+            ListEmptyComponent={emptyMenu}
             renderItem={renderRow}
             // Fewer off-screen rows kept alive: less memory and less work per update on cheap tablets.
             initialNumToRender={12}
@@ -487,6 +460,11 @@ const qtyBtn = { width: 42, height: 42, borderRadius: 6, borderWidth: 1, borderC
 type GridRow = { kind: "header"; key: string; name: string; count: number } | { kind: "row"; key: string; items: Item[] };
 const catBtn = { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, height: 52, paddingHorizontal: 16, borderRadius: 6,
   borderWidth: 1, borderColor: c.line, backgroundColor: c.surface };
+
+// Stable list helpers (new functions on every render make a list re-check all of its rows).
+const rowKey = (r: GridRow) => r.key;
+const lineKey = (l: { id: string }) => l.id;
+const NO_LINES: never[] = [];
 
 /** Placeholder first tile while editing the menu. */
 const ADD_TILE = { id: "__add__" } as Item;
@@ -621,6 +599,7 @@ function BillPreviewSheet({ onClose, ticket }: { onClose: () => void; ticket?: b
 
 const grid = StyleSheet.create({
   row: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  content: { paddingBottom: 24 },
   header: { backgroundColor: c.bg, paddingTop: 10, paddingBottom: 8, flexDirection: "row", alignItems: "baseline", gap: 8 },
   headerName: { fontSize: 14, fontWeight: "800", color: c.ink, letterSpacing: 0.3 },
   headerCount: { color: c.ink2, fontSize: 12 },
@@ -652,8 +631,10 @@ const AddTile = memo(function AddTile({ width, onPress }: { width: number; onPre
 });
 
 /** One menu item; redraws only when its own count, price or size changes. */
-const MenuTile = memo(function MenuTile({ item, count, editing, width, salesTypeId, onPress }:
-  { item: Item; count: number; editing: boolean; width: number; salesTypeId: string | null; onPress: (item: Item) => void }) {
+const MenuTile = memo(function MenuTile({ item, editing, width, salesTypeId, onPress }:
+  { item: Item; editing: boolean; width: number; salesTypeId: string | null; onPress: (item: Item) => void }) {
+  // Each tile watches only its own count, so adding an item redraws that one tile, not the whole menu.
+  const count = useStore((s) => { let n = 0; for (const l of s.order?.lines ?? []) if (l.item_id === item.id) n += l.qty; return n; });
   const out = item.track_stock && item.stock <= 0;
   const ps = item.variants.map((v) => variantPrice(v, salesTypeId));
   const price = ps.length > 1 && Math.min(...ps) !== Math.max(...ps) ? t("from {v0}", { v0: money(Math.min(...ps)) }) : money(ps[0] ?? 0);
@@ -678,4 +659,65 @@ const MenuTile = memo(function MenuTile({ item, count, editing, width, salesType
         ) : null}
     </Tap>
   );
+});
+
+type CartLineProps = { line: OrderLineT; typeLabel: string | null; saved: boolean;
+  onOpen: (id: string) => void; onNote: (id: string) => void; onStep: (id: string, delta: number) => void };
+
+/** One line of the order. Skips redrawing unless something it shows changed. */
+const CartLine = memo(function CartLine({ line: l, typeLabel, saved, onOpen, onNote, onStep }: CartLineProps) {
+  const printed = printedQty(l);
+  return (
+    <FadeIn from={0} duration={220} style={cart.row}>
+      <Pressable onPress={() => onOpen(l.id)} accessibilityRole="button" accessibilityLabel={`${l.qty} ${lineLabel(l)}, ${money(l.line_total)}. Tap to edit`}
+        style={({ pressed }) => [cart.main, pressed && { opacity: 0.6 }]}>
+        <Text style={cart.name} numberOfLines={2}>{lineLabel(l)}</Text>
+        {typeLabel !== null ? <View style={typeTag.box}><Text style={typeTag.text} numberOfLines={1}>{typeLabel}</Text></View> : null}
+        {l.modifiers.length > 0 ? <Text style={cart.sub}>{l.modifiers.map((m) => m.option + (m.price ? ` +${money(m.price)}` : "")).join(", ")}</Text> : null}
+        {l.discount_amount > 0 ? <Text style={{ color: c.accent }}>{l.discount!.name} −{money(l.discount_amount)}</Text> : null}
+        {/* Price and the note link share one row to keep each line short. */}
+        <View style={cart.priceRow}>
+          <Text style={cart.price}>{money(l.line_total)}</Text>
+          <Pressable onPress={() => onNote(l.id)} accessibilityRole="button" hitSlop={6}
+            accessibilityLabel={l.note ? t("Note: {note}. Change", { note: l.note }) : t("Add a note to {v0}", { v0: lineLabel(l) })}
+            style={({ pressed }) => [noteBtn, !!l.note && { borderColor: c.warn, borderStyle: "solid" }, pressed && { backgroundColor: c.surface2 }]}>
+            <MaterialCommunityIcons name={l.note ? "note-text-outline" : "note-plus-outline"} size={16} color={l.note ? c.warn : c.accent} />
+            <Text style={{ color: l.note ? c.warn : c.accent, fontWeight: l.note ? "600" : "700", fontSize: 12, flexShrink: 1 }} numberOfLines={2}>{l.note ? `“${l.note}”` : t("Add note")}</Text>
+          </Pressable>
+          {/* Printed for the kitchen: all of it, or part (when more were added since). */}
+          {saved && printed > 0 ? (
+            <View style={cart.printed} accessibilityLabel={printed >= l.qty ? t("Printed") : t("{n} of {m} printed", { n: printed, m: l.qty })}>
+              <MaterialCommunityIcons name="printer-check" size={14} color={c.ink2} />
+              <Text style={cart.printedText}>{printed >= l.qty ? t("Printed") : t("{n} of {m} printed", { n: printed, m: l.qty })}</Text>
+            </View>
+          ) : null}
+        </View>
+      </Pressable>
+      <View style={cart.qty}>
+        <Pressable onPress={() => onStep(l.id, -1)} accessibilityRole="button" accessibilityLabel={`One less ${lineLabel(l)}`} hitSlop={4}
+          style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
+          <MaterialCommunityIcons name={l.qty === 1 && !(l.saved_qty ?? 0) ? "trash-can-outline" : "minus"} size={20} color={c.ink} />
+        </Pressable>
+        <Pop value={l.qty}><Text style={cart.qtyText}>{l.qty}</Text></Pop>
+        <Pressable onPress={() => onStep(l.id, 1)} accessibilityRole="button" accessibilityLabel={`One more ${lineLabel(l)}`} hitSlop={4}
+          style={({ pressed }) => [qtyBtn, pressed && { backgroundColor: c.surface2 }]}>
+          <MaterialCommunityIcons name="plus" size={20} color={c.ink} />
+        </Pressable>
+      </View>
+    </FadeIn>
+  );
+}, (a, b) => a.typeLabel === b.typeLabel && a.saved === b.saved && a.onOpen === b.onOpen && a.onNote === b.onNote && a.onStep === b.onStep
+  && (a.line === b.line || JSON.stringify(a.line) === JSON.stringify(b.line)));
+
+const cart = StyleSheet.create({
+  row: { flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 14, paddingRight: 8, paddingVertical: 4, borderBottomWidth: 1, borderColor: c.line },
+  main: { flex: 1, gap: 1, paddingVertical: 2 },
+  name: { fontWeight: "600", color: c.ink, fontSize: 14 },
+  sub: { color: c.ink2, fontSize: 12 },
+  priceRow: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  price: { fontWeight: "700", color: c.ink, fontSize: 13 },
+  printed: { flexDirection: "row", alignItems: "center", gap: 3 },
+  printedText: { color: c.ink2, fontSize: 11, fontWeight: "600" },
+  qty: { flexDirection: "row", alignItems: "center", gap: 4 },
+  qtyText: { minWidth: 28, textAlign: "center", fontSize: 16, fontWeight: "800", color: c.ink },
 });

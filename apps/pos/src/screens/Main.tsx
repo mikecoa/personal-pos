@@ -21,13 +21,15 @@ export function Main() {
   return (
     <View style={{ flex: 1, flexDirection: compact ? "column-reverse" : "row", backgroundColor: c.bg }}>
       <SideMenu bottom={compact} />
-      <FadeIn key={page} from={6} duration={160} style={{ flex: 1 }}>
-        {page === "pos" && <Sell />}
+      {/* The POS page stays mounted (just hidden) while another page is open, so going back to it
+          is instant instead of rebuilding the whole menu and order every time. */}
+      <View style={{ flex: 1, display: page === "pos" ? "flex" : "none" }}><Sell /></View>
+      {page !== "pos" && <FadeIn key={page} from={6} duration={160} style={{ flex: 1 }}>
         {page === "tables" && <TablesSheet page mode="seat" onClose={() => go("pos")} />}
         {page === "activity" && <ActivityPage />}
         {page === "shift" && <ShiftPage />}
         {page === "settings" && <SettingsPage />}
-      </FadeIn>
+      </FadeIn>}
       <ApprovalSheet />
       <SlipSheet />
     </View>
