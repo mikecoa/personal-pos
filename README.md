@@ -1,123 +1,164 @@
-<img src="brand/orda-mark-512.png" alt="Orda" width="72" />
+<p align="center">
+  <img src="brand/orda-mark-512.png" alt="Orda" width="96" />
+</p>
 
-# Orda
+<h1 align="center">Orda</h1>
 
-Point of sale for our cafés: a web **backoffice** and an Android tablet **POS app**. One account with many locations whose data is kept separate.
+<p align="center">
+  The point of sale for our cafés: an Android POS app for the counter and a web backoffice for the owner.<br />
+  Works offline, prints to Bluetooth, Wi-Fi and USB printers, and keeps every location's data separate.
+</p>
 
-- **Backoffice:** https://ordapos.vercel.app
-- **Tablet app (APK):** [download the latest release](https://github.com/mikecoa/personal-pos/releases/latest). Copy it to the tablet or phone and tap it to install. From 1.0.1 on, the app offers new versions itself.
+<p align="center">
+  <a href="https://ordapos.vercel.app"><b>Backoffice</b></a> ·
+  <a href="https://github.com/mikecoa/personal-pos/releases/latest"><b>Download the app</b></a> ·
+  <a href="docs/operations.md"><b>Day-to-day operations</b></a>
+</p>
 
-- Research: [docs/moka-study.md](docs/moka-study.md)
-- Plan: [docs/mvp-plan.md](docs/mvp-plan.md)
-- Running it day to day (backups, tablets, troubleshooting): [docs/operations.md](docs/operations.md)
-- Going live alongside Moka: [docs/go-live.md](docs/go-live.md)
+---
 
-## Layout
+## Contents
 
-```
-apps/backoffice      Next.js 15 web backoffice (port 3100)
-apps/pos             Expo (React Native) tablet POS, offline-first
-packages/core        Shared TypeScript: money, cart pricing, receipts/ESC-POS, CSV, permissions, DB types
-supabase/migrations  Database schema + Row-Level Security
-supabase/seed.sql    Local demo data and test logins
-supabase/tests       pgTAP tests proving location isolation
-```
+- [Getting started](#getting-started)
+- [The POS app](#the-pos-app)
+- [The backoffice](#the-backoffice)
+- [Run it locally](#run-it-locally)
+- [Release a new version](#release-a-new-version)
+- [Checks](#checks)
+- [How it works](#how-it-works)
+- [More docs](#more-docs)
 
-## Requirements
+## Getting started
 
-- Node 22 (`nvm use`, see `.nvmrc`) and pnpm 9 (`corepack enable`)
-- One React version for the whole repo (19.3.0, pinned by `pnpm.overrides`): Expo requires it, and mixing versions breaks the Next.js build
-- Docker engine (Colima: `colima start`) and the Supabase CLI
+1. **Install the app.** Download the APK from the [latest release](https://github.com/mikecoa/personal-pos/releases/latest), copy it to the tablet or phone and tap it. After that, the app offers new versions by itself.
+2. **Set up the tablet.** An owner or admin signs in once and picks the location. The tablet registers itself and gets its own receipt prefix (A1, A2…).
+3. **Unlock and sell.** Staff unlock the tablet with their 4-digit PIN. Their role decides what they can do; managers can approve anything else on the spot with their PIN.
 
-## Releasing
+Runs on Android tablets (built for the Samsung Galaxy Tab A11, landscape) and phones (portrait), in English or Indonesian.
 
-```bash
-supabase db push --remote          # first, when there are new migrations
-scripts/deploy-web.sh              # publish the backoffice to Vercel
-scripts/release-app.sh "What's new"   # build + publish a new tablet app version
-```
+## The POS app
 
-Before `release-app.sh`, bump `version` and `android.versionCode` (1, 2, 3 …) in `apps/pos/app.json`.
-The script builds `dist/orda-<version>.apk`, uploads it with a `latest.json` to the public
-`app-releases` storage bucket, and attaches it to a GitHub release. Tablets and phones running Orda
-1.0.1 or later then offer the update by themselves (when the app opens or comes back to the front,
-and never in the middle of an order); Android asks once to allow installing from Orda, and shows its
-own confirmation for every update.
+| | |
+|---|---|
+| **Selling** | Menu grouped by category with one category button, search by name or SKU, items with choices (size, temperature, spice level) in a quick pop-up, quick notes, item and bill discounts, customers with their own default discount, custom amounts. |
+| **Bills** | Save a bill to a table or by name, split it into several bills, move it to another table (a split bill moves as a whole), and see every open bill from all tablets in the Billing list. |
+| **Tables** | A floor map per area that shows busy tables with their total and how long they've been open. Managers can add, move and edit tables right on the tablet. |
+| **Payment** | Cash with suggested amounts and change, QR / e-wallet, card and other methods, and split payments. Charging always prints any order tickets the kitchen hasn't had yet. |
+| **Printing** | Receipts, bills and kitchen order tickets on 58 or 80 mm ESC/POS printers over Bluetooth, Wi-Fi or USB, with a preview before printing. |
+| **Shifts** | Starting cash, cash in/out, a blind cash count at closing, and a shift report with expected vs counted cash and totals per payment method. |
+| **After the sale** | Activity shows completed sales by day with search by receipt number; refunds per item to any payment method, optionally putting stock back. |
+| **Staff and safety** | PIN unlock with lockout after wrong tries, manager PIN approval for locked actions, and every void, cancellation and refund recorded with its reason. |
+| **Offline** | Everything is saved on the tablet first and syncs in the background. A sale is never lost when the internet drops. |
 
-## Run locally
+## The backoffice
 
-```bash
-colima start                 # container engine, once per boot
-pnpm install
-pnpm db:start                # local Supabase: API :54321, Studio :54323
-cp apps/backoffice/.env.example apps/backoffice/.env.local   # fill the anon key from `supabase status -o env`
-pnpm dev                     # http://localhost:3100
-```
-
-Test logins and employee PINs are listed in [supabase/seed.sql](supabase/seed.sql) (local only). The seed also generates 14 days of demo sales (up to the day before `pnpm db:reset` is run).
-
-`pnpm --filter backoffice build` writes to `.next-build`, so it can run while `pnpm dev` is serving from `.next`.
-
-## Backoffice pages
-
-| Section | Pages | Who |
+| Section | What's there | Who |
 |---|---|---|
-| Library (per location) | Items (variants, sales-type prices, modifiers, stock, copy to locations), Import CSV, Categories, Modifiers, Sales types, Discounts, Quick notes | Owner, admin |
-| Location settings | Checkout (tax, service, rounding, bills, shifts), Payment methods, Receipt (live preview), Tables (floor map per area, the same one the tablets show: drag to place or swap, click to edit; areas, seats, shape; bulk add "T1–T10"; shows which are in use), POS tablets | Owner, admin |
-| Employees | **Employee slots** (name, phone, email, role, locations, 4-digit PIN, backoffice status), **Employee access** (roles: POS permissions plus optional backoffice pages, Moka-style), **PIN access** (who can approve, which actions need a manager's PIN, per location) | Owner |
-| Business | Locations | Owner |
-| Reports | Dashboard (KPIs vs previous period, daily/hourly charts, payment mix, top items), Sales (summary, items, categories, modifiers, payments, sales types, discounts, staff), Transactions (sales, cancelled bills, voids, refunds; receipt search), Shifts (cash differences, cash in/out); CSV export everywhere | Owner, admin |
+| **Reports** | Dashboard (compared with the previous period, daily and hourly charts, payment mix, top items), sales by item, category, modifier, payment, sales type, discount and staff, transactions (sales, cancelled bills, voids, refunds), shifts. CSV export everywhere. | Owner, admin |
+| **Library** | Items (variants, prices per sales type, modifiers, stock, copy to other locations), CSV import, categories, modifiers, sales types, discounts, quick notes. | Owner, admin |
+| **Location settings** | Checkout (tax, service, rounding, bills, shifts), payment methods, receipt layout with live preview, the table floor map, POS tablets. | Owner, admin |
+| **Employees** | Employee slots with PINs, roles with POS and backoffice permissions, and which actions need a manager's PIN. | Owner |
+| **Business** | Locations. | Owner |
 
-Reports run through `report_sales` / `report_transactions` / `report_shifts` (SECURITY INVOKER, so RLS limits them to locations the user can see). Filters live in the URL (`?loc=all|<id>&range=7d|30d|month|…|custom&from=&to=`); days are bucketed in WIB. Definitions are documented at the top of `supabase/migrations/20261124000001_reports.sql`.
+Staff can get their own backoffice login: give their role backoffice pages and put an email on their employee slot; they then create an account with that email and see only the pages and locations they're allowed.
 
-Editors open as a side panel driven by the URL (`?edit=<id>` / `?new=1`). Multi-table saves go through database functions (`save_item`, `save_employee`, `copy_items_to_locations`) so they succeed or fail as a whole.
+## Run it locally
 
-## POS tablet app
+You need **Node 22** (`nvm use`), **pnpm 9** (`corepack enable`), **Docker** (e.g. `colima start`) and the **Supabase CLI**.
+
+```bash
+pnpm install
+pnpm db:start                # local Supabase: API on :54321, Studio on :54323
+cp apps/backoffice/.env.example apps/backoffice/.env.local   # anon key from `supabase status -o env`
+pnpm dev                     # backoffice on http://localhost:3100
+```
+
+For the POS app:
 
 ```bash
 cp apps/pos/.env.example apps/pos/.env.local   # anon key from `supabase status -o env`
-cd apps/pos && npx expo start --android         # opens in Expo Go on the emulator / tablet
+cd apps/pos && npx expo start --dev-client      # then open Orda's development build on the emulator or tablet
 ```
 
-The emulator reaches your Mac as `10.0.2.2`; a real tablet needs your Mac's LAN IP in `EXPO_PUBLIC_SUPABASE_URL`.
+An Android emulator reaches your Mac as `10.0.2.2`; a real tablet needs your Mac's LAN IP in `EXPO_PUBLIC_SUPABASE_URL`.
 
-- **Side menu** (collapsible; the choice is remembered on the tablet): *Point of Sale*, *Tables* (floor map, busy-table badge), *Activity* (completed sales by day, search by receipt number; details: payment method, receipt number, time, items with modifiers and totals; receipt and refund), *Shift* (Shift option, Current shift, Shift history; a dot means no shift is open), *Settings* (Account, Printer, Log out). On the POS screen, *Billing list* shows open bills (all tablets), cancelled bills with their reason, and item voids with reason, bill and who did it. The bottom shows who is signed in, with a lock button to switch employee.
-- **Item grid:** *All items* is grouped under a heading per category (pinned while scrolling; items without a category under *Other*). Categories are chosen from one button that opens a list with item counts (searchable when there are more than 8), so the screen stays tidy however many categories there are.
-- **Edit menu** (POS screen, *Edit items on the POS* permission): tap an item to change its name, category, price or sizes/variants, choices (modifier sets) and stock tracking, or remove it from the menu (it is hidden, past sales keep it). *New item* adds an item; categories are added, renamed and deleted from the category button's list (a deleted category's items stay). Online only, via `pos_save_item` / `pos_save_category`; fields the tablet doesn't show (description, photo, cost, per-sales-type prices) are kept.
-- **Customers** (POS cart → *Add customer*): search by name or phone, tap to put them on the bill. A customer can have a default discount (e.g. owner 20%) that is applied when they're picked and removed when they're taken off. Adding, editing and deleting customers needs *Edit customer details* and a connection (`pos_save_customer`); customers belong to the location and reach tablets with the catalog. Bills store `customer_id` plus the name as a snapshot.
-- **Shift report** (Current shift and each closed shift in Shift history) reads like Moka's Shift Details: shift details, order details (sold / refunded items open a list), cash (starting cash, cash sales, refunds, cash in/out, expected vs actual and the difference), each kind of non-cash payment (QR, card/EDC, delivery, invoice, other) with refunds and expected totals, then the total. *Print shift report* shows a preview until the printer is connected.
-- **Items with choices** (temperature, spice level, size…): the pop-up shows one button per combination (e.g. *Panas*, *Dingin*, or *Panas · Pedas* when there are two choices) and stays open, so *2 Panas + 1 Dingin* is three taps; each button shows how many are on the order with a − to undo. *More options* opens the full form (note, item discount, optional toppings) with an add button that keeps the pop-up open for the next one. An *On this order* list shows every line of that item with − / +.
-- **Notes:** every cart line (and each line in the item pop-up's *On this order*) has a *Note* button. The one-tap notes are the location's **quick notes** (Backoffice → Library → Quick notes: add, rename, reorder, and optionally limit a note to some categories), followed by up to 4 notes typed recently on that tablet. Managers can also edit the list from the note pop-up (*Edit notes*, needs internet; `pos_save_quick_notes`). With several on a line the note goes on **just 1** by default: it moves to its own line, or joins a line that already has that note.
-- **Cart:** each line has − / + buttons (− turns into a bin at 1; reducing a saved bill below what was saved asks for a void reason), menu tiles show how many are on the order, and the search box has a clear button.
-- **Manager PIN approval** (like Moka's PIN Access): an action asks for a manager's PIN when the location has locked it (Employees → **PIN access**) or when the cashier's role doesn't allow it. Anyone whose role has *Approve actions with their PIN* (Managers by default) approves on the spot; one approval covers one action, approvers are never asked, and wrong PINs count towards the PIN lockout. Covers saving/editing/moving/cancelling bills, voids, discounts, refunds, receipts, Activity, past shifts, customers and cash in/out. Works offline (the tablet checks PINs it already holds).
-- **Shift option** on the tablet changes the location's *Start shift automatically* and *Default starting cash* (`pos_shift_settings`, needs a connection and the *Change shift options on the POS* permission, on by default for Managers).
-- **Printer settings** (connection, IP or name, paper 58/80 mm, print after every sale, copies) are saved on the tablet; *Test print* shows a preview. Sending to a real printer comes once the printer model is known.
-- **Setup:** an owner/admin signs in once and picks the location; the tablet is registered (`register_device`) and gets a receipt prefix (A1, A2…).
-- **Unlock:** staff enter their 4-digit PIN, checked offline against bcrypt hashes in the catalog; their role's permissions apply.
-- **Offline-first:** everything is written to on-device SQLite first. A sync loop (every 10 s and after each change) uploads the outbox (shifts → orders → refunds) via `upsert_shift` / `upsert_order` / `submit_refund` (idempotent, versioned; completed sales are immutable), pulls open bills shared by all tablets at the location (`pos_open_orders`) and refreshes the catalog (`pos_catalog`) every 5 min.
-- **Shifts:** selling and refunds need an open shift on the tablet (auto-started if the location setting is on). Cash in/out is logged; closing asks for a blind cash count and shows expected vs counted plus totals per payment method (`summarizeShift` in core). Uploaded with `upsert_shift`; a closed shift is immutable.
-- **Refunds:** from Sales history, per item and quantity, to any payment method, optionally restocking. Amounts come from `refundAllocator` (bill discounts, tax and rounding shared out; refunding everything returns exactly the total). The server (`submit_refund`) re-checks quantities and amounts across all tablets.
-- **Tables:** *Tables* in the top bar opens a 2D floor map, one tab per area (a badge shows how many tables are in use). Each table shows its number and pax (guests/seats, e.g. 3/4 pax); busy tables are green and also show the bill total and time since it was opened. Tables sit on an 8-column grid (`pos_x`/`pos_y`; layout rules shared with the backoffice in `packages/core/src/floor.ts`); in edit mode drag a table to another cell, or onto another table to swap them, and the area's layout is saved (`pos_tables_layout`). Tables without a position fill the first free cells; moving a table to another area clears its position. Tap a free table to start a bill there (guests and optional customer name in the side panel); tap a busy one to open its bill. *Save bill* / *Update bill* also asks for the table (busy tables are greyed out; *No table* keeps a plain bill name for takeaway or bar orders). In the cart, the guests/customer pill edits them and *Move table* moves the whole bill (items, guests, customer) to a free table. A move is a new version of the bill, so it syncs to every tablet (last writer wins). Seating and moving need the *open bills* permission.
-- **Editing tables on the tablet:** employees with *Edit tables and areas on the POS* (`tables_manage`, on by default for Managers) get *Edit tables*, or can **hold any table** to jump into editing with it selected (or **hold an area tab** to open that area's name/delete editor). In edit mode, tapping tables selects them (*Select all* / *Clear* per area): one selected opens its editor (name, seats, area, delete); several selected can get the same seats and/or area, or be deleted together (refused as a whole if any has an open bill). *Add table* suggests the next name (e.g. T8 after T7). Areas can be added, renamed or deleted (their tables move to "No area"). Changes need a connection and go through `pos_table_setup` / `pos_tables_bulk`, which keeps them inside the tablet's location; other tablets get them with the next catalog refresh. The backoffice *Tables* page edits the same data.
-- **Upload errors:** each record is handled on its own (`classifySyncError` in core): network trouble → retry with backoff; expired sign-in → "Sign in again" from the sync badge (nothing lost); a record the server refuses → kept and shown as "needs attention" with Retry, without blocking the queue. The tablet reports its health (`device_heartbeat`) to the backoffice **Tablets** page, where a lost tablet can be revoked.
-- **PIN unlock:** one SHA-256 lookup (`pin_lookup`), bcrypt only for PINs set before lookups existed. 5 wrong PINs lock the pad (30 s, doubling).
-- **Printing:** receipts are laid out and ESC/POS-encoded in `packages/core/src/receipt.ts`; the Bluetooth/LAN transport is added once the printer model is known.
+Local test logins and employee PINs are in [`supabase/seed.sql`](supabase/seed.sql). The seed also creates 14 days of demo sales.
+
+<details>
+<summary><b>Repository layout</b></summary>
+
+```
+apps/backoffice      Next.js web backoffice (port 3100)
+apps/pos             Expo (React Native) POS app, offline-first
+packages/core        Shared TypeScript: money, cart pricing, receipts/ESC-POS, CSV, permissions, DB types
+supabase/migrations  Database schema and Row-Level Security
+supabase/seed.sql    Local demo data and test logins
+supabase/tests       pgTAP database tests
+scripts/             Release, deploy, backup and restore scripts
+```
+
+The whole repo uses one React version (pinned with `pnpm.overrides`), because Expo requires it and mixing versions breaks the Next.js build.
+</details>
+
+## Release a new version
+
+```bash
+supabase db push --remote             # 1. only when there are new migrations
+scripts/deploy-web.sh                 # 2. publish the backoffice to Vercel
+scripts/release-app.sh "What's new"   # 3. build and publish the POS app
+```
+
+Before step 3, raise `version` and `android.versionCode` in `apps/pos/app.json`. The app decides whether an update is newer by `versionCode` alone, so it must go up by one every release. The script asks for the signing key password, then builds `dist/orda-<version>.apk`, uploads it with a `latest.json` to the `app-releases` storage bucket and attaches it to a GitHub release.
+
+Tablets and phones offer the update when the app opens or comes back to the front, never in the middle of an order. Android asks once to allow installing from Orda and confirms every update.
 
 ## Checks
 
 ```bash
-pnpm db:test            # database tests (pgTAP)
-pnpm test:integration   # two simulated tablets against the running local Supabase
-pnpm db:backup          # back up to backups/<stamp>/ (restore: scripts/restore.sh)
-pnpm test         # unit tests
+pnpm test               # unit tests
 pnpm typecheck
-pnpm db:reset     # rebuild the local DB from migrations + seed
+pnpm db:test            # database tests (pgTAP)
+pnpm test:integration   # two simulated tablets against the local Supabase
+pnpm db:reset           # rebuild the local database from migrations and seed
+pnpm db:backup          # back up to backups/<stamp>/ (restore with scripts/restore.sh)
 ```
 
-## Staff backoffice logins
+## How it works
 
-A role can grant backoffice pages (Employees → Employee access → *Backoffice permissions*). An employee with that role and an email in their slot creates their login on the sign-in page (*Create an account*) with that email; `claim_employee_access` links the login to the slot and gives them access to the business, limited to the locations they work at. The backoffice then shows only the pages their role allows (`pageForPath` in `packages/core/src/backoffice.ts`; other pages show "no access"). Changing the role, locations or email, or deactivating the employee, updates or removes the login's access straight away (database triggers). Employees, Locations and account settings stay with the owner. Note: database rules work per location; the page list is enforced by the backoffice.
+<details>
+<summary><b>Offline-first sync</b></summary>
 
-## How location isolation works
+Every change is written to SQLite on the tablet first. A sync loop (every 10 s and after each change) uploads shifts, orders and refunds through `upsert_shift`, `upsert_order` and `submit_refund`. These are idempotent and versioned, and completed sales can't be changed. The tablet also pulls the open bills shared by all tablets at the location (`pos_open_orders`) and refreshes the catalog (`pos_catalog`) every 5 minutes.
 
-Every operational table has `account_id` + `location_id`, with a composite foreign key to `locations(id, account_id)` so a row can never point at another business's location. Row-Level Security calls `app.location_role(location_id)`: owners reach all their locations, admins and staff only the ones assigned in `member_locations`; only owners and admins can write. New location-scoped tables: add them to the policy loop in `supabase/migrations/20261121000001_catalog_settings_staff.sql` (same four policies + `freeze_scope` trigger) and add a cross-location test.
+Each record uploads on its own (`classifySyncError` in core): network trouble retries with backoff, an expired sign-in shows "Sign in again" without losing anything, and a record the server refuses is kept and marked "needs attention" without blocking the rest. Tablets report their health to the backoffice **Tablets** page, where a lost tablet can be revoked.
+</details>
+
+<details>
+<summary><b>Location isolation</b></summary>
+
+Every operational table has `account_id` and `location_id`, with a composite foreign key to `locations(id, account_id)`, so a row can never point at another business's location. Row-Level Security calls `app.location_role(location_id)`: owners reach all their locations, admins and staff only the ones assigned to them, and only owners and admins can write.
+
+To add a location-scoped table, add it to the policy loop in `supabase/migrations/20261121000001_catalog_settings_staff.sql` (the same four policies plus the `freeze_scope` trigger) and add a cross-location test.
+</details>
+
+<details>
+<summary><b>PINs and permissions</b></summary>
+
+PINs are checked offline against hashes in the catalog (one SHA-256 lookup; bcrypt only for older PINs). Five wrong PINs lock the pad for 30 seconds, doubling each time. A locked action asks for the PIN of anyone whose role can approve; one approval covers one action.
+
+The backoffice page list for staff logins is enforced by `pageForPath` in `packages/core/src/backoffice.ts`; database rules apply per location.
+</details>
+
+<details>
+<summary><b>Money, receipts and refunds</b></summary>
+
+Cart pricing, tax, service and rounding live in `packages/core`, shared by the app and the backoffice. Receipts are laid out and ESC/POS-encoded in `packages/core/src/receipt.ts`. Refund amounts come from `refundAllocator`: bill discounts, tax and rounding are shared out, and refunding everything returns exactly the total. The server re-checks refund quantities and amounts across all tablets.
+
+Reports run through `report_sales`, `report_transactions` and `report_shifts` (security invoker, so RLS limits them to locations the user can see). Days are counted in WIB.
+</details>
+
+## More docs
+
+- [Day-to-day operations](docs/operations.md): backups, tablets, troubleshooting
+- [Going live](docs/go-live.md)
+- [Original plan](docs/mvp-plan.md)
