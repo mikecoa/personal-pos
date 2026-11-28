@@ -1,12 +1,12 @@
 # POS MVP Plan
 
-Personal Moka-style POS: an **Android tablet app** for cashiers plus a **web backoffice** for the owner. One account, many locations, and each location's data kept separate. Based on [moka-study.md](moka-study.md).
+A personal POS for our cafés: an **Android tablet app** for cashiers plus a **web backoffice** for the owner. One account, many locations, and each location's data kept separate.
 
 ---
 
 ## 1. What the MVP must do (from how your café actually runs)
 
-| Need | Evidence from your Moka account |
+| Need | Evidence from how the café runs today |
 |---|---|
 | Fast item selection with modifiers | 177 items, 11 modifier sets (spice, hot/cold, flavour, combo choices) |
 | Sales types | Dine In, Take Away, GoFood, GrabFood, ShopeeFood, custom |
@@ -51,10 +51,10 @@ account (business, owner)
 
 - Every operational table has `account_id` and `location_id` (both NOT NULL).
 - **RLS policy on every table:** a row is visible or writable only if the user is a member of `account_id` *and* has access to `location_id` (the owner has every location).
-- **Sync scoping:** each tablet is registered to **one location** (like Moka's "Select Outlet"), so it only downloads that location's data.
+- **Sync scoping:** each tablet is registered to **one location** (picked once when the tablet is set up), so it only downloads that location's data.
 - **Cross-location is explicit, never implicit:**
   - Backoffice report filter "All locations" (owner only, read-only roll-up).
-  - "Copy to locations…" action on items, modifiers, discounts and so on. It creates independent copies linked by a shared `source_key`, so "update copies too" is optional and safe. Better than Moka's match-by-name.
+  - "Copy to locations…" action on items, modifiers, discounts and so on. It creates independent copies linked by a shared `source_key`, so "update copies too" is optional and safe. Safer than matching copies by name.
 - **Customers:** per location in the MVP (matches your rule). An account-wide "shared customers" option can come with loyalty later.
 
 ---
@@ -91,7 +91,7 @@ Product names and prices are copied onto order lines when sold, so later edits t
 
 ## 5. Screens
 
-### POS tablet app (landscape, two panes, like Moka but faster)
+### POS tablet app (landscape, two panes, built for speed)
 1. **Sign in** (owner email, once) → **pick location** → **employee PIN** to unlock.
 2. **Sell:** category chips across the top plus a **photo/tile grid** (not a drill-down list), search, Favorites, Custom amount keypad. Cart on the right: customer name (free text in the MVP), sales type, lines, totals, Save Bill / Print Bill / Split Bill / **Charge**.
 3. **Item sheet:** variant, modifier groups (required/optional, min/max), qty, note, line discount.
@@ -104,7 +104,7 @@ Product names and prices are copied onto order lines when sold, so later edits t
 ### Web backoffice
 1. **Dashboard:** gross/net sales, transactions, average sale, top items, sales by hour; location filter.
 2. **Reports:** Sales (summary, payment methods, sales types, items, categories, modifiers, discounts, cashier), Transactions (success / cancelled / voids), Shifts, all exportable to CSV.
-3. **Library:** items (with variants, per-sales-type prices, modifiers, stock tracking), categories, modifier sets, discounts, sales types; **CSV import (including your Moka item export)**; copy to locations.
+3. **Library:** items (with variants, per-sales-type prices, modifiers, stock tracking), categories, modifier sets, discounts, sales types; **CSV import (including the item export from your current POS)**; copy to locations.
 4. **Employees:** employees, roles and permissions, PINs.
 5. **Locations & settings:** locations, checkout settings, payment methods, receipt designer with live preview, devices.
 
@@ -115,11 +115,11 @@ Product names and prices are copied onto order lines when sold, so later edits t
 | Phase | Deliverable | You can… |
 |---|---|---|
 | **0. Foundations** ✅ | Monorepo, Supabase project, schema + RLS, auth, accounts/locations/members, seed data, RLS tests proving location A can't see B | Log in to an empty backoffice |
-| **1. Backoffice catalog & setup** ✅ | Locations, items/variants/modifiers/categories/sales types/discounts, payment methods, employees/roles/PIN, settings, receipt designer, **Moka CSV import** | Load your real menu |
+| **1. Backoffice catalog & setup** ✅ | Locations, items/variants/modifiers/categories/sales types/discounts, payment methods, employees/roles/PIN, settings, receipt designer, **CSV import of your current menu** | Load your real menu |
 | **2. POS selling (offline)** ✅ (printer transport pending hardware) | Expo app, device→location pairing, PowerSync, PIN unlock, sell screen, item sheet, cart maths, open bills + voids, charge + split payment, receipts on a Bluetooth printer | Ring up a real sale with Wi-Fi off |
 | **3. Shifts, activity, refunds** ✅ | Shift open/close, cash in/out, shift report print, activity, reprint, refunds | Run a full day |
 | **4. Reports** ✅ | Dashboard, sales sub-reports, transactions, shift report, CSV export | Close the month |
-| **5. Hardening** ✅ (trial week pending: needs hosting accounts + printer) | Sync conflict tests, a long offline run, printer edge cases, backups, error tracking | Use it alongside Moka for a week, then switch |
+| **5. Hardening** ✅ (trial week pending: needs hosting accounts + printer) | Sync conflict tests, a long offline run, printer edge cases, backups, error tracking | Use it alongside the old POS for a week, then switch |
 
 **Later (in rough priority order):** inventory (stock movements, adjustments, transfers, POs) → customers + loyalty → table map → promo rules + bundles → ingredients/recipes → kitchen display / customer display → QRIS payment gateway → online-order integrations.
 
@@ -130,7 +130,7 @@ Product names and prices are copied onto order lines when sold, so later edits t
 - **Shift expected cash** = starting cash + cash sales + cash invoice payments − cash refunds ± income/expense.
 - **Offline sync:** sales, payments, refunds, voids and shift records are **append-only** (no conflicts possible); catalog and settings are **server-wins**, edited only in the backoffice.
 - **Receipt numbers:** short per-device codes (e.g. `A7-000123`) so offline tablets never collide.
-- **Run alongside Moka** until a full week's reports match.
+- **Run alongside the old POS** until a full week's reports match.
 
 ---
 
