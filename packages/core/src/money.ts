@@ -16,7 +16,7 @@ export function percentOf(amount: Rupiah, percent: number): Rupiah {
   return rp(Math.floor((amount * bp + 5000) / 10000));
 }
 
-/** Format like Moka: "Rp 25.000" (id-ID grouping). */
+/** Indonesian rupiah format: "Rp 25.000" (id-ID grouping). */
 export function formatRupiah(amount: Rupiah): string {
   const sign = amount < 0 ? "-" : "";
   return `${sign}Rp ${Math.abs(amount).toLocaleString("id-ID")}`;

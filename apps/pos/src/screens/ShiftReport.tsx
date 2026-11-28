@@ -24,7 +24,7 @@ const GROUPS: { kind: string; title: string; refunds: string; expected: string }
 ];
 
 /**
- * A shift as one sectioned list (like Moka's Shift Details): shift details, order details, cash,
+ * A shift as one sectioned list (one section after another): shift details, order details, cash,
  * each kind of non-cash payment, and the total. Works for the open shift (live numbers) and for
  * closed shifts (numbers saved when the shift was closed, plus the counted cash).
  */

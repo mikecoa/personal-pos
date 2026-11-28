@@ -36,7 +36,7 @@ export function Importer({ locationName }: { locationName: string }) {
             {t("Download template")}
           </a>
         </div>
-        <p className="mt-3 text-xs text-ink-2">{t("From Excel: File → Save As → CSV. Moka exports with “Item Name / Category / Variant Name / Price / SKU” columns are recognised.")}</p>
+        <p className="mt-3 text-xs text-ink-2">{t("From Excel: File → Save As → CSV. Item exports from other POS apps with “Item Name / Category / Variant Name / Price / SKU” columns are recognised.")}</p>
       </Card>
 
       {result && (

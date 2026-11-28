@@ -95,7 +95,7 @@ export function ReceiptEditor({ initial, logo: initialLogo, receiptLogo: initial
         </div>
       </Card>
 
-      {/* Preview, laid out like the receipt Moka shows. */}
+      {/* Preview, laid out like the printed receipt. */}
       <div className="lg:sticky lg:top-6 lg:self-start">
         <p className="mb-2 text-xs font-semibold tracking-[0.06em] text-ink-2">{t("RECEIPT PREVIEW")}</p>
         <div className="rounded-2xl bg-surface-2 p-4 sm:p-5">

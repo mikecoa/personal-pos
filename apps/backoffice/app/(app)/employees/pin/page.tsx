@@ -22,7 +22,9 @@ export default async function PinAccessPage() {
     <div className="mx-auto max-w-4xl">
       <PageHeader title={t("PIN access")}
         description={<>{t("Actions at")} <b>{location.name}</b> {t("that need a manager to enter their PIN on the tablet. Switch location at the top left to set another one.")}</>} />
-      <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
+      {/* The form wraps both cards so its Save bar runs along the bottom of the page, not over the left card. */}
+      <SettingsForm action={savePinApproval}>
+      <div className="mb-4 grid items-start gap-6 md:grid-cols-[1fr_1.2fr]">
         <Card title={t("Who can approve")} description={t("Employees whose role has “Approve actions with their PIN” and who work here.")}>
           {approvers.length ? (
             <ul className="divide-y divide-line">
@@ -39,7 +41,6 @@ export default async function PinAccessPage() {
           ) : <p className="text-sm text-danger">{t("Nobody can approve yet. Give a role the permission in")} <Link className="underline" href="/employees/access">{t("Employee access")}</Link> {t("and assign it in")} <Link className="underline" href="/employees">{t("Employee slots")}</Link>.</p>}
           <p className="mt-3 text-xs text-ink-2">{t("Approvers never need approval themselves. Each approval covers one action, and wrong PINs count towards the tablet’s PIN lockout.")}</p>
         </Card>
-        <SettingsForm action={savePinApproval}>
           <Card title={t("Needs a manager’s PIN")} description={t("Ticked actions ask for a manager’s PIN even when the cashier’s role allows them. Actions a role doesn’t allow always ask.")}>
             <div className="divide-y divide-line">
               {PIN_LOCKABLE.map((a) => (
@@ -50,8 +51,8 @@ export default async function PinAccessPage() {
               ))}
             </div>
           </Card>
-        </SettingsForm>
       </div>
+      </SettingsForm>
     </div>
   );
 }

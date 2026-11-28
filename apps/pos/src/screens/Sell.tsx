@@ -184,7 +184,7 @@ export function Sell() {
             {order?.table_id ? (
               <>
                 <InfoTile icon="account-group-outline" text={order.guests ? t("{guests} guests", { guests: order.guests }) : t("Add guests")}
-                  dashed={!order.guests} onPress={() => setModal({ kind: "seating" })} a11y="Edit guests and customer" />
+                  dashed={!order.guests} onPress={() => setModal({ kind: "seating" })} a11y={t("Guests. Change")} />
                 <InfoTile icon="swap-horizontal" text={t("Move")} accent
                   onPress={() => guard("open_bills_manage", "Move the bill to another table", () => setModal({ kind: "move" }))} a11y="Move table" />
               </>
