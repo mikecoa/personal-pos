@@ -467,18 +467,17 @@ function AreaEditor({ id, onSaved, onDeleted }: { id: string | null; onSaved: (n
 }
 
 /** Edit guests / customer of the bill on screen. */
+/** How many guests sit at the bill's table (the customer is set from the Customer chip). */
 export function SeatingSheet({ onClose }: { onClose: () => void }) {
   const order = useStore((s) => s.order)!;
   const [guests, setGuests] = useState(order.guests ?? 1);
-  const [name, setName] = useState(order.customer_name ?? "");
   return (
-    <Sheet visible onClose={onClose} title={t("Table {v0}", { v0: tableLabel(order) })} width={480}
-      footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} /><Btn style={{ flex: 1 }} title={t("Save")} onPress={() => { updateSeating(guests, name.trim() || null); onClose(); }} /></>}>
+    <Sheet visible onClose={onClose} title={t("Guests at table {name}", { name: order.table_name ?? "" })} width={420}
+      footer={<><Btn kind="secondary" title={t("Cancel")} onPress={onClose} /><Btn style={{ flex: 1 }} title={t("Save")} onPress={() => { updateSeating(guests, order.customer_name ?? null); onClose(); }} /></>}>
       <View style={st.rowBetween}>
         <Label>{t("Guests")}</Label>
         <Stepper value={guests} min={1} onChange={setGuests} />
       </View>
-      <Field label={t("Customer name")} value={name} onChangeText={setName} placeholder={t("optional")} maxLength={40} />
     </Sheet>
   );
 }

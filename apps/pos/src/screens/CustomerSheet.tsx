@@ -43,7 +43,7 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet visible onClose={onClose} title={t("Customers")} width={760}
       footer={<>
-        {!!(order?.customer_id) && <Btn kind="secondary" title={t("Remove from bill")} onPress={() => { setOrderCustomer(null); onClose(); }} />}
+        {!!(order?.customer_id || order?.customer_name) && <Btn kind="secondary" title={t("Remove from bill")} onPress={() => { setOrderCustomer(null); onClose(); }} />}
         <View style={{ flex: 1 }} />
         {canEdit && <Btn title={t("+ New customer")} onPress={() => guard("customers_edit", "Add a customer", () => setEditing("new"))} />}
       </>}>
@@ -52,6 +52,18 @@ export function CustomerSheet({ onClose }: { onClose: () => void }) {
         <TextInput disableFullscreenUI value={q} onChangeText={setQ} placeholder={t("Search name or phone")} placeholderTextColor="#98a29c" accessibilityLabel="Search customers"
           autoFocus style={{ flex: 1, fontSize: 15, color: c.ink, height: 48 }} />
       </View>
+      {/* A walk-in: just write the name on the bill, without saving a customer. */}
+      {!!q.trim() && !/^[\d+\s-]+$/.test(q.trim()) && !customers.some((cu) => cu.name.toLowerCase() === q.trim().toLowerCase()) && (
+        <Pressable onPress={() => { setOrderCustomer(null, q.trim()); onClose(); }} accessibilityRole="button"
+          accessibilityLabel={t("Write “{name}” on the bill", { name: q.trim() })}
+          style={({ pressed }) => [st.typed, pressed && { backgroundColor: c.accentSoft }]}>
+          <MaterialCommunityIcons name="pencil-plus-outline" size={22} color={c.accent} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }} numberOfLines={1}>{t("Write “{name}” on the bill", { name: q.trim() })}</Text>
+            <Text style={{ color: c.ink2, fontSize: 13 }}>{t("Just the name, without saving a customer")}</Text>
+          </View>
+        </Pressable>
+      )}
       {customers.length === 0 ? (
         <View style={{ padding: 24, alignItems: "center", gap: 6 }}>
           <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{t("No customers yet")}</Text>
@@ -142,6 +154,7 @@ function CustomerForm({ customer, initialName, onBack, onSaved }: {
 }
 
 const st = StyleSheet.create({
+  typed: { flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: r.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.accent },
   search: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
   list: { borderRadius: r.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 12, paddingLeft: 14, paddingRight: 6 },
