@@ -86,7 +86,7 @@ export async function printLines(p: PrinterSettings, lines: string[], copies = p
     if (m.includes("BLUETOOTH_PERMISSION")) throw new Error(t("Bluetooth printers need the “Nearby devices” permission."));
     if (m.includes("USB_PERMISSION")) throw new Error(t("Allow USB access to the printer first (Settings → Printer)."));
     if (m.includes("BLUETOOTH_OFF")) throw new Error(t("Bluetooth is off on this tablet. Turn it on and try again."));
-    if (m.includes("BLUETOOTH_CONNECT")) throw new Error(t("Couldn't connect to the Bluetooth printer. Make sure it's on, and that no other app (like Moka) is connected to it, then try again."));
+    if (m.includes("BLUETOOTH_CONNECT")) throw new Error(t("Couldn't connect to the Bluetooth printer. Make sure it's on, and that no other app or tablet is connected to it, then try again."));
     // Keep the technical reason visible so an unexpected failure can be diagnosed from a photo.
     const why = m.replace(/^.*(Caused by|→)\s*:?\s*/s, "").slice(0, 120);
     throw new Error(`${t("Couldn't reach the printer. Check it's on and connected.")}${why ? ` (${why})` : ""}`);

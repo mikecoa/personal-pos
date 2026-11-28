@@ -240,7 +240,7 @@ export const ID: Record<string, string> = {
   "Choose file": "Pilih file",
   "No file chosen": "Belum ada file",
   "Download template": "Unduh template",
-  "From Excel: File → Save As → CSV. Moka exports with “Item Name / Category / Variant Name / Price / SKU” columns are recognised.": "Dari Excel: File → Save As → CSV. Ekspor Moka dengan kolom “Item Name / Category / Variant Name / Price / SKU” juga dikenali.",
+  "From Excel: File → Save As → CSV. Item exports from other POS apps with “Item Name / Category / Variant Name / Price / SKU” columns are recognised.": "Dari Excel: File → Save As → CSV. Ekspor item dari aplikasi POS lain dengan kolom “Item Name / Category / Variant Name / Price / SKU” juga dikenali.",
   "2. Check {n} items": "2. Cek {n} item",
   "They will be added to {place}. Items whose name already exists there are skipped.": "Item akan ditambahkan ke {place}. Item yang namanya sudah ada di sana dilewati.",
   "Prices": "Harga",

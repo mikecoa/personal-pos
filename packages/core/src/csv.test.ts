@@ -21,7 +21,7 @@ describe("parsePrice", () => {
 });
 
 describe("rowsToItems", () => {
-  it("maps Indonesian/Moka-style headers and groups variants", () => {
+  it("maps Indonesian and English export headers and groups variants", () => {
     const rows = parseCsv([
       "Item Name,Category,Variant Name,Price,SKU",
       "Kopi Susu,Minuman,Regular,18000,KS-R",
